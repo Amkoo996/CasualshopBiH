@@ -35,8 +35,8 @@ import {
   getSubscribers,
   getStoreSettings,
   saveStoreSettings,
-  resetDemoProducts,
 } from '../lib/db';
+import { uploadImage } from '../lib/upload';
 import { useCart } from '../context/CartContext';
 import { SalesTrendChart } from '../components/admin/SalesTrendChart';
 import { FunnelAnalytics } from '../components/admin/FunnelAnalytics';
@@ -45,7 +45,7 @@ import { TrafficAndCartStatsTable } from '../components/admin/TrafficAndCartStat
 import { generateOrderInvoicePDF, getWhatsAppConfirmationUrl } from '../lib/pdfInvoice';
 
 export const AdminDashboard: React.FC = () => {
-  const { user, isAdmin, loginWithEmail, signOut, isDemoAdmin } = useAuth();
+  const { user, isAdmin, loginWithEmail, signOut } = useAuth();
   const { refreshSettings } = useCart();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'leads' | 'products' | 'orders' | 'subscribers' | 'settings'>('overview');
@@ -63,10 +63,11 @@ export const AdminDashboard: React.FC = () => {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // Product modal state
+  // Product modal & Image upload state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   // Orders filter & search
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('Sve');
@@ -117,6 +118,28 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  // UPLOAD IMAGE HANDLER (Cloudinary)
+  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const f of files) {
+        urls.push(await uploadImage(f));
+      }
+      setEditingProduct((prev: any) => ({
+        ...prev,
+        images: [...(prev?.images || []), ...urls],
+      }));
+    } catch (err: any) {
+      alert(err?.message || 'Upload slike nije uspio.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
   // LOGIN SCREEN
   if (!isAdmin) {
     return (
@@ -153,7 +176,7 @@ export const AdminDashboard: React.FC = () => {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="redemption19@gmail.com"
+                placeholder="Unesite vaš email"
                 className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-['Inter'] focus:border-black focus:outline-none"
               />
             </div>
@@ -197,10 +220,6 @@ export const AdminDashboard: React.FC = () => {
               {loginLoading ? 'Prijavljivanje...' : 'Prijavi se'}
             </button>
           </form>
-
-          <p className="text-[11px] text-neutral-400 pt-2 font-['Inter']">
-            Ovlašteni administrator: Ahmed P.
-          </p>
         </div>
       </div>
     );
@@ -298,7 +317,7 @@ export const AdminDashboard: React.FC = () => {
   const handleSyncAuthenticProducts = async () => {
     try {
       await loadData();
-      alert('Uspješno sinhronizovano! Autentični artikli brenda sa slikama su učitani u Firestore bazu.');
+      alert('Uspješno sinhronizovano!');
     } catch {
       alert('Greška pri sinhronizaciji artikala.');
     }
@@ -369,14 +388,12 @@ export const AdminDashboard: React.FC = () => {
             <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] border border-[#F7E97F] px-2 py-0.5">
               ADMIN PANEL
             </span>
-              </span>
-            )}
           </div>
           <h1 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-neutral-900 mt-1">
             KONTROLNA TABLA • CASUAL SHOP BIH
           </h1>
           <p className="text-xs text-neutral-600 font-['Inter']">
-            Prijavljeni admin: {user?.email || 'redemption19@gmail.com'}
+            Prijavljeni admin: {user?.email || 'Administrator'}
           </p>
         </div>
 
@@ -1375,10 +1392,26 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* UPLOAD SLIKA SA UREĐAJA / URL GALERIJA */}
               <div className="space-y-2 border-2 border-neutral-300 p-4 bg-white">
                 <label className="block font-['Poppins'] font-bold uppercase text-neutral-800">
                   Galerija slika (Prva slika je glavna za prikaz):
                 </label>
+
+                {/* Dugme za preuzimanje sa telefona / računara */}
+                <div className="mb-3">
+                  <label className="inline-block px-4 py-2 bg-[#F7E97F] text-[#0A0A0A] font-bold text-xs uppercase cursor-pointer border border-[#0A0A0A] shadow-sm hover:bg-yellow-300 transition-colors">
+                    {uploading ? 'Učitavanje...' : 'Učitaj slike sa uređaja'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleFiles}
+                      disabled={uploading}
+                    />
+                  </label>
+                </div>
 
                 {editingProduct.images && editingProduct.images.length > 0 && (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -1431,7 +1464,7 @@ export const AdminDashboard: React.FC = () => {
                     type="url"
                     value={newImageUrl}
                     onChange={(e) => setNewImageUrl(e.target.value)}
-                    placeholder="Unesite URL slike..."
+                    placeholder="Ili unesite URL slike ručno..."
                     className="flex-1 border border-neutral-300 p-2 text-xs focus:border-black focus:outline-none"
                   />
                   <button
@@ -1439,7 +1472,7 @@ export const AdminDashboard: React.FC = () => {
                     onClick={addImage}
                     className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase"
                   >
-                    Dodaj sliku
+                    Dodaj URL
                   </button>
                 </div>
               </div>
