@@ -45,7 +45,7 @@ import { TrafficAndCartStatsTable } from '../components/admin/TrafficAndCartStat
 import { generateOrderInvoicePDF, getWhatsAppConfirmationUrl } from '../lib/pdfInvoice';
 
 export const AdminDashboard: React.FC = () => {
-  const { user, isAdmin, loginWithEmail, signOut, loginAsDemoAdmin, isDemoAdmin } = useAuth();
+  const { user, isAdmin, loginWithEmail, signOut, isDemoAdmin } = useAuth();
   const { refreshSettings } = useCart();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'leads' | 'products' | 'orders' | 'subscribers' | 'settings'>('overview');
@@ -198,23 +198,8 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </form>
 
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-neutral-300"></div>
-            <span className="flex-shrink mx-3 text-neutral-400 text-[10px] uppercase font-bold tracking-wider">
-              ili za testiranje
-            </span>
-            <div className="flex-grow border-t border-neutral-300"></div>
-          </div>
-
-          <button
-            onClick={() => loginAsDemoAdmin()}
-            className="w-full py-2.5 bg-[#F4F2EC] border-2 border-neutral-300 text-neutral-800 text-xs font-['Poppins'] font-bold uppercase tracking-wider hover:bg-neutral-200 transition-colors"
-          >
-            Brzi Demo Admin Pristup
-          </button>
-
           <p className="text-[11px] text-neutral-400 pt-2 font-['Inter']">
-            Ovlašteni administrator: redemption19@gmail.com
+            Ovlašteni administrator: Ahmed P.
           </p>
         </div>
       </div>
@@ -312,7 +297,6 @@ export const AdminDashboard: React.FC = () => {
 
   const handleSyncAuthenticProducts = async () => {
     try {
-      await resetDemoProducts();
       await loadData();
       alert('Uspješno sinhronizovano! Autentični artikli brenda sa slikama su učitani u Firestore bazu.');
     } catch {
@@ -385,9 +369,6 @@ export const AdminDashboard: React.FC = () => {
             <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] border border-[#F7E97F] px-2 py-0.5">
               ADMIN PANEL
             </span>
-            {isDemoAdmin && (
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 px-2 py-0.5">
-                DEMO NAČIN RADA
               </span>
             )}
           </div>
