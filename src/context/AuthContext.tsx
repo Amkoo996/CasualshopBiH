@@ -1,91 +1,81 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User, 
-  signInWithEmailAndPassword, 
-  signOut as firebaseSignOut, 
+import {
+  User,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
   onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
-  browserSessionPersistence
+  browserSessionPersistence,
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
-
-// Lista dozvoljenih admin email adresa
-const AUTHORIZED_ADMIN_EMAILS = [
-  "reddemption19@gmail.com",
-  "tarik.dizdar@gmail.com"
-];
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 
 interface AuthContextType {
   user: User | null;
   isAdmin: boolean;
-  isDemoAdmin: boolean;
   loginWithEmail: (email: string, pass: string, remember: boolean) => Promise<void>;
-  loginAsDemoAdmin: () => void;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function checkAdmin(uid: string): Promise<boolean> {
+  try {
+    const snap = await getDoc(doc(db, 'admins', uid));
+    return snap.exists();
+  } catch {
+    return false;
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isDemoAdmin, setIsDemoAdmin] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && currentUser.email) {
-        const userEmail = currentUser.email.trim().toLowerCase();
-        const isAuthorized = AUTHORIZED_ADMIN_EMAILS.some(e => e.toLowerCase() === userEmail);
-
-        if (isAuthorized) {
-          setUser(currentUser);
-          setIsDemoAdmin(false);
-        } else {
-          firebaseSignOut(auth);
-          setUser(null);
-          alert("Pristup odbijen! Vaša e-mail adresa nema admin privilegije.");
-        }
-      } else {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
         setUser(null);
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+      const ok = await checkAdmin(currentUser.uid);
+      if (ok) {
+        setUser(currentUser);
+        setIsAdmin(true);
+      } else {
+        await firebaseSignOut(auth);
+        setUser(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
   const loginWithEmail = async (email: string, pass: string, remember: boolean) => {
-    const cleanEmail = email.trim().toLowerCase();
-    const isAuthorized = AUTHORIZED_ADMIN_EMAILS.some(e => e.toLowerCase() === cleanEmail);
-
-    if (!isAuthorized) {
-      throw new Error("Nemate dozvolu za pristup admin panelu sa ovom e-mail adresom.");
+    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+    const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
+    const ok = await checkAdmin(cred.user.uid);
+    if (!ok) {
+      await firebaseSignOut(auth);
+      throw new Error('Nemate dozvolu za pristup admin panelu.');
     }
-
-    const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
-    await setPersistence(auth, persistence);
-    await signInWithEmailAndPassword(auth, email, pass);
-    setIsDemoAdmin(false);
-  };
-
-  const loginAsDemoAdmin = () => {
-    setIsDemoAdmin(true);
+    setUser(cred.user);
+    setIsAdmin(true);
   };
 
   const signOut = async () => {
-    setIsDemoAdmin(false);
     await firebaseSignOut(auth);
+    setUser(null);
+    setIsAdmin(false);
   };
 
-  const isAdmin = isDemoAdmin || (
-    user !== null && 
-    user.email !== null && 
-    AUTHORIZED_ADMIN_EMAILS.some(e => e.toLowerCase() === user.email?.trim().toLowerCase())
-  );
-
   return (
-    <AuthContext.Provider value={{ user, isAdmin, isDemoAdmin, loginWithEmail, loginAsDemoAdmin, signOut }}>
+    <AuthContext.Provider value={{ user, isAdmin, loginWithEmail, signOut }}>
       {!loading && children}
     </AuthContext.Provider>
   );
