@@ -18,6 +18,7 @@ export const PRODUCTS_COLLECTION = 'products';
 export const ORDERS_COLLECTION = 'orders';
 export const SUBSCRIBERS_COLLECTION = 'subscribers';
 export const SETTINGS_COLLECTION = 'settings';
+export const WISHLISTS_COLLECTION = 'wishlists';
 
 // ------------------------------------------------------------------
 // 1. PROIZVODI (PRODUCTS)
@@ -156,7 +157,7 @@ export async function subscribeNewsletter(email: string): Promise<void> {
 
 export async function getStoreSettings(): Promise<StoreSettings> {
   try {
-    const settingsRef = doc(db, SETTINGS_COLLECTION, 'general');
+    const settingsRef = doc(doc(db, SETTINGS_COLLECTION, 'general'));
     const snap = await getDoc(settingsRef);
     if (snap.exists()) {
       return { ...DEFAULT_STORE_SETTINGS, ...snap.data() } as StoreSettings;
@@ -170,4 +171,30 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 export async function saveStoreSettings(settings: StoreSettings): Promise<void> {
   const settingsRef = doc(db, SETTINGS_COLLECTION, 'general');
   await setDoc(settingsRef, settings, { merge: true });
+}
+
+// ------------------------------------------------------------------
+// 5. LISTA ŽELJA (WISHLIST)
+// ------------------------------------------------------------------
+
+export async function getUserWishlist(userId: string): Promise<string[]> {
+  try {
+    const wishlistRef = doc(db, WISHLISTS_COLLECTION, userId);
+    const snap = await getDoc(wishlistRef);
+    if (snap.exists()) {
+      return snap.data().productIds || [];
+    }
+  } catch (error) {
+    console.error('Greška pri dohvatanju liste želja:', error);
+  }
+  return [];
+}
+
+export async function saveUserWishlist(userId: string, productIds: string[]): Promise<void> {
+  try {
+    const wishlistRef = doc(db, WISHLISTS_COLLECTION, userId);
+    await setDoc(wishlistRef, { productIds, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (error) {
+    console.error('Greška pri spremanju liste želja:', error);
+  }
 }
