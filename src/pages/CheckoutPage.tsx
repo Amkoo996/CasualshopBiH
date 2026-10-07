@@ -105,7 +105,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         createdAt: new Date().toISOString(),
       };
 
-      // 1. Spremanje narudžbe u Firestore bazu
+      // 1. Spremanje narudžbe i umanjivanje zalihe u jednoj transakciji
       const docId = await createOrder(orderData);
       const finalizedOrder: Order = {
         ...orderData,
@@ -137,8 +137,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             }
           })
         });
-      } catch (err.message) {
-        console.warn('E-mail obavijest nije poslana, ali narudžba je spremljena u bazu:', err.message);
+      } catch (err: any) {
+        console.warn('E-mail obavijest nije poslana, ali narudžba je spremljena u bazu:', err?.message || err);
       }
 
       // Analytics event purchase
@@ -150,9 +150,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
       // Navigate to order confirmation
       onOrderSuccess(finalizedOrder);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Greška pri kreiranju narudžbe:', error);
-      alert('Došlo je do greške prilikom obrade narudžbe. Pokušajte ponovo.');
+      alert(error?.message || 'Došlo je do greške prilikom obrade narudžbe. Pokušajte ponovo.');
     } finally {
       setSubmitting(false);
     }
