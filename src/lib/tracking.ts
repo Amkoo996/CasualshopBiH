@@ -7,7 +7,6 @@ import {
   updateDoc, 
   increment, 
   query, 
-  where, 
   orderBy, 
   limit 
 } from 'firebase/firestore';
@@ -30,7 +29,7 @@ export interface AnalyticsEvent {
   metadata?: Record<string, any>;
 }
 
-// P1.4: Inicijalne vrijednosti postavljene na 0 (bez lažnih brojki)
+// Inicijalne čistije vrijednosti (bez lažnih brojki)
 export const DEFAULT_METRICS: StoreFunnelMetrics = {
   totalVisits: 0,
   productViews: 0,
@@ -52,7 +51,7 @@ export async function recordAnalyticsEvent(
   eventType: AnalyticsEvent['eventType'],
   metadata?: Record<string, any>
 ) {
-  // P2.2: Praćenje se izvršava samo ako je korisnik prihvatio kolačiće
+  // Praćenje se izvršava samo ako je korisnik prihvatio kolačiće
   if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
 
   try {
@@ -72,7 +71,6 @@ export async function recordAnalyticsEvent(
     const newDocRef = doc(eventsRef);
     await setDoc(newDocRef, eventData);
 
-    // Ažuriranje agregiranih funkcija u store_metrics/funnel
     const funnelRef = doc(db, 'store_metrics', 'funnel');
     const updateData: Record<string, any> = {};
 
@@ -92,7 +90,10 @@ export async function recordAnalyticsEvent(
   }
 }
 
-// POMOĆNE EXPORT FUNKCIJE KOJE POZIVAJU KOMPONENTE
+// ------------------------------------------------------------------
+// KOMPLETNE POMOĆNE EXPORT FUNKCIJE ZA SVE KOMPONENTE REPOZITORIJA
+// ------------------------------------------------------------------
+
 export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
   try {
     const funnelRef = doc(db, 'store_metrics', 'funnel');
