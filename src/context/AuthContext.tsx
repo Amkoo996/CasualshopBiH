@@ -53,11 +53,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setLoading(false);
     });
+
     return () => unsubscribe();
   }, []);
 
   const loginWithEmail = async (email: string, pass: string, remember: boolean) => {
-    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+    await setPersistence(
+      auth,
+      remember ? browserLocalPersistence : browserSessionPersistence
+    );
     const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
     const ok = await checkAdmin(cred.user.uid);
     if (!ok) {
