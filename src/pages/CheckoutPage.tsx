@@ -137,8 +137,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             }
           })
         });
-      } catch (emailErr) {
-        console.warn('E-mail obavijest nije poslana, ali narudžba je spremljena u bazu:', emailErr);
+      } catch (err.message) {
+        console.warn('E-mail obavijest nije poslana, ali narudžba je spremljena u bazu:', err.message);
       }
 
       // Analytics event purchase
