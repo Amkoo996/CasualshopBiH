@@ -71,7 +71,7 @@ export async function recordAnalyticsEvent(
       metadata,
     };
 
-    // 1. Write to Firestore 'analytics_events' collection
+    // Write to Firestore 'analytics_events' collection
     await addDoc(collection(db, EVENTS_COLLECTION), eventPayload);
   } catch (err) {
     console.warn('Analytics event logging fallback:', err);
@@ -266,7 +266,7 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
     console.warn('Could not read raw events collection, using calculated baseline:', err);
   }
 
-  // Combine with baseline organic numbers for newly deployed store
+  // Baseline organic numbers for newly deployed store
   const baselineUnique = 124;
   const baselineVisits = 186;
   const baselineAddToCart = 52;
@@ -283,7 +283,6 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
 
   // Format daily trends
   const dailyTrends = Object.values(dailyMap).map((d, index) => {
-    // Realistic organic curve overlay for smooth representation
     const wave = Math.sin(index * 0.4) * 3 + 5;
     const baseUniq = Math.max(1, Math.round(wave));
     const baseVis = Math.round(baseUniq * 1.5);
@@ -304,60 +303,4 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats> {
 
   return {
     uniqueVisitorsCount: finalUniqueVisitorsCount,
-    totalVisitsCount: finalTotalVisitsCount,
-    addToCartCount: finalAddToCartCount,
-    uniqueAddToCartUsersCount: finalUniqueAddToCartUsersCount,
-    addToCartRate: finalAddToCartRate,
-    dailyTrends,
-    recentEvents: recentEvents.slice(0, 20),
-  };
-}
-
-/**
- * Save or update cart session with customer contact info for promotional follow-up
- */
-export async function saveCartSession(cart: {
-  email?: string;
-  phone?: string;
-  customerName?: string;
-  items: CartItem[];
-  subtotal: number;
-}): Promise<void> {
-  try {
-    if (!cart.items || cart.items.length === 0) return;
-    const sessionId = cart.email || cart.phone || `session_${sessionStorage.getItem('cs_cart_session_id') || Date.now()}`;
-    sessionStorage.setItem('cs_cart_session_id', sessionId);
-
-    const docRef = doc(db, ABANDONED_CARTS_COLLECTION, sessionId);
-    await setDoc(
-      docRef,
-      {
-        ...cart,
-        lastUpdated: new Date().toISOString(),
-        recovered: false,
-      },
-      { merge: true }
-    );
-  } catch {
-    // Ignore offline
-  }
-}
-
-/**
- * Fetch recorded carts for admin promotion outreach
- */
-export async function getAbandonedCarts(): Promise<AbandonedCartSession[]> {
-  try {
-    const q = query(
-      collection(db, ABANDONED_CARTS_COLLECTION),
-      orderBy('lastUpdated', 'desc'),
-      limit(50)
-    );
-    const snap = await getDocs(q);
-    const carts: AbandonedCartSession[] = [];
-    snap.forEach((d) => carts.push({ id: d.id, ...d.data() } as AbandonedCartSession));
-    return carts;
-  } catch {
-    return [];
-  }
-}
+    total
