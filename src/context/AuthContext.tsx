@@ -10,7 +10,11 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
-const AUTHORIZED_ADMIN_EMAIL = "reddemption19@gmail.com", "tarik.dizdar@gmail.com";
+// Lista dozvoljenih admin email adresa
+const AUTHORIZED_ADMIN_EMAILS = [
+  "reddemption19@gmail.com",
+  "tarik.dizdar@gmail.com"
+];
 
 interface AuthContextType {
   user: User | null;
@@ -30,13 +34,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        // Provjera da li prijavljeni korisnik odgovara admin e-mailu
-        if (currentUser.email?.toLowerCase() === AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+      if (currentUser && currentUser.email) {
+        const userEmail = currentUser.email.trim().toLowerCase();
+        const isAuthorized = AUTHORIZED_ADMIN_EMAILS.some(e => e.toLowerCase() === userEmail);
+
+        if (isAuthorized) {
           setUser(currentUser);
           setIsDemoAdmin(false);
         } else {
-          // Ako neko drugi nastoji napraviti login, automatski ga odjavljujemo
           firebaseSignOut(auth);
           setUser(null);
           alert("Pristup odbijen! Vaša e-mail adresa nema admin privilegije.");
@@ -51,7 +56,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loginWithEmail = async (email: string, pass: string, remember: boolean) => {
-    if (email.trim().toLowerCase() !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+    const cleanEmail = email.trim().toLowerCase();
+    const isAuthorized = AUTHORIZED_ADMIN_EMAILS.some(e => e.toLowerCase() === cleanEmail);
+
+    if (!isAuthorized) {
       throw new Error("Nemate dozvolu za pristup admin panelu sa ovom e-mail adresom.");
     }
 
@@ -70,7 +78,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await firebaseSignOut(auth);
   };
 
-  const isAdmin = isDemoAdmin || (user !== null && user.email?.toLowerCase() === AUTHORIZED_ADMIN_EMAIL.toLowerCase());
+  const isAdmin = isDemoAdmin || (
+    user !== null && 
+    user.email !== null && 
+    AUTHORIZED_ADMIN_EMAILS.some(e => e.toLowerCase() === user.email?.trim().toLowerCase())
+  );
 
   return (
     <AuthContext.Provider value={{ user, isAdmin, isDemoAdmin, loginWithEmail, loginAsDemoAdmin, signOut }}>
