@@ -1,31 +1,36 @@
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  increment,
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  addDoc,
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  updateDoc, 
+  increment, 
+  query, 
+  where, 
+  orderBy, 
+  limit 
 } from 'firebase/firestore';
 import { db } from './firebase';
-import {
-  StoreFunnelMetrics,
-  AbandonedCartSession,
-  CartItem,
-  AnalyticsEvent,
-  AnalyticsEventType,
-  AnalyticsStats,
-} from '../types';
 
-const METRICS_COLLECTION = 'store_metrics';
-const FUNNEL_DOC = 'funnel';
-const ABANDONED_CARTS_COLLECTION = 'abandoned_carts';
-export const EVENTS_COLLECTION = 'analytics_events';
+export interface StoreFunnelMetrics {
+  totalVisits: number;
+  productViews: number;
+  addToCartCount: number;
+  checkoutStarts: number;
+  completedPurchases: number;
+}
 
+export interface AnalyticsEvent {
+  id?: string;
+  eventType: 'visit' | 'product_view' | 'add_to_cart' | 'checkout_start' | 'purchase';
+  visitorId: string;
+  timestamp: string;
+  date: string;
+  metadata?: Record<string, any>;
+}
+
+// P1.4: Inicijalne vrijednosti postavljene na 0 (bez lažnih brojki)
 export const DEFAULT_METRICS: StoreFunnelMetrics = {
   totalVisits: 0,
   productViews: 0,
@@ -34,273 +39,171 @@ export const DEFAULT_METRICS: StoreFunnelMetrics = {
   completedPurchases: 0,
 };
 
-/**
- * Get or initialize persistent unique visitor ID for this browser
- */
-export function getOrCreateVisitorId(): string {
-  try {
-    let vid = localStorage.getItem('cs_visitor_id');
-    if (!vid) {
-      vid = 'v_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
-      localStorage.setItem('cs_visitor_id', vid);
-    }
-    return vid;
-  } catch {
-    return 'v_anon_' + Date.now().toString(36);
+function getVisitorId(): string {
+  let id = localStorage.getItem('casualshop_visitor_id');
+  if (!id) {
+    id = 'v_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+    localStorage.setItem('casualshop_visitor_id', id);
   }
+  return id;
 }
 
-/**
- * Log an individual tracking event to the Firestore 'analytics_events' collection
- */
 export async function recordAnalyticsEvent(
-  eventType: AnalyticsEventType,
-  metadata: Record<string, any> = {}
-): Promise<void> {
-  try {
-    const visitorId = getOrCreateVisitorId();
-    const now = new Date();
-    const isoDate = now.toISOString();
-    const dayKey = isoDate.split('T')[0];
+  eventType: AnalyticsEvent['eventType'],
+  metadata?: Record<string, any>
+) {
+  // P2.2: Praćenje se izvršava samo ako je korisnik prihvatio kolačiće
+  if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
 
-    const eventPayload: AnalyticsEvent = {
+  try {
+    const visitorId = getVisitorId();
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+
+    const eventData: Omit<AnalyticsEvent, 'id'> = {
       eventType,
       visitorId,
-      timestamp: isoDate,
-      date: dayKey,
-      metadata,
+      timestamp: now.toISOString(),
+      date: dateStr,
+      ...(metadata ? { metadata } : {}),
     };
 
-    // Write to Firestore 'analytics_events' collection
-    await addDoc(collection(db, EVENTS_COLLECTION), eventPayload);
-  } catch (err) {
-    console.warn('Analytics event logging fallback:', err);
-  }
-}
+    const eventsRef = collection(db, 'analytics_events');
+    const newDocRef = doc(eventsRef);
+    await setDoc(newDocRef, eventData);
 
-/**
- * Record a visit / page view with unique visitor tracking
- */
-export async function trackVisit(path: string = window.location.pathname): Promise<void> {
-  try {
-    const visitorId = getOrCreateVisitorId();
-    const sessionKey = `cs_visited_${path}`;
-    const hasVisitedThisSession = sessionStorage.getItem(sessionKey);
+    // Ažuriranje agregiranih funkcija u store_metrics/funnel
+    const funnelRef = doc(db, 'store_metrics', 'funnel');
+    const updateData: Record<string, any> = {};
 
-    // Record Firestore event
-    await recordAnalyticsEvent('visit', {
-      path,
-      referrer: document.referrer || 'direct',
-      screen: `${window.innerWidth}x${window.innerHeight}`,
-      isNewSession: !hasVisitedThisSession,
-    });
+    if (eventType === 'visit') updateData.totalVisits = increment(1);
+    if (eventType === 'product_view') updateData.productViews = increment(1);
+    if (eventType === 'add_to_cart') updateData.addToCartCount = increment(1);
+    if (eventType === 'checkout_start') updateData.checkoutStarts = increment(1);
+    if (eventType === 'purchase') updateData.completedPurchases = increment(1);
 
-    if (!hasVisitedThisSession) {
-      sessionStorage.setItem(sessionKey, 'true');
-      const docRef = doc(db, METRICS_COLLECTION, FUNNEL_DOC);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        await updateDoc(docRef, { totalVisits: increment(1) });
-      } else {
-        await setDoc(docRef, { ...DEFAULT_METRICS, totalVisits: DEFAULT_METRICS.totalVisits + 1 });
-      }
+    if (Object.keys(updateData).length > 0) {
+      await updateDoc(funnelRef, updateData).catch(async () => {
+        await setDoc(funnelRef, { ...DEFAULT_METRICS, ...updateData }, { merge: true });
+      });
     }
-  } catch (e) {
-    // Graceful fallback
+  } catch (error) {
+    console.error('Greška pri snimanju analitike:', error);
   }
 }
 
-/**
- * Record product view
- */
-export async function recordProductView(product?: { id?: string; name?: string; price?: number }): Promise<void> {
-  try {
-    await recordAnalyticsEvent('view_item', {
-      productId: product?.id,
-      productName: product?.name,
-      price: product?.price,
-    });
-
-    const docRef = doc(db, METRICS_COLLECTION, FUNNEL_DOC);
-    await updateDoc(docRef, { productViews: increment(1) });
-  } catch {
-    // Ignore offline
+export async function trackVisit() {
+  if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
+  
+  const lastVisit = sessionStorage.getItem('casualshop_visited_session');
+  if (!lastVisit) {
+    sessionStorage.setItem('casualshop_visited_session', 'true');
+    await recordAnalyticsEvent('visit');
   }
 }
 
-/**
- * Record add to cart event in Firestore 'analytics_events'
- */
-export async function recordAddToCartEvent(item?: {
-  id?: string;
-  name?: string;
-  price?: number;
-  size?: string;
-}): Promise<void> {
+export async function saveCartSession(cartItems: any[]) {
+  if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
+  
   try {
-    await recordAnalyticsEvent('add_to_cart', {
-      productId: item?.id,
-      productName: item?.name,
-      price: item?.price,
-      size: item?.size,
-    });
+    const visitorId = getVisitorId();
+    const cartRef = doc(db, 'abandoned_carts', visitorId);
 
-    const docRef = doc(db, METRICS_COLLECTION, FUNNEL_DOC);
-    await updateDoc(docRef, { addToCartCount: increment(1) });
-  } catch {
-    // Ignore offline
-  }
-}
-
-/**
- * Record checkout start in Firestore
- */
-export async function recordCheckoutStart(): Promise<void> {
-  try {
-    await recordAnalyticsEvent('begin_checkout');
-    const docRef = doc(db, METRICS_COLLECTION, FUNNEL_DOC);
-    await updateDoc(docRef, { checkoutStarts: increment(1) });
-  } catch {
-    // Ignore offline
-  }
-}
-
-/**
- * Record completed purchase in Firestore
- */
-export async function recordCompletedPurchase(orderNumber?: string, total?: number): Promise<void> {
-  try {
-    await recordAnalyticsEvent('purchase', {
-      orderNumber,
-      total,
-    });
-    const docRef = doc(db, METRICS_COLLECTION, FUNNEL_DOC);
-    await updateDoc(docRef, { completedPurchases: increment(1) });
-  } catch {
-    // Ignore offline
-  }
-}
-
-/**
- * Fetch funnel aggregate metrics
- */
-export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
-  try {
-    const docRef = doc(db, METRICS_COLLECTION, FUNNEL_DOC);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      return snap.data() as StoreFunnelMetrics;
+    if (cartItems.length === 0) {
+      await setDoc(cartRef, { items: [], updatedAt: new Date().toISOString() }, { merge: true });
+      return;
     }
-    await setDoc(docRef, DEFAULT_METRICS);
-    return DEFAULT_METRICS;
-  } catch {
-    return DEFAULT_METRICS;
+
+    await setDoc(cartRef, {
+      visitorId,
+      items: cartItems,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+  } catch (error) {
+    console.error('Greška pri spašavanju sesije korpe:', error);
   }
 }
 
-/**
- * Fetch real-time analytics events & compute unique visitors and add-to-cart trends
- */
-export async function getAnalyticsStats(): Promise<AnalyticsStats> {
-  const daysCount = 30;
-  const now = new Date();
-
-  // Prepare 30 day timeline skeleton
-  const dailyMap: Record<string, { date: string; fullDate: string; uniqueVisitorsSet: Set<string>; visits: number; addToCart: number }> = {};
-  for (let i = daysCount - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const fullDate = d.toISOString().split('T')[0];
-    const dateFormatted = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.`;
-    dailyMap[fullDate] = {
-      date: dateFormatted,
-      fullDate,
-      uniqueVisitorsSet: new Set<string>(),
-      visits: 0,
-      addToCart: 0,
-    };
-  }
-
-  const allUniqueVisitors = new Set<string>();
-  const allAddToCartVisitors = new Set<string>();
-  let totalVisits = 0;
-  let totalAddToCart = 0;
-  const recentEvents: AnalyticsEvent[] = [];
-
+export async function getAnalyticsStats() {
   try {
-    const q = query(
-      collection(db, EVENTS_COLLECTION),
-      orderBy('timestamp', 'desc'),
-      limit(300)
-    );
-    const snap = await getDocs(q);
+    const funnelRef = doc(db, 'store_metrics', 'funnel');
+    const funnelSnap = await getDoc(funnelRef);
+    const funnelData = funnelSnap.exists() ? (funnelSnap.data() as StoreFunnelMetrics) : DEFAULT_METRICS;
 
-    snap.forEach((docSnap) => {
-      const data = docSnap.data() as AnalyticsEvent;
-      const event: AnalyticsEvent = { id: docSnap.id, ...data };
-      recentEvents.push(event);
+    const eventsRef = collection(db, 'analytics_events');
+    const eventsSnap = await getDocs(query(eventsRef, orderBy('timestamp', 'desc'), limit(1000)));
 
-      if (event.visitorId) {
-        allUniqueVisitors.add(event.visitorId);
-      }
+    const allUniqueVisitors = new Set<string>();
+    const allAddToCartVisitors = new Set<string>();
+    let totalVisits = 0;
+    let totalAddToCart = 0;
 
-      if (event.eventType === 'visit') {
+    const dailyMap = new Map<string, {
+      date: string;
+      fullDate: string;
+      uniqueVisitorsSet: Set<string>;
+      visits: number;
+      addToCart: number;
+    }>();
+
+    eventsSnap.docs.forEach((d) => {
+      const data = d.data() as AnalyticsEvent;
+      allUniqueVisitors.add(data.visitorId);
+
+      if (data.eventType === 'visit') {
         totalVisits++;
-      } else if (event.eventType === 'add_to_cart') {
+      }
+      if (data.eventType === 'add_to_cart') {
         totalAddToCart++;
-        if (event.visitorId) {
-          allAddToCartVisitors.add(event.visitorId);
-        }
+        allAddToCartVisitors.add(data.visitorId);
       }
 
-      const day = dailyMap[event.date];
-      if (day) {
-        if (event.visitorId) {
-          day.uniqueVisitorsSet.add(event.visitorId);
+      const dateKey = data.date || data.timestamp?.split('T')[0];
+      if (dateKey) {
+        if (!dailyMap.has(dateKey)) {
+          dailyMap.set(dateKey, {
+            date: dateKey.substring(5),
+            fullDate: dateKey,
+            uniqueVisitorsSet: new Set(),
+            visits: 0,
+            addToCart: 0,
+          });
         }
-        if (event.eventType === 'visit') day.visits++;
-        if (event.eventType === 'add_to_cart') day.addToCart++;
+        const entry = dailyMap.get(dateKey)!;
+        entry.uniqueVisitorsSet.add(data.visitorId);
+        if (data.eventType === 'visit') entry.visits++;
+        if (data.eventType === 'add_to_cart') entry.addToCart++;
       }
     });
-  } catch (err) {
-    console.warn('Could not read raw events collection, using calculated baseline:', err);
-  }
 
-  // Baseline organic numbers for newly deployed store
-  const baselineUnique = 124;
-  const baselineVisits = 186;
-  const baselineAddToCart = 52;
-  const baselineAddToCartUnique = 38;
-
-  const finalUniqueVisitorsCount = Math.max(allUniqueVisitors.size, baselineUnique);
-  const finalTotalVisitsCount = Math.max(totalVisits, baselineVisits);
-  const finalAddToCartCount = Math.max(totalAddToCart, baselineAddToCart);
-  const finalUniqueAddToCartUsersCount = Math.max(allAddToCartVisitors.size, baselineAddToCartUnique);
-
-  const finalAddToCartRate = finalUniqueVisitorsCount > 0
-    ? Number(((finalUniqueAddToCartUsersCount / finalUniqueVisitorsCount) * 100).toFixed(1))
-    : 0;
-
-  // Format daily trends
-  const dailyTrends = Object.values(dailyMap).map((d, index) => {
-    const wave = Math.sin(index * 0.4) * 3 + 5;
-    const baseUniq = Math.max(1, Math.round(wave));
-    const baseVis = Math.round(baseUniq * 1.5);
-    const baseCart = Math.max(0, Math.round(baseUniq * 0.35));
-
-    const realUniq = d.uniqueVisitorsSet.size;
-    const realVisits = d.visits;
-    const realCart = d.addToCart;
+    const dailyTrends = Array.from(dailyMap.values())
+      .sort((a, b) => a.fullDate.localeCompare(b.fullDate))
+      .slice(-14)
+      .map((d) => ({
+        date: d.date,
+        fullDate: d.fullDate,
+        uniqueVisitors: d.uniqueVisitorsSet.size,
+        visits: d.visits,
+        addToCart: d.addToCart,
+      }));
 
     return {
-      date: d.date,
-      fullDate: d.fullDate,
-      uniqueVisitors: realUniq > 0 ? realUniq : baseUniq,
-      visits: realVisits > 0 ? realVisits : baseVis,
-      addToCart: realCart > 0 ? realCart : baseCart,
+      funnel: funnelData,
+      uniqueVisitorsCount: allUniqueVisitors.size,
+      totalVisitsCount: totalVisits || funnelData.totalVisits,
+      addToCartCount: totalAddToCart || funnelData.addToCartCount,
+      uniqueAddToCartUsersCount: allAddToCartVisitors.size,
+      dailyTrends,
     };
-  });
-
-  return {
-    uniqueVisitorsCount: finalUniqueVisitorsCount,
-    total
+  } catch (error) {
+    console.error('Greška pri učitavanju analitike:', error);
+    return {
+      funnel: DEFAULT_METRICS,
+      uniqueVisitorsCount: 0,
+      totalVisitsCount: 0,
+      addToCartCount: 0,
+      uniqueAddToCartUsersCount: 0,
+      dailyTrends: [],
+    };
+  }
+}
