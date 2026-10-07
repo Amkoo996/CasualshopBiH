@@ -7,73 +7,84 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        (request.auth.token.email == 'reddemption19@gmail.com' && request.auth.token.email_verified == true) ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-      );
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // Default deny catch-all
+    // zaliha smije samo opadati i ne ispod 0
+    function validSize(k) {
+      let o = resource.data.sizes.get(k, 0);
+      let n = request.resource.data.sizes.get(k, 0);
+      return n is int && n >= 0 && n <= o;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Products: Public can read catalogue; Admins can fully manage; Clients can update size inventory upon checkout
     match /products/{productId} {
       allow read: if true;
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sizes'])
+        && request.resource.data.sizes.keys().hasOnly(['S', 'M', 'L', 'XL', 'One size'])
+        && validSize('S') && validSize('M') && validSize('L')
+        && validSize('XL') && validSize('One size')
       );
     }
 
-    // Orders: Anyone can create order; Only admins can read, list, update, and delete customer PII orders
     match /orders/{orderId} {
       allow create: if request.resource.data.keys().hasAll(['orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 'total', 'paymentMethod', 'status'])
+        && request.resource.data.keys().hasOnly(['orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 'total', 'paymentMethod', 'status', 'createdAt'])
         && request.resource.data.orderNumber is string
-        && request.resource.data.total is number;
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 20
+        && request.resource.data.customer is map
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.total < 10000
+        && request.resource.data.paymentMethod == 'cash_on_delivery'
+        && request.resource.data.status == 'Nova';
       allow read, update, delete: if isAdmin();
     }
 
-    // Newsletter Subscribers: Anyone can join newsletter; Only admins can view subscriber list and export CSV
     match /subscribers/{subscriberId} {
-      allow create: if request.resource.data.email is string
+      allow create: if request.resource.data.keys().hasOnly(['email', 'consent', 'subscribedAt'])
+        && request.resource.data.email is string
         && request.resource.data.email.size() <= 150
         && request.resource.data.consent == true;
       allow read, delete: if isAdmin();
       allow update: if false;
     }
 
-    // Store Settings: Public can read (delivery fee, banner text); Admins can write
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Funnel & Analytics Aggregate Metrics
     match /store_metrics/{metricId} {
-      allow read, write: if true;
+      allow read: if isAdmin();
+      allow create, update: if request.resource.data.keys().hasOnly(['totalVisits', 'productViews', 'addToCartCount', 'checkoutStarts', 'completedPurchases']);
     }
 
-    // Individual Analytics Events (Visits, Add to Cart, Purchases)
     match /analytics_events/{eventId} {
       allow create: if request.resource.data.keys().hasAll(['eventType', 'visitorId', 'timestamp', 'date'])
+        && request.resource.data.keys().hasOnly(['eventType', 'visitorId', 'timestamp', 'date', 'metadata'])
         && request.resource.data.eventType is string
         && request.resource.data.visitorId is string
         && request.resource.data.visitorId.size() <= 100
         && request.resource.data.timestamp is string
         && request.resource.data.date is string;
-      allow read, delete: if isAdmin() || true;
+      allow read, delete: if isAdmin();
       allow update: if false;
     }
 
-    // Abandoned Carts / Leads for outreach
     match /abandoned_carts/{cartId} {
-      allow create, update: if true;
+      allow create, update: if request.resource.data.size() <= 15;
       allow read, delete: if isAdmin();
     }
 
-    // Product Reviews
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if request.resource.data.keys().hasAll(['productId', 'userName', 'rating', 'comment', 'createdAt'])
@@ -85,15 +96,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // User Wishlists
     match /wishlists/{userId} {
-      allow read, write: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // Admins collection
     match /admins/{adminId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read: if isSignedIn() && request.auth.uid == adminId;
+      allow write: if false;
     }
   }
 }
