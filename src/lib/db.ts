@@ -12,13 +12,14 @@ import {
   runTransaction,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Product, Order, NewsletterSubscriber, StoreSettings, OrderStatus, DEFAULT_STORE_SETTINGS } from '../types';
+import { Product, Order, NewsletterSubscriber, StoreSettings, OrderStatus, ProductReview, DEFAULT_STORE_SETTINGS } from '../types';
 
 export const PRODUCTS_COLLECTION = 'products';
 export const ORDERS_COLLECTION = 'orders';
 export const SUBSCRIBERS_COLLECTION = 'subscribers';
 export const SETTINGS_COLLECTION = 'settings';
 export const WISHLISTS_COLLECTION = 'wishlists';
+export const REVIEWS_COLLECTION = 'reviews';
 
 // ------------------------------------------------------------------
 // 1. PROIZVODI (PRODUCTS)
@@ -157,7 +158,7 @@ export async function subscribeNewsletter(email: string): Promise<void> {
 
 export async function getStoreSettings(): Promise<StoreSettings> {
   try {
-    const settingsRef = doc(doc(db, SETTINGS_COLLECTION, 'general'));
+    const settingsRef = doc(db, SETTINGS_COLLECTION, 'general');
     const snap = await getDoc(settingsRef);
     if (snap.exists()) {
       return { ...DEFAULT_STORE_SETTINGS, ...snap.data() } as StoreSettings;
@@ -198,3 +199,28 @@ export async function saveUserWishlist(userId: string, productIds: string[]): Pr
     console.error('Greška pri spremanju liste želja:', error);
   }
 }
+
+// ------------------------------------------------------------------
+// 6. RECENZIJE ARTIKALA (PRODUCT REVIEWS)
+// ------------------------------------------------------------------
+
+export async function getProductReviews(productId: string): Promise<ProductReview[]> {
+  try {
+    const reviewsRef = collection(db, REVIEWS_COLLECTION);
+    const q = query(reviewsRef, where('productId', '==', productId));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    })) as ProductReview[];
+  } catch (error) {
+    console.error('Greška pri dohvatanju recenzija:', error);
+    return [];
+  }
+}
+
+export async function submitProductReview(reviewData: Omit<ProductReview, 'id'>): Promise<string> {
+  const reviewRef = doc(collection(db, REVIEWS_COLLECTION));
+  await setDoc(reviewRef, {
+    ...reviewData,
+    createdAt: new Date().toISOString(),
