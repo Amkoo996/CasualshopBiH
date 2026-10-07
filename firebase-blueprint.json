@@ -1,0 +1,141 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Artikal u katalogu Casual Shop BiH",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Naziv artikla", "maxLength": 150 },
+        "price": { "type": "number", "description": "Cijena artikla u KM" },
+        "originalPrice": { "type": "number", "description": "Stara cijena za akciju u KM" },
+        "category": { "type": "string", "description": "Kategorija odjeće", "maxLength": 60 },
+        "color": { "type": "string", "description": "Boja artikla", "maxLength": 60 },
+        "material": { "type": "string", "description": "Materijal i gramatura", "maxLength": 100 },
+        "description": { "type": "string", "description": "Detaljan opis artikla", "maxLength": 2000 },
+        "careInstructions": { "type": "string", "description": "Upute za njegu i pranje", "maxLength": 500 },
+        "images": { "type": "array", "description": "Lista URL-ova slika artikla" },
+        "sizes": { "type": "object", "description": "Dostupne veličine i zalihe (S, M, L, XL ili One size)" },
+        "isNew": { "type": "boolean", "description": "Oznaka novo u ponudi" },
+        "featured": { "type": "boolean", "description": "Da li je artikal istaknut na početnoj stranici" },
+        "isHidden": { "type": "boolean", "description": "Sakriven iz javnog kataloga" },
+        "createdAt": { "type": "string", "description": "Datum kreiranja artikla" }
+      },
+      "required": ["name", "price", "category", "color", "material", "description", "images", "sizes"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Narudžba kupca",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string", "description": "Unikatan broj narudžbe", "maxLength": 50 },
+        "items": { "type": "array", "description": "Lista naručenih artikala sa odabranim veličinama i cijenama" },
+        "customer": { "type": "object", "description": "Podaci o kupcu za dostavu" },
+        "subtotal": { "type": "number", "description": "Iznos artikala u KM" },
+        "shippingFee": { "type": "number", "description": "Iznos dostave u KM" },
+        "total": { "type": "number", "description": "Ukupan iznos za plaćanje pouzećem u KM" },
+        "paymentMethod": { "type": "string", "description": "Metoda plaćanja (gotovinsko pouzeće)", "maxLength": 50 },
+        "status": { "type": "string", "description": "Status narudžbe", "enum": ["Nova", "Potvrđena", "Poslana", "Dostavljena", "Otkazana"] },
+        "createdAt": { "type": "string", "description": "Datum i vrijeme narudžbe" }
+      },
+      "required": ["orderNumber", "items", "customer", "subtotal", "shippingFee", "total", "paymentMethod", "status"]
+    },
+    "Subscriber": {
+      "title": "Subscriber",
+      "description": "Pretplatnik na newsletter",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "description": "Email adresa pretplatnika", "maxLength": 150 },
+        "consent": { "type": "boolean", "description": "Potvrda saglasnosti za primanje novosti" },
+        "subscribedAt": { "type": "string", "description": "Datum i vrijeme prijave" }
+      },
+      "required": ["email", "consent"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Postavke web trgovine (dostava, kontakti, pravni podaci)",
+      "type": "object",
+      "properties": {
+        "shippingFee": { "type": "number", "description": "Cijena dostave u KM" },
+        "freeShippingThreshold": { "type": "number", "description": "Prag za besplatnu dostavu u KM" },
+        "phone": { "type": "string", "description": "Kontakt telefon", "maxLength": 50 },
+        "email": { "type": "string", "description": "Kontakt e-mail", "maxLength": 100 },
+        "instagramUrl": { "type": "string", "description": "Instagram link", "maxLength": 200 },
+        "whatsappNumber": { "type": "string", "description": "WhatsApp broj", "maxLength": 50 },
+        "topBarText": { "type": "string", "description": "Tekst trake iznad headera", "maxLength": 200 },
+        "sizeGuideText": { "type": "string", "description": "Tekst tabele veličina", "maxLength": 2000 },
+        "sellerName": { "type": "string", "description": "Ime ili naziv firme prodavca", "maxLength": 200 },
+        "sellerAddress": { "type": "string", "description": "Adresa prodavca", "maxLength": 200 },
+        "sellerIdNumber": { "type": "string", "description": "ID broj prodavca", "maxLength": 50 }
+      }
+    },
+    "AnalyticsEvent": {
+      "title": "AnalyticsEvent",
+      "description": "Zabilježeni event praćenja posjetilaca ili akcija dodaj u korpu",
+      "type": "object",
+      "properties": {
+        "eventType": { "type": "string", "description": "Tip eventa (visit, add_to_cart, view_item, begin_checkout, purchase)", "maxLength": 50 },
+        "visitorId": { "type": "string", "description": "Jedinstveni identifikator posjetioca", "maxLength": 100 },
+        "timestamp": { "type": "string", "description": "Vrijeme zabilješke eventa" },
+        "date": { "type": "string", "description": "Datum u formatu YYYY-MM-DD", "maxLength": 20 },
+        "metadata": { "type": "object", "description": "Dodatni podaci (npr. naziv artikla, cijena, veličina)" }
+      },
+      "required": ["eventType", "visitorId", "timestamp", "date"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Recenzija i ocjena kupca za artikal",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "description": "ID artikla koji se ocjenjuje", "maxLength": 100 },
+        "userName": { "type": "string", "description": "Ime kupca", "maxLength": 100 },
+        "userEmail": { "type": "string", "description": "E-mail adresa kupca", "maxLength": 150 },
+        "rating": { "type": "number", "description": "Ocjena od 1 do 5 zvjezdica" },
+        "comment": { "type": "string", "description": "Tekst recenzije", "maxLength": 2000 },
+        "createdAt": { "type": "string", "description": "Datum i vrijeme objave recenzije" },
+        "verifiedPurchase": { "type": "boolean", "description": "Potvrđena kupovina" }
+      },
+      "required": ["productId", "userName", "rating", "comment", "createdAt"]
+    },
+    "Wishlist": {
+      "title": "Wishlist",
+      "description": "Lista spremljenih artikala za profil korisnika",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID prijavljenog korisnika", "maxLength": 128 },
+        "productIds": { "type": "array", "description": "Lista ID-eva spremljenih proizvoda" },
+        "updatedAt": { "type": "string", "description": "Vrijeme zadnje izmjene liste želja" }
+      },
+      "required": ["userId", "productIds"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Kolekcija proizvoda u ponudi"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Kolekcija pristiglih narudžbi"
+    },
+    "/subscribers/{subscriberId}": {
+      "schema": "Subscriber",
+      "description": "Kolekcija prijavljenih korisnika na newsletter"
+    },
+    "/settings/{settingId}": {
+      "schema": "StoreSettings",
+      "description": "Globalne postavke trgovine"
+    },
+    "/analytics_events/{eventId}": {
+      "schema": "AnalyticsEvent",
+      "description": "Kolekcija zabilježenih korisničkih akcija i posjeta za statistiku"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Kolekcija recenzija artikala"
+    },
+    "/wishlists/{userId}": {
+      "schema": "Wishlist",
+      "description": "Kolekcija lista želja korisnika"
+    }
+  }
+}

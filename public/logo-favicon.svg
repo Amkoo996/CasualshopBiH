@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <!-- Circular Black Background -->
+  <circle cx="250" cy="250" r="240" fill="#0A0A0A" />
+
+  <!-- Bold Yellow Outer Ring (#F7E97F) -->
+  <circle cx="250" cy="250" r="215" fill="none" stroke="#F7E97F" stroke-width="26" />
+
+  <!-- Yellow Inner Frame Box -->
+  <rect x="160" y="150" width="180" height="135" fill="none" stroke="#F7E97F" stroke-width="12" />
+
+  <!-- White Bucket Hat -->
+  <path d="M 190 235 L 202 165 C 203 162 206 160 210 160 L 290 160 C 294 160 297 162 298 165 L 310 235 Z" fill="#FFFFFF" />
+  <path d="M 194 220 C 220 226 280 226 306 220" fill="none" stroke="#E5E5E5" stroke-width="3" />
+  <path d="M 180 240 C 180 236 186 235 192 235 L 308 235 C 314 235 320 236 320 240 C 320 248 300 255 250 255 C 200 255 180 248 180 240 Z" fill="#FFFFFF" />
+
+  <!-- Sunglasses -->
+  <rect x="185" y="248" width="56" height="42" rx="4" fill="#0A0A0A" stroke="#F7E97F" stroke-width="8" />
+  <rect x="259" y="248" width="56" height="42" rx="4" fill="#0A0A0A" stroke="#F7E97F" stroke-width="8" />
+  <rect x="241" y="260" width="18" height="7" fill="#F7E97F" />
+
+  <!-- Glare Lines -->
+  <path d="M 197 282 L 205 255" stroke="#F7E97F" stroke-width="5" stroke-linecap="round" />
+  <path d="M 215 282 L 223 255" stroke="#F7E97F" stroke-width="5" stroke-linecap="round" />
+  <path d="M 271 282 L 279 255" stroke="#F7E97F" stroke-width="5" stroke-linecap="round" />
+  <path d="M 289 282 L 297 255" stroke="#F7E97F" stroke-width="5" stroke-linecap="round" />
+
+  <!-- Text CASUAL shop -->
+  <text x="250" y="342" text-anchor="middle" font-family="'Poppins', 'Arial Black', sans-serif" font-weight="900" font-size="52" fill="#FFFFFF" letter-spacing="4">CASUAL</text>
+  <text x="250" y="380" text-anchor="middle" font-family="'Poppins', 'Arial Black', sans-serif" font-weight="800" font-size="34" fill="#F7E97F" letter-spacing="2">shop</text>
+</svg>
