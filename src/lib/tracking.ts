@@ -27,11 +27,11 @@ const ABANDONED_CARTS_COLLECTION = 'abandoned_carts';
 export const EVENTS_COLLECTION = 'analytics_events';
 
 export const DEFAULT_METRICS: StoreFunnelMetrics = {
-  totalVisits: 142,
-  productViews: 98,
-  addToCartCount: 46,
-  checkoutStarts: 24,
-  completedPurchases: 14,
+  totalVisits: 0,
+  productViews: 0,
+  addToCartCount: 0,
+  checkoutStarts: 0,
+  completedPurchases: 0,
 };
 
 /**
