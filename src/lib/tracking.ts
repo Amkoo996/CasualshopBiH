@@ -92,7 +92,20 @@ export async function recordAnalyticsEvent(
   }
 }
 
-// SVE POMOĆNE EXPORT FUNKCIJE ZATRAŽENE OD STRANE KOMPONENTI (ProductDetailPage, CartContext, CheckoutPage)
+// POMOĆNE EXPORT FUNKCIJE KOJE POZIVAJU KOMPONENTE
+export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
+  try {
+    const funnelRef = doc(db, 'store_metrics', 'funnel');
+    const funnelSnap = await getDoc(funnelRef);
+    if (funnelSnap.exists()) {
+      return funnelSnap.data() as StoreFunnelMetrics;
+    }
+  } catch (error) {
+    console.error('Greška pri dohvaćanju funnel metrika:', error);
+  }
+  return DEFAULT_METRICS;
+}
+
 export async function recordProductView(productId?: string) {
   await recordAnalyticsEvent('product_view', productId ? { productId } : undefined);
 }
