@@ -106,6 +106,20 @@ export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
   return DEFAULT_METRICS;
 }
 
+export async function getAbandonedCarts(): Promise<any[]> {
+  try {
+    const cartsRef = collection(db, 'abandoned_carts');
+    const snap = await getDocs(cartsRef);
+    return snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error('Greška pri dohvaćanju napuštenih korpi:', error);
+    return [];
+  }
+}
+
 export async function recordProductView(productId?: string) {
   await recordAnalyticsEvent('product_view', productId ? { productId } : undefined);
 }
