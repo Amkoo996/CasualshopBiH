@@ -16,6 +16,9 @@ import { db } from './firebase';
 import { Product, Order, NewsletterSubscriber, StoreSettings, DEFAULT_STORE_SETTINGS, ProductReview, UserWishlist } from '../types';
 import { INITIAL_PRODUCTS } from './seedData';
 import { handleFirestoreError, OperationType } from './firestore-errors';
+import { runTransaction, doc, collection } from 'firebase/firestore';
+import { db, ORDERS_COLLECTION, PRODUCTS_COLLECTION } from './firebase'; // prilagodite uvoze po potrebi
+import { Order, Product } from '../types'; // prilagodite tipove po potrebi
 
 const PRODUCTS_COLLECTION = 'products';
 const ORDERS_COLLECTION = 'orders';
@@ -179,38 +182,43 @@ export async function createOrder(orderData: Omit<Order, 'id'>): Promise<string>
   const orderRef = doc(collection(db, ORDERS_COLLECTION));
 
   await runTransaction(db, async (transaction) => {
-    // 1) prvo sva čitanja
+    // 1) Čitanja
     const snaps = await Promise.all(
-      orderData.items.map((item) => transaction.get(doc(db, PRODUCTS_COLLECTION, item.id)))
+      orderData.items.map((item) =>
+        transaction.get(doc(db, PRODUCTS_COLLECTION, item.id))
+      )
     );
 
-    // 2) provjera zalihe
+    // 2) Provjera zalihe
     const updates = new Map<string, Record<string, number>>();
+
     orderData.items.forEach((item, i) => {
       const snap = snaps[i];
       if (!snap.exists()) {
-        throw new Error('Artikal ' + item.name + ' više nije dostupan.');
+        throw new Error('Artikal "' + item.name + '" više nije dostupan.');
       }
       const prod = snap.data() as Product;
       const sizes = updates.get(item.id) ?? ({ ...prod.sizes } as Record<string, number>);
       const stock = sizes[item.size] ?? 0;
+
       if (stock < item.quantity) {
-        throw new Error('Artikal ' + item.name + ' (' + item.size + ') nema dovoljno na stanju.');
+        throw new Error('Artikal "' + item.name + '" (' + item.size + ') nema dovoljno na stanju.');
       }
+
       sizes[item.size] = stock - item.quantity;
       updates.set(item.id, sizes);
     });
 
-    // 3) upisi: zaliha i narudžba zajedno
+    // 3) Upisi: zaliha i narudžba
     updates.forEach((sizes, id) => {
       transaction.update(doc(db, PRODUCTS_COLLECTION, id), { sizes });
     });
+
     transaction.set(orderRef, orderData);
   });
 
   return orderRef.id;
 }
-
 /**
  * Update order status (Admin)
  */
