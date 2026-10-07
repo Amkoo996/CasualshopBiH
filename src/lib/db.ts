@@ -224,3 +224,6 @@ export async function submitProductReview(reviewData: Omit<ProductReview, 'id'>)
   await setDoc(reviewRef, {
     ...reviewData,
     createdAt: new Date().toISOString(),
+  });
+  return reviewRef.id;
+}
