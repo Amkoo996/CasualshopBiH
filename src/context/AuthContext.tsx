@@ -1,90 +1,80 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  User,
-  signInWithPopup,
-  GoogleAuthProvider,
-  signOut as fbSignOut,
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { 
+  User, 
+  signInWithEmailAndPassword, 
+  signOut as firebaseSignOut, 
   onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+
+const AUTHORIZED_ADMIN_EMAIL = "redemption19@gmail.com";
 
 interface AuthContextType {
   user: User | null;
   isAdmin: boolean;
-  loading: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => Promise<void>;
-  loginAsDemoAdmin: () => void;
   isDemoAdmin: boolean;
+  loginWithEmail: (email: string, pass: string, remember: boolean) => Promise<void>;
+  loginAsDemoAdmin: () => void;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Designated admin email from requirements
-const ADMIN_EMAILS = ['redemption19@gmail.com', 'admin@casualshop.ba'];
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isDemoAdmin, setIsDemoAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
-  const [isDemoAdmin, setIsDemoAdmin] = useState(() => {
-    return localStorage.getItem('cs_demo_admin_active') === 'true';
-  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+      if (currentUser) {
+        // Provjera da li prijavljeni korisnik odgovara admin e-mailu
+        if (currentUser.email?.toLowerCase() === AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+          setUser(currentUser);
+          setIsDemoAdmin(false);
+        } else {
+          // Ako neko drugi nastoji napraviti login, automatski ga odjavljujemo
+          firebaseSignOut(auth);
+          setUser(null);
+          alert("Pristup odbijen! Vaša e-mail adresa nema admin privilegije.");
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (err: any) {
-      console.error('Google Sign-In failed', err);
-      throw err;
+  const loginWithEmail = async (email: string, pass: string, remember: boolean) => {
+    if (email.trim().toLowerCase() !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+      throw new Error("Nemate dozvolu za pristup admin panelu sa ovom e-mail adresom.");
     }
-  };
 
-  const signOut = async () => {
+    const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
+    await setPersistence(auth, persistence);
+    await signInWithEmailAndPassword(auth, email, pass);
     setIsDemoAdmin(false);
-    localStorage.removeItem('cs_demo_admin_active');
-    try {
-      await fbSignOut(auth);
-    } catch (err) {
-      console.error('Sign out error', err);
-    }
   };
 
   const loginAsDemoAdmin = () => {
     setIsDemoAdmin(true);
-    localStorage.setItem('cs_demo_admin_active', 'true');
   };
 
-  const isAdmin = Boolean(
-    isDemoAdmin ||
-    (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) ||
-    user?.email?.includes('casualshop')
-  );
+  const signOut = async () => {
+    setIsDemoAdmin(false);
+    await firebaseSignOut(auth);
+  };
+
+  const isAdmin = isDemoAdmin || (user !== null && user.email?.toLowerCase() === AUTHORIZED_ADMIN_EMAIL.toLowerCase());
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAdmin,
-        loading,
-        signInWithGoogle,
-        signOut,
-        loginAsDemoAdmin,
-        isDemoAdmin,
-      }}
-    >
-      {children}
+    <AuthContext.Provider value={{ user, isAdmin, isDemoAdmin, loginWithEmail, loginAsDemoAdmin, signOut }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
