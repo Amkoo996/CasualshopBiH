@@ -1,12 +1,9 @@
 {
-  "projectId": "kalkulator-plate-i-bonusa",
-  "appId": "1:441355026072:web:424720f70133fab3741aed",
-  "apiKey": "AIzaSyAql3_O9r9nSyUAH9JXai1b-Wt3WH09EnA",
-  "authDomain": "kalkulator-plate-i-bonusa.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-casualshopbih-920762be-a60c-4114-9d13-96a88150721e",
-  "storageBucket": "kalkulator-plate-i-bonusa.firebasestorage.app",
-  "messagingSenderId": "441355026072",
-  "measurementId": "G-FH6DDBHLJ7",
-  "oAuthClientId": "441355026072-3jgoph2jo92p3t1qgadtse1ehd8ja6q7.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "casual-shop-bih",
+  "appId": "1:468671546442:web:cee8a85c75960309ced2b3",
+  "apiKey": "AIzaSyCgdEHWaenir0JW1E6zVrAYBfNQnkI76d8",
+  "authDomain": "casual-shop-bih.firebaseapp.com",
+  "storageBucket": "casual-shop-bih.firebasestorage.app",
+  "messagingSenderId": "468671546442",
+  "measurementId": "G-RL3ZGMND3K"
 }
