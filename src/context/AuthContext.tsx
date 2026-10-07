@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
-const AUTHORIZED_ADMIN_EMAIL = "reddemption19@gmail.com";
+const AUTHORIZED_ADMIN_EMAIL = "reddemption19@gmail.com", "tarik.dizdar@gmail.com";
 
 interface AuthContextType {
   user: User | null;
