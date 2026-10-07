@@ -18,8 +18,6 @@ import {
   ArrowDown,
   RefreshCw,
   Eye,
-  EyeOff,
-  Star,
   CheckCircle2,
   Mail,
   ArrowRight,
@@ -47,7 +45,7 @@ import { TrafficAndCartStatsTable } from '../components/admin/TrafficAndCartStat
 import { generateOrderInvoicePDF, getWhatsAppConfirmationUrl } from '../lib/pdfInvoice';
 
 export const AdminDashboard: React.FC = () => {
-  const { user, isAdmin, signInWithGoogle, signOut, loginAsDemoAdmin, isDemoAdmin } = useAuth();
+  const { user, isAdmin, loginWithEmail, signOut, loginAsDemoAdmin, isDemoAdmin } = useAuth();
   const { refreshSettings } = useCart();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'leads' | 'products' | 'orders' | 'subscribers' | 'settings'>('overview');
@@ -57,6 +55,13 @@ export const AdminDashboard: React.FC = () => {
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [settingsSaved, setSettingsSaved] = useState(false);
+
+  // Email & Password login state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
 
   // Product modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,7 +77,7 @@ export const AdminDashboard: React.FC = () => {
     setLoading(true);
     try {
       const [prodsData, ordersData, subsData, settingsData] = await Promise.all([
-        getProducts(true), // include hidden products in admin
+        getProducts(true),
         getOrders().catch(() => []),
         getSubscribers().catch(() => []),
         getStoreSettings().catch(() => DEFAULT_STORE_SETTINGS),
@@ -94,6 +99,24 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [isAdmin]);
 
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+    try {
+      await loginWithEmail(email, password, rememberMe);
+    } catch (err: any) {
+      console.error('Login error:', err);
+      if (err.message) {
+        setLoginError(err.message);
+      } else {
+        setLoginError('Pogrešan email ili lozinka.');
+      }
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   // LOGIN SCREEN
   if (!isAdmin) {
     return (
@@ -111,29 +134,84 @@ export const AdminDashboard: React.FC = () => {
             </p>
           </div>
 
-          <div className="space-y-3 pt-2">
-            <button
-              onClick={() => signInWithGoogle()}
-              className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 border-2 border-[#0A0A0A]"
-            >
-              <span>Prijava putem Google računa</span>
-            </button>
+          {loginError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs font-['Inter'] text-left rounded">
+              {loginError}
+            </div>
+          )}
 
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-neutral-300"></div>
-              <span className="flex-shrink mx-3 text-neutral-400 text-[10px] uppercase font-bold tracking-wider">
-                ili za testiranje
-              </span>
-              <div className="flex-grow border-t border-neutral-300"></div>
+          <form onSubmit={handleEmailLogin} className="space-y-4 text-left">
+            <div>
+              <label htmlFor="admin-login-email" className="block text-[11px] font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                E-mail adresa *
+              </label>
+              <input
+                id="admin-login-email"
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="redemption19@gmail.com"
+                className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-['Inter'] focus:border-black focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="admin-login-password" className="block text-[11px] font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                Lozinka *
+              </label>
+              <input
+                id="admin-login-password"
+                name="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-['Inter'] focus:border-black focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  id="admin-remember-me"
+                  name="rememberMe"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="accent-black h-4 w-4"
+                />
+                <span className="text-xs text-neutral-600 font-['Inter']">Zapamti me na ovom uređaju</span>
+              </label>
             </div>
 
             <button
-              onClick={() => loginAsDemoAdmin()}
-              className="w-full py-2.5 bg-[#F4F2EC] border-2 border-neutral-300 text-neutral-800 text-xs font-['Poppins'] font-bold uppercase tracking-wider hover:bg-neutral-200 transition-colors"
+              type="submit"
+              disabled={loginLoading}
+              className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-[#0A0A0A] disabled:opacity-50"
             >
-              Brzi Demo Admin Pristup
+              {loginLoading ? 'Prijavljivanje...' : 'Prijavi se'}
             </button>
+          </form>
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-neutral-300"></div>
+            <span className="flex-shrink mx-3 text-neutral-400 text-[10px] uppercase font-bold tracking-wider">
+              ili za testiranje
+            </span>
+            <div className="flex-grow border-t border-neutral-300"></div>
           </div>
+
+          <button
+            onClick={() => loginAsDemoAdmin()}
+            className="w-full py-2.5 bg-[#F4F2EC] border-2 border-neutral-300 text-neutral-800 text-xs font-['Poppins'] font-bold uppercase tracking-wider hover:bg-neutral-200 transition-colors"
+          >
+            Brzi Demo Admin Pristup
+          </button>
 
           <p className="text-[11px] text-neutral-400 pt-2 font-['Inter']">
             Ovlašteni administrator: redemption19@gmail.com
@@ -232,20 +310,11 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // RESET DEMO PRODUCTS / SYNC AUTHENTIC BRAND APPAREL
-  const handleResetDemo = async () => {
-    if (confirm('Želite li ponovo učitati 8 demo proizvoda sa specifikacije (Majice, Duksevi, Kape itd.)?')) {
-      await resetDemoProducts();
-      await loadData();
-      alert('Demo artikli su uspješno ažurirani!');
-    }
-  };
-
   const handleSyncAuthenticProducts = async () => {
     try {
       await resetDemoProducts();
       await loadData();
-      alert('Uspješno sinhronizovano! Autentični artikli brenda (Sarajevo geographic, Away days, Copacabana, Pyro, Standing not running, itd.) sa slikama su učitani u Firestore bazu.');
+      alert('Uspješno sinhronizovano! Autentični artikli brenda sa slikama su učitani u Firestore bazu.');
     } catch {
       alert('Greška pri sinhronizaciji artikala.');
     }
@@ -326,7 +395,7 @@ export const AdminDashboard: React.FC = () => {
             KONTROLNA TABLA • CASUAL SHOP BIH
           </h1>
           <p className="text-xs text-neutral-600 font-['Inter']">
-            Prijavljeni admin: {user?.email || 'admin@casualshop.bih'}
+            Prijavljeni admin: {user?.email || 'redemption19@gmail.com'}
           </p>
         </div>
 
@@ -377,10 +446,9 @@ export const AdminDashboard: React.FC = () => {
         })}
       </div>
 
-      {/* 1. OVERVIEW TAB */}
+      {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
         <div className="space-y-8 animate-fadeIn">
-          {/* Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div className="bg-white p-5 border-2 border-neutral-200 shadow-sm space-y-1">
               <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-400">
@@ -431,13 +499,9 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* ADVANCED RECHARTS SALES TREND (30 DAYS) */}
           <SalesTrendChart orders={orders} />
-
-          {/* JEDNOSTAVNA TABELA SA STATISTIKOM POSJETA I 'DODAJ U KORPU' DOGAĐAJA */}
           <TrafficAndCartStatsTable orders={orders} />
 
-          {/* Quick Analytics & Funnel Callout */}
           <div className="bg-[#0A0A0A] text-white p-5 border-2 border-[#F7E97F] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -462,7 +526,6 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </div>
 
-          {/* Best Sellers & Recent Orders */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white p-6 border-2 border-neutral-200 space-y-4">
               <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-black">
@@ -549,21 +612,21 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 2. ANALYTICS TAB: POSJETE & FUNNEL */}
+      {/* ANALYTICS TAB */}
       {activeTab === 'analytics' && (
         <div className="animate-fadeIn">
           <FunnelAnalytics ordersCount={orders.length} />
         </div>
       )}
 
-      {/* 3. LEADS TAB: NAPUŠTENE KORPE & E-MAIL PROMOCIJE */}
+      {/* LEADS TAB */}
       {activeTab === 'leads' && (
         <div className="animate-fadeIn">
           <AbandonedCartsPromo />
         </div>
       )}
 
-      {/* 2. PRODUCTS TAB */}
+      {/* PRODUCTS TAB */}
       {activeTab === 'products' && (
         <div className="space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -733,7 +796,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 3. ORDERS TAB */}
+      {/* ORDERS TAB */}
       {activeTab === 'orders' && (
         <div className="space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 border-2 border-neutral-200">
@@ -756,6 +819,8 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="relative w-full sm:w-64">
               <input
+                id="order-search-input"
+                name="orderSearch"
                 type="text"
                 placeholder="Pretraži narudžbu ili kupca..."
                 value={orderSearch}
@@ -766,7 +831,6 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Orders list */}
           <div className="space-y-4">
             {orders
               .filter((o) => {
@@ -793,10 +857,12 @@ export const AdminDashboard: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <label className="text-[11px] font-['Poppins'] font-bold uppercase text-neutral-500">
+                      <label htmlFor={`order-status-${order.id}`} className="text-[11px] font-['Poppins'] font-bold uppercase text-neutral-500">
                         Status:
                       </label>
                       <select
+                        id={`order-status-${order.id}`}
+                        name="orderStatus"
                         value={order.status}
                         onChange={(e) => handleUpdateStatus(order.id || '', e.target.value as OrderStatus)}
                         className={`text-xs font-['Poppins'] font-bold uppercase px-3 py-1 border-2 focus:outline-none ${
@@ -861,14 +927,12 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Order Actions: WhatsApp Confirmation & PDF Invoice */}
                   <div className="pt-3 border-t border-neutral-200 flex flex-wrap items-center justify-between gap-3">
                     <span className="text-[11px] text-neutral-500 font-['Inter']">
                       Plaćanje pouzećem • Kurirska dostava širom BiH
                     </span>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      {/* WhatsApp Button */}
                       <a
                         href={getWhatsAppConfirmationUrl(order)}
                         target="_blank"
@@ -880,7 +944,6 @@ export const AdminDashboard: React.FC = () => {
                         <span>Pošalji potvrdu putem WhatsAppa</span>
                       </a>
 
-                      {/* PDF Invoice Button */}
                       <button
                         onClick={() => generateOrderInvoicePDF(order, storeSettings)}
                         className="px-3.5 py-2 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white font-['Poppins'] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-colors border-2 border-[#0A0A0A] active:scale-95 cursor-pointer"
@@ -897,7 +960,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 4. SUBSCRIBERS TAB */}
+      {/* SUBSCRIBERS TAB */}
       {activeTab === 'subscribers' && (
         <div className="space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -953,7 +1016,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 5. ADMIN POSTAVKE TAB */}
+      {/* SETTINGS TAB */}
       {activeTab === 'settings' && (
         <div className="space-y-6 animate-fadeIn max-w-4xl">
           <div>
@@ -973,7 +1036,6 @@ export const AdminDashboard: React.FC = () => {
           )}
 
           <form onSubmit={handleSaveSettings} className="bg-white p-6 sm:p-8 border-2 border-neutral-300 space-y-6 shadow-sm">
-            {/* Dostava i prag */}
             <div className="space-y-4 border-b pb-6 border-neutral-200">
               <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
                 1. Dostava i prag za besplatnu dostavu
@@ -981,10 +1043,12 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-shipping-fee" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     Cijena dostave (KM) *
                   </label>
                   <input
+                    id="settings-shipping-fee"
+                    name="shippingFee"
                     type="number"
                     step="0.5"
                     required
@@ -998,10 +1062,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-free-threshold" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     Prag za besplatnu dostavu (KM) *
                   </label>
                   <input
+                    id="settings-free-threshold"
+                    name="freeShippingThreshold"
                     type="number"
                     step="1"
                     required
@@ -1016,10 +1082,12 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                <label htmlFor="settings-topbar-text" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                   Tekst trake iznad headera *
                 </label>
                 <input
+                  id="settings-topbar-text"
+                  name="topBarText"
                   type="text"
                   required
                   value={storeSettings.topBarText}
@@ -1030,7 +1098,6 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Kontakti & Društvene mreže */}
             <div className="space-y-4 border-b pb-6 border-neutral-200">
               <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
                 2. Kontakt podaci i društvene mreže
@@ -1038,10 +1105,12 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-phone" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     Kontakt telefon
                   </label>
                   <input
+                    id="settings-phone"
+                    name="phone"
                     type="text"
                     value={storeSettings.phone}
                     onChange={(e) => setStoreSettings({ ...storeSettings, phone: e.target.value })}
@@ -1050,10 +1119,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-email" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     E-mail adresa
                   </label>
                   <input
+                    id="settings-email"
+                    name="email"
                     type="email"
                     value={storeSettings.email}
                     onChange={(e) => setStoreSettings({ ...storeSettings, email: e.target.value })}
@@ -1062,10 +1133,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-instagram" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     Instagram profil URL
                   </label>
                   <input
+                    id="settings-instagram"
+                    name="instagramUrl"
                     type="url"
                     value={storeSettings.instagramUrl}
                     onChange={(e) => setStoreSettings({ ...storeSettings, instagramUrl: e.target.value })}
@@ -1074,10 +1147,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-whatsapp" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     WhatsApp broj
                   </label>
                   <input
+                    id="settings-whatsapp"
+                    name="whatsappNumber"
                     type="text"
                     value={storeSettings.whatsappNumber}
                     onChange={(e) => setStoreSettings({ ...storeSettings, whatsappNumber: e.target.value })}
@@ -1087,17 +1162,18 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Tabela veličina tekst */}
             <div className="space-y-4 border-b pb-6 border-neutral-200">
               <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
                 3. Tekst i upute za tabelu veličina
               </h3>
 
               <div>
-                <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                <label htmlFor="settings-sizeguide" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                   Urediv opis u modalu tabele veličina
                 </label>
                 <textarea
+                  id="settings-sizeguide"
+                  name="sizeGuideText"
                   rows={3}
                   value={storeSettings.sizeGuideText || ''}
                   onChange={(e) => setStoreSettings({ ...storeSettings, sizeGuideText: e.target.value })}
@@ -1106,21 +1182,19 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Podaci o prodavcu (Pravne stranice) */}
             <div className="space-y-4">
               <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
                 4. Podaci o prodavcu (Za Uslove korištenja i Politiku privatnosti)
               </h3>
-              <p className="text-[11px] text-neutral-500 font-['Inter']">
-                Ukoliko polja ostanu prazna, na stranicama se automatski prikazuje tekst <code>[uneseno u adminu]</code>.
-              </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-seller-name" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     Naziv firme / prodavca
                   </label>
                   <input
+                    id="settings-seller-name"
+                    name="sellerName"
                     type="text"
                     value={storeSettings.sellerName || ''}
                     onChange={(e) => setStoreSettings({ ...storeSettings, sellerName: e.target.value })}
@@ -1130,10 +1204,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-seller-address" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     Sjedište i adresa
                   </label>
                   <input
+                    id="settings-seller-address"
+                    name="sellerAddress"
                     type="text"
                     value={storeSettings.sellerAddress || ''}
                     onChange={(e) => setStoreSettings({ ...storeSettings, sellerAddress: e.target.value })}
@@ -1143,10 +1219,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-seller-id" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     ID / JIB broj
                   </label>
                   <input
+                    id="settings-seller-id"
+                    name="sellerIdNumber"
                     type="text"
                     value={storeSettings.sellerIdNumber || ''}
                     onChange={(e) => setStoreSettings({ ...storeSettings, sellerIdNumber: e.target.value })}
@@ -1188,10 +1266,12 @@ export const AdminDashboard: React.FC = () => {
 
             <form onSubmit={handleSaveProductSubmit} className="space-y-4 text-xs font-['Inter']">
               <div>
-                <label className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                <label htmlFor="product-name-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                   Naziv artikla *
                 </label>
                 <input
+                  id="product-name-input"
+                  name="productName"
                   type="text"
                   required
                   value={editingProduct.name || ''}
@@ -1203,10 +1283,12 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                  <label htmlFor="product-price-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                     Cijena (KM) *
                   </label>
                   <input
+                    id="product-price-input"
+                    name="price"
                     type="number"
                     step="0.5"
                     required
@@ -1217,10 +1299,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                  <label htmlFor="product-orig-price-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                     Stara cijena (KM)
                   </label>
                   <input
+                    id="product-orig-price-input"
+                    name="originalPrice"
                     type="number"
                     step="0.5"
                     value={editingProduct.originalPrice || ''}
@@ -1231,10 +1315,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                  <label htmlFor="product-category-select" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                     Kategorija *
                   </label>
                   <select
+                    id="product-category-select"
+                    name="category"
                     value={editingProduct.category || 'Majice'}
                     onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value as any })}
                     className="w-full border-2 border-neutral-300 p-2.5 text-xs sm:text-sm font-['Poppins'] font-bold focus:border-black focus:outline-none"
@@ -1250,10 +1336,12 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                  <label htmlFor="product-color-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                     Boja artikla *
                   </label>
                   <input
+                    id="product-color-input"
+                    name="color"
                     type="text"
                     required
                     value={editingProduct.color || ''}
@@ -1264,10 +1352,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                  <label htmlFor="product-material-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                     Materijal i gramatura *
                   </label>
                   <input
+                    id="product-material-input"
+                    name="material"
                     type="text"
                     required
                     value={editingProduct.material || ''}
@@ -1278,7 +1368,6 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Zalihe po veličinama (S–XL i One size) */}
               <div className="space-y-2 bg-[#F4F2EC] p-4 border-2 border-neutral-300">
                 <label className="block font-['Poppins'] font-black uppercase text-black">
                   Zalihe po veličinama (komada na stanju):
@@ -1286,8 +1375,10 @@ export const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-5 gap-2">
                   {(['S', 'M', 'L', 'XL', 'One size'] as Size[]).map((sz) => (
                     <div key={sz}>
-                      <span className="block font-['Poppins'] font-bold text-center mb-1 text-[11px]">{sz}</span>
+                      <label htmlFor={`stock-size-${sz}`} className="block font-['Poppins'] font-bold text-center mb-1 text-[11px]">{sz}</label>
                       <input
+                        id={`stock-size-${sz}`}
+                        name={`stockSize_${sz}`}
                         type="number"
                         min="0"
                         value={editingProduct.sizes?.[sz] ?? 0}
@@ -1303,7 +1394,6 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Upravljanje slikama (redoslijed, prva je glavna) */}
               <div className="space-y-2 border-2 border-neutral-300 p-4 bg-white">
                 <label className="block font-['Poppins'] font-bold uppercase text-neutral-800">
                   Galerija slika (Prva slika je glavna za prikaz):
@@ -1355,10 +1445,12 @@ export const AdminDashboard: React.FC = () => {
 
                 <div className="flex gap-2 pt-1">
                   <input
+                    id="new-image-url-input"
+                    name="newImageUrl"
                     type="url"
                     value={newImageUrl}
                     onChange={(e) => setNewImageUrl(e.target.value)}
-                    placeholder="Unesite URL slike i kliknite 'Dodaj sliku'..."
+                    placeholder="Unesite URL slike..."
                     className="flex-1 border border-neutral-300 p-2 text-xs focus:border-black focus:outline-none"
                   />
                   <button
@@ -1372,10 +1464,12 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                <label htmlFor="product-desc-textarea" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                   Opis artikla
                 </label>
                 <textarea
+                  id="product-desc-textarea"
+                  name="description"
                   rows={2}
                   value={editingProduct.description || ''}
                   onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
@@ -1385,22 +1479,25 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                <label htmlFor="product-care-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                   Upute za njegu i pranje
                 </label>
                 <input
+                  id="product-care-input"
+                  name="careInstructions"
                   type="text"
                   value={editingProduct.careInstructions || ''}
                   onChange={(e) => setEditingProduct({ ...editingProduct, careInstructions: e.target.value })}
-                  placeholder="Prati na 30°C izvrnuto, ne sušiti u sušilici"
+                  placeholder="Prati na 30°C izvrnuto..."
                   className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
                 />
               </div>
 
-              {/* Toggles: Novo, Istaknuto, Sakriven */}
               <div className="flex flex-wrap gap-6 pt-2 bg-[#F4F2EC] p-3 border border-neutral-300">
                 <label className="flex items-center gap-2 cursor-pointer font-['Poppins'] font-bold">
                   <input
+                    id="product-is-new"
+                    name="isNew"
                     type="checkbox"
                     checked={editingProduct.isNew ?? true}
                     onChange={(e) => setEditingProduct({ ...editingProduct, isNew: e.target.checked })}
@@ -1411,6 +1508,8 @@ export const AdminDashboard: React.FC = () => {
 
                 <label className="flex items-center gap-2 cursor-pointer font-['Poppins'] font-bold">
                   <input
+                    id="product-is-featured"
+                    name="featured"
                     type="checkbox"
                     checked={editingProduct.featured ?? false}
                     onChange={(e) => setEditingProduct({ ...editingProduct, featured: e.target.checked })}
@@ -1421,6 +1520,8 @@ export const AdminDashboard: React.FC = () => {
 
                 <label className="flex items-center gap-2 cursor-pointer font-['Poppins'] font-bold text-red-700">
                   <input
+                    id="product-is-hidden"
+                    name="isHidden"
                     type="checkbox"
                     checked={editingProduct.isHidden ?? false}
                     onChange={(e) => setEditingProduct({ ...editingProduct, isHidden: e.target.checked })}
