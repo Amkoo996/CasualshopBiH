@@ -176,48 +176,39 @@ export async function saveStoreSettings(settings: StoreSettings): Promise<void> 
  * Create order and atomically decrement product inventory for chosen sizes.
  */
 export async function createOrder(orderData: Omit<Order, 'id'>): Promise<string> {
-  try {
-    await runTransaction(db, async (transaction) => {
-      for (const item of orderData.items) {
-        const prodRef = doc(db, PRODUCTS_COLLECTION, item.id);
-        const prodSnap = await transaction.get(prodRef);
+  const orderRef = doc(collection(db, ORDERS_COLLECTION));
 
-        if (prodSnap.exists()) {
-          const currentProd = prodSnap.data() as Product;
-          const currentSizes = { ...currentProd.sizes };
-          const currentStock = currentSizes[item.size] ?? 0;
-          const newStock = Math.max(0, currentStock - item.quantity);
-          currentSizes[item.size] = newStock;
+  await runTransaction(db, async (transaction) => {
+    // 1) prvo sva čitanja
+    const snaps = await Promise.all(
+      orderData.items.map((item) => transaction.get(doc(db, PRODUCTS_COLLECTION, item.id)))
+    );
 
-          transaction.update(prodRef, { sizes: currentSizes });
-        }
+    // 2) provjera zalihe
+    const updates = new Map<string, Record<string, number>>();
+    orderData.items.forEach((item, i) => {
+      const snap = snaps[i];
+      if (!snap.exists()) {
+        throw new Error('Artikal ' + item.name + ' više nije dostupan.');
       }
+      const prod = snap.data() as Product;
+      const sizes = updates.get(item.id) ?? ({ ...prod.sizes } as Record<string, number>);
+      const stock = sizes[item.size] ?? 0;
+      if (stock < item.quantity) {
+        throw new Error('Artikal ' + item.name + ' (' + item.size + ') nema dovoljno na stanju.');
+      }
+      sizes[item.size] = stock - item.quantity;
+      updates.set(item.id, sizes);
     });
 
-    const orderRef = await addDoc(collection(db, ORDERS_COLLECTION), orderData);
-    return orderRef.id;
-  } catch (error) {
-    console.warn('Greška pri kreiranju u Firestore, kreiram lokalni fallback broj narudžbe:', error);
-    return `local_${Date.now()}`;
-  }
-}
-
-/**
- * Get all orders (Admin)
- */
-export async function getOrders(): Promise<Order[]> {
-  const path = ORDERS_COLLECTION;
-  try {
-    const q = query(collection(db, ORDERS_COLLECTION), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    const orders: Order[] = [];
-    snap.forEach((docSnap) => {
-      orders.push({ id: docSnap.id, ...(docSnap.data() as Omit<Order, 'id'>) });
+    // 3) upisi: zaliha i narudžba zajedno
+    updates.forEach((sizes, id) => {
+      transaction.update(doc(db, PRODUCTS_COLLECTION, id), { sizes });
     });
-    return orders;
-  } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, path);
-  }
+    transaction.set(orderRef, orderData);
+  });
+
+  return orderRef.id;
 }
 
 /**
