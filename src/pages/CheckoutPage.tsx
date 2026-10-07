@@ -17,7 +17,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onOrderSuccess,
   onNavigateToPage,
 }) => {
-  const { items, subtotal, shippingFee, freeShippingThreshold, total, clearCart, settings } = useCart();
+  const { items, subtotal, shippingFee, freeShippingThreshold, total, clearCart } = useCart();
 
   const [formData, setFormData] = useState<CustomerDetails>({
     firstName: '',
@@ -105,11 +105,41 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         createdAt: new Date().toISOString(),
       };
 
+      // 1. Spremanje narudžbe u Firestore bazu
       const docId = await createOrder(orderData);
       const finalizedOrder: Order = {
         ...orderData,
         id: docId,
       };
+
+      // 2. Trajno spremanje zadnje narudžbe u localStorage za prikaz potvrde
+      localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
+
+      // 3. Automatsko slanje e-mail obavijesti preko EmailJS-a
+      try {
+        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service_id: 'service_h4rxrv2',
+            template_id: 'template_b7r6ees',
+            user_id: 'mPKyquhWRcGkRq4gS',
+            template_params: {
+              order_number: finalizedOrder.orderNumber,
+              customer_name: `${formData.firstName} ${formData.lastName}`,
+              customer_phone: formData.phone,
+              customer_email: formData.email || 'Nije uneseno',
+              customer_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
+              customer_note: formData.note || 'Nema napomene',
+              total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
+              shipping_fee: shippingFee === 0 ? 'BESPLATNO' : `${shippingFee.toFixed(2)} KM`,
+              items_summary: items.map(i => `${i.quantity}x ${i.name} (Vel: ${i.size}) - ${(i.price * i.quantity).toFixed(2)} KM`).join('\n')
+            }
+          })
+        });
+      } catch (emailErr) {
+        console.warn('E-mail obavijest nije poslana, ali narudžba je spremljena u bazu:', emailErr);
+      }
 
       // Analytics event purchase
       trackPurchase(finalizedOrder);
@@ -340,7 +370,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             </div>
 
             <div className="space-y-3">
-              {/* Opcija 1: Plaćanje pouzećem (AKTIVNA) */}
               <label className="flex items-start gap-3 p-4 border-2 border-[#F7E97F] bg-[#0A0A0A] text-white cursor-pointer shadow-md">
                 <input
                   type="radio"
@@ -361,7 +390,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
               </label>
 
-              {/* Opcija 2: Kartično plaćanje (ONEMOGUĆENO po specifikaciji) */}
               <div className="flex items-start gap-3 p-4 border-2 border-dashed border-neutral-300 bg-neutral-100 opacity-60 cursor-not-allowed">
                 <input
                   type="radio"
@@ -502,7 +530,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               </p>
             </div>
 
-            {/* Submit button: Black with white text, hover yellow with black text */}
+            {/* Submit button */}
             <button
               type="submit"
               disabled={submitting}
