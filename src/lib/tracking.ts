@@ -52,7 +52,7 @@ export async function recordAnalyticsEvent(
   eventType: AnalyticsEvent['eventType'],
   metadata?: Record<string, any>
 ) {
-  // P2.2: Praćenje se izvršava samo ako je korisnik prihvatio kolačiće
+  // P2.2: Praćenje se izvršava samo ako je korisnik prihvatile kolačiće
   if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
 
   try {
@@ -92,6 +92,19 @@ export async function recordAnalyticsEvent(
   }
 }
 
+// DODATO: Pomoćne funkcije koje uvoze CartContext.tsx i CheckoutPage.tsx
+export async function recordAddToCartEvent(productId?: string) {
+  await recordAnalyticsEvent('add_to_cart', productId ? { productId } : undefined);
+}
+
+export async function recordCheckoutStart() {
+  await recordAnalyticsEvent('checkout_start');
+}
+
+export async function recordCompletedPurchase(orderNumber?: string, total?: number) {
+  await recordAnalyticsEvent('purchase', { orderNumber, total });
+}
+
 export async function trackVisit() {
   if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
   
@@ -102,23 +115,26 @@ export async function trackVisit() {
   }
 }
 
-export async function saveCartSession(cartItems: any[]) {
+export async function saveCartSession(cartData: any) {
   if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
   
   try {
     const visitorId = getVisitorId();
     const cartRef = doc(db, 'abandoned_carts', visitorId);
 
-    if (cartItems.length === 0) {
+    const isArray = Array.isArray(cartData);
+    const items = isArray ? cartData : cartData?.items || [];
+
+    if (items.length === 0 && isArray) {
       await setDoc(cartRef, { items: [], updatedAt: new Date().toISOString() }, { merge: true });
       return;
     }
 
-    await setDoc(cartRef, {
-      visitorId,
-      items: cartItems,
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    const payload = isArray
+      ? { visitorId, items, updatedAt: new Date().toISOString() }
+      : { visitorId, ...cartData, updatedAt: new Date().toISOString() };
+
+    await setDoc(cartRef, payload, { merge: true });
   } catch (error) {
     console.error('Greška pri spašavanju sesije korpe:', error);
   }
