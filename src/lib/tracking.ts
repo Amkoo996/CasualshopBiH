@@ -52,7 +52,7 @@ export async function recordAnalyticsEvent(
   eventType: AnalyticsEvent['eventType'],
   metadata?: Record<string, any>
 ) {
-  // P2.2: Praćenje se izvršava samo ako je korisnik prihvatile kolačiće
+  // P2.2: Praćenje se izvršava samo ako je korisnik prihvatio kolačiće
   if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
 
   try {
@@ -92,7 +92,11 @@ export async function recordAnalyticsEvent(
   }
 }
 
-// DODATO: Pomoćne funkcije koje uvoze CartContext.tsx i CheckoutPage.tsx
+// SVE POMOĆNE EXPORT FUNKCIJE ZATRAŽENE OD STRANE KOMPONENTI (ProductDetailPage, CartContext, CheckoutPage)
+export async function recordProductView(productId?: string) {
+  await recordAnalyticsEvent('product_view', productId ? { productId } : undefined);
+}
+
 export async function recordAddToCartEvent(productId?: string) {
   await recordAnalyticsEvent('add_to_cart', productId ? { productId } : undefined);
 }
