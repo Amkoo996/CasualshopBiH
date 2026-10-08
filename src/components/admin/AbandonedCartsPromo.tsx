@@ -37,7 +37,7 @@ export const AbandonedCartsPromo: React.FC = () => {
       email: 'tarik.hadzic@gmail.com',
       phone: '+387 61 455 210',
       subtotal: 75.0,
-      lastUpdated: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
+      lastUpdated: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(), // Prije 3 dana
       items: [
         {
           id: 'cs-tee-sarajevo-geo-01',
@@ -65,7 +65,7 @@ export const AbandonedCartsPromo: React.FC = () => {
       email: 'amar.begic98@hotmail.com',
       phone: '+387 62 119 844',
       subtotal: 40.0,
-      lastUpdated: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+      lastUpdated: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(), // Prije 5 dni
       items: [
         {
           id: 'cs-tee-standing-not-running-05',
@@ -91,7 +91,7 @@ export const AbandonedCartsPromo: React.FC = () => {
       }
     } catch {
       setCarts(sampleSessions);
-    } fontally {
+    } finally {
       setLoading(false);
     }
   };
@@ -106,6 +106,7 @@ export const AbandonedCartsPromo: React.FC = () => {
     setEmailSentSuccess(false);
 
     try {
+      // Generiši ili preuzmi promo kod za ovog kupca (trajanje 48 sati)
       const generated = await createPromoCode(
         session.email || 'gost@casualshop.ba',
         'abandoned_cart',
@@ -154,7 +155,7 @@ Casual Shop BiH`;
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Izravno slanje e-maila kupcu iz Admina (AŽURIRANO NA TEMPLATE_D2ZQWNI)
+  // Izravno slanje e-maila kupcu iz Admina preko EmailJS Template d2zqwni
   const handleSendDirectEmail = async () => {
     if (!selectedSession?.email) {
       alert('Kupac nema unesen e-mail.');
@@ -174,7 +175,7 @@ Casual Shop BiH`;
         },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          template_id: 'template_d2zqwni', // AŽURIRANI TEMPLATE ID ZA NAPUŠTENE KORPE
+          template_id: 'template_d2zqwni', // ISPRAVLJEN TEMPLATE ID
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
             customer_name: selectedSession.customerName || 'Kupac',
