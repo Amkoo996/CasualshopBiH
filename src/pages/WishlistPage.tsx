@@ -12,15 +12,18 @@ interface WishlistPageProps {
 }
 
 export const WishlistPage: React.FC<WishlistPageProps> = ({
-  products,
+  products = [],
   onSelectProduct,
   onExploreProducts,
 }) => {
-  const { wishlistIds, clearWishlist, removeFromWishlist } = useWishlist();
+  const { wishlistIds = [], clearWishlist } = useWishlist();
   const { user, signInWithGoogle } = useAuth();
 
-  // Find products that match wishlist IDs
-  const wishlistProducts = products.filter((p) => wishlistIds.includes(p.id));
+  // Sigurna filtracija artikala (poređenje ID-jeva pretvorenih u string radi izbjegavanja nepoklapanja tipova)
+  const safeWishlistIds = (wishlistIds || []).map((id) => String(id));
+  const wishlistProducts = (products || []).filter((p) =>
+    safeWishlistIds.includes(String(p.id))
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 space-y-8 animate-fadeIn">
@@ -29,7 +32,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
         <div>
           <button
             onClick={onExploreProducts}
-            className="inline-flex items-center gap-1.5 text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-500 hover:text-black mb-2 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-500 hover:text-black mb-2 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Nazad na ponudu</span>
@@ -56,7 +59,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
                 clearWishlist();
               }
             }}
-            className="px-4 py-2 border border-neutral-300 hover:border-black text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-600 hover:text-black self-start sm:self-auto flex items-center gap-1.5 transition-colors"
+            className="px-4 py-2 border border-neutral-300 hover:border-black text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-600 hover:text-black self-start sm:self-auto flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Isprazni listu</span>
@@ -123,7 +126,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
             <span>Klikom na artikal otvarate detalje sa odabirom veličine i naručivanjem.</span>
             <button
               onClick={onExploreProducts}
-              className="font-['Poppins'] font-bold text-black uppercase underline hover:text-[#0A0A0A]"
+              className="font-['Poppins'] font-bold text-black uppercase underline hover:text-[#0A0A0A] cursor-pointer"
             >
               Nastavi kupovinu →
             </button>
