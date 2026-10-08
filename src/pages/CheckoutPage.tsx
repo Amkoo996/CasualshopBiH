@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, CreditCard, ShieldCheck, ArrowLeft, Lock } from 'lucide-react';
-import emailjs from '@emailjs/browser';
 import { useCart } from '../context/CartContext';
 import { CustomerDetails, Order } from '../types';
 import { createOrder } from '../lib/db';
@@ -106,7 +105,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         createdAt: new Date().toISOString(),
       };
 
-      // 1. Spremanje narudžbe i umanjivanje zalihe u jednoj transakciji
+      // 1. Spremanje narudžbe i umanjivanje zalihe u bazi
       const docId = await createOrder(orderData);
       const finalizedOrder: Order = {
         ...orderData,
@@ -116,46 +115,50 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       // 2. Trajno spremanje zadnje narudžbe u localStorage za prikaz potvrde
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
 
-      // 3. Automatsko slanje e-mail obavijesti preko EmailJS-a prema tvom predlošku
+      // 3. Automatsko slanje e-maila preko EmailJS REST API-ja (BEZ POTREBE ZA NPM)
       try {
         const itemsSummary = items
           .map((i) => `- ${i.quantity}x ${i.name} (Vel: ${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
           .join('\n');
 
-        await emailjs.send(
-          'service_h4rxrv2',     // Tvoj Service ID
-          '6ylwum8',             // Tvoj Template ID sa slike
-          {
-            order_number: finalizedOrder.orderNumber,
-            customer_name: `${formData.firstName} ${formData.lastName}`,
-            customer_phone: formData.phone,
-            customer_email: formData.email || 'Nije unesen',
-            customer_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
-            customer_note: formData.note || 'Nema napomene',
-            items_summary: itemsSummary,
-            total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
-            shipping_fee: shippingFee === 0 ? 'BESPLATNO' : `${shippingFee.toFixed(2)} KM`,
-            reply_to: formData.email || 'noreply@casualshop.ba',
+        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          'mPKyquhWRcGkRq4gS'    // Tvoj EmailJS Public Key
-        );
-        console.log('E-mail obavijest uspješno poslana na admin email!');
+          body: JSON.stringify({
+            service_id: 'service_h4rxrv2',
+            template_id: '6ylwum8',
+            user_id: 'mPKyquhWRcGkRq4gS',
+            template_params: {
+              order_number: finalizedOrder.orderNumber,
+              customer_name: `${formData.firstName} ${formData.lastName}`,
+              customer_phone: formData.phone,
+              customer_email: formData.email || 'Nije unesen',
+              customer_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
+              customer_note: formData.note || 'Nema napomene',
+              items_summary: itemsSummary,
+              total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
+              shipping_fee: shippingFee === 0 ? 'BESPLATNO' : `${shippingFee.toFixed(2)} KM`,
+              reply_to: formData.email || 'noreply@casualshop.ba',
+            },
+          }),
+        });
+        console.log('E-mail obavijest je uspješno poslata!');
       } catch (err: any) {
-        console.warn('E-mail obavijest nije poslana, ali je narudžba spremljena u bazu:', err?.message || err);
+        console.warn('E-mail obavijest nije poslana, ali narudžba je sačuvana:', err);
       }
 
-      // Analytics event purchase
+      // Analytics
       trackPurchase(finalizedOrder);
       recordCompletedPurchase(finalizedOrder.orderNumber, finalizedOrder.total);
 
-      // Clear cart
+      // Clear cart & Navigate
       clearCart();
-
-      // Navigate to order confirmation
       onOrderSuccess(finalizedOrder);
     } catch (error: any) {
       console.error('Greška pri kreiranju narudžbe:', error);
-      alert(error?.message || 'Došlo je do greške prilikom obrade narudžbe. Pokušajte ponovo.');
+      alert(error?.message || 'Došlo je do greške prilikom obrade narudžbe.');
     } finally {
       setSubmitting(false);
     }
@@ -200,9 +203,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* LEFT COLUMN: CUSTOMER DATA & PAYMENT (7 cols) */}
         <div className="lg:col-span-7 space-y-8">
-          {/* PODACI O KUPCU */}
           <div className="bg-white p-6 border-2 border-neutral-300 space-y-6 shadow-sm">
             <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-3">
               <Truck className="w-4 h-4 text-[#0A0A0A]" />
@@ -266,9 +267,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     errors.phone ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                   }`}
                 />
-                <span className="text-[10px] text-neutral-500 block mt-0.5">
-                  Obavezno: kurir će vas kontaktirati prije dostave
-                </span>
                 {errors.phone && (
                   <p className="text-[11px] text-red-600 mt-1">{errors.phone}</p>
                 )}
@@ -299,7 +297,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  placeholder="npr. Sarajevo, Tuzla, Zenica..."
+                  placeholder="npr. Sarajevo, Tuzla..."
                   className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                     errors.city ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                   }`}
@@ -338,7 +336,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="npr. Maršala Tita 15 ili Zmaja od Bosne 22"
+                placeholder="npr. Maršala Tita 15"
                 className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                   errors.address ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                 }`}
@@ -357,13 +355,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 rows={2}
                 value={formData.note}
                 onChange={handleChange}
-                placeholder="npr. Zvati na interfon broj 6, sprat 3..."
+                placeholder="npr. Zvati na interfon broj 6..."
                 className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs sm:text-sm focus:bg-white focus:border-black focus:outline-none"
               />
             </div>
           </div>
 
-          {/* NAČIN PLAĆANJA */}
           <div className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
             <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-3">
               <CreditCard className="w-4 h-4 text-[#0A0A0A]" />
@@ -382,37 +379,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   className="mt-1 accent-[#F7E97F]"
                 />
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-['Poppins'] text-xs sm:text-sm font-black uppercase tracking-wider text-[#F7E97F]">
-                      Plaćanje pouzećem (Gotovinom kuriru pri preuzimanju)
-                    </span>
-                  </div>
+                  <span className="font-['Poppins'] text-xs sm:text-sm font-black uppercase tracking-wider text-[#F7E97F]">
+                    Plaćanje pouzećem (Gotovinom kuriru pri preuzimanju)
+                  </span>
                   <p className="text-xs text-neutral-300 font-['Inter']">
-                    Plaćaš gotovinom kuriru brze pošte tek kada paket stigne na tvoju adresu. 100% sigurno.
+                    Plaćaš gotovinom kuriru brze pošte tek kada paket stigne na tvoju adresu.
                   </p>
                 </div>
               </label>
-
-              <div className="flex items-start gap-3 p-4 border-2 border-dashed border-neutral-300 bg-neutral-100 opacity-60 cursor-not-allowed">
-                <input
-                  type="radio"
-                  name="paymentOption"
-                  disabled
-                  className="mt-1 opacity-50 cursor-not-allowed"
-                />
-                <div className="space-y-1">
-                  <span className="font-['Poppins'] text-xs sm:text-sm font-bold uppercase tracking-wider text-neutral-600">
-                    Kartica
-                  </span>
-                  <p className="text-xs text-neutral-500 font-['Inter']">
-                    Kartično plaćanje uskoro u ponudi.
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* OBAVEZAN CHECKBOX ZA USLOVE I PRIVATNOST */}
           <div className="bg-white p-5 border-2 border-neutral-300 space-y-2">
             <label className="flex items-start gap-3 cursor-pointer select-none text-xs text-neutral-800 font-['Inter']">
               <input
@@ -427,7 +404,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigateToPage('terms')}
-                  className="font-bold underline text-black hover:text-[#e5d45d]"
+                  className="font-bold underline text-black"
                 >
                   Uslovima korištenja
                 </button>{' '}
@@ -435,7 +412,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigateToPage('privacy')}
-                  className="font-bold underline text-black hover:text-[#e5d45d]"
+                  className="font-bold underline text-black"
                 >
                   Politikom privatnosti
                 </button>
@@ -448,41 +425,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           </div>
         </div>
 
-        {/* RIGHT COLUMN: ORDER SUMMARY (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white p-6 border-2 border-[#F7E97F] sticky top-28 space-y-6 shadow-md">
             <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-black border-b-2 border-neutral-200 pb-3">
               Pregled narudžbe ({items.length})
             </h2>
 
-            {/* Visual Free Shipping Progress Bar */}
-            <div className="bg-[#F4F2EC] p-3.5 border-2 border-neutral-300 space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-neutral-800 font-['Inter']">
-                <div className="flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-[#0A0A0A] shrink-0" />
-                  {subtotal >= freeShippingThreshold ? (
-                    <span className="text-emerald-700 font-bold">
-                      🎉 Čestitamo! Ostvarili ste BESPLATNU DOSTAVU (0 KM)!
-                    </span>
-                  ) : (
-                    <span>
-                      Dodaj još <strong className="font-['Poppins'] text-black">{(freeShippingThreshold - subtotal).toFixed(2)} KM</strong> za <strong>BESPLATNU DOSTAVU</strong>!
-                    </span>
-                  )}
-                </div>
-                <span className="font-['Poppins'] text-[10px] font-bold text-neutral-500">
-                  {Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100))}%
-                </span>
-              </div>
-              <div className="w-full bg-neutral-300 h-2 overflow-hidden">
-                <div
-                  className="bg-[#0A0A0A] h-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (subtotal / freeShippingThreshold) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* List of items */}
             <div className="divide-y divide-neutral-200 max-h-72 overflow-y-auto pr-1">
               {items.map((item) => (
                 <div key={`${item.id}-${item.size}`} className="py-3 flex gap-3 first:pt-0">
@@ -508,7 +456,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               ))}
             </div>
 
-            {/* Calculation */}
             <div className="space-y-2 border-t-2 border-neutral-200 pt-4 text-xs font-['Inter']">
               <div className="flex justify-between text-neutral-700">
                 <span>Iznos artikala:</span>
@@ -528,12 +475,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <span className="uppercase tracking-wider">UKUPNO:</span>
                 <span className="text-xl">{total.toFixed(2)} KM</span>
               </div>
-              <p className="text-[11px] text-neutral-500 pt-1">
-                * Besplatna dostava za sve narudžbe preko {freeShippingThreshold.toFixed(0)} KM.
-              </p>
             </div>
 
-            {/* Submit button */}
             <button
               type="submit"
               disabled={submitting}
@@ -544,13 +487,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 {submitting ? 'KREIRANJE NARUDŽBE...' : 'POTVRDI NARUDŽBU (PLAĆANJE POUZEĆEM)'}
               </span>
             </button>
-
-            <div className="pt-2 text-[11px] text-neutral-500 space-y-1">
-              <p className="flex items-center gap-1.5 font-medium">
-                <Lock className="w-3.5 h-3.5 text-neutral-700" />
-                <span>Plaća se isključivo pouzećem pri preuzimanju paketa.</span>
-              </p>
-            </div>
           </div>
         </div>
       </form>
