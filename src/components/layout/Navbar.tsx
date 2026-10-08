@@ -3,7 +3,7 @@ import { ShoppingBag, Menu, X, Instagram, Search, Heart } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
-import { CATEGORIES } from '../../types';
+import { CATEGORIES, Category } from '../../types';
 
 interface NavbarProps {
   currentTab: string;
@@ -25,7 +25,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [searchValue, setSearchValue] = useState('');
   const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
 
-  // Reorganizovane navigacijske linije bez 'wishlist'
+  // 🙈 Prikazujemo samo kategorije koje NISU označene kao sakrivene u Admin Panelu
+  const hiddenCats = settings?.hiddenCategories || [];
+  const visibleCategories = CATEGORIES.filter(
+    (cat) => !hiddenCats.includes(cat as Category)
+  );
+
+  // Navigacijske linije
   const navLinks = [
     { id: 'home', label: 'Početna' },
     { id: 'shop', label: 'Kolekcija' },
@@ -74,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center lg:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 -ml-2 text-white hover:text-[#F7E97F] transition-colors focus:outline-none"
+              className="p-2 -ml-2 text-white hover:text-[#F7E97F] transition-colors focus:outline-none cursor-pointer"
               aria-label="Otvori navigaciju"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -84,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Circular Brand Logo */}
           <button
             onClick={() => handleNavClick('home')}
-            className="flex items-center focus:outline-none text-left py-2"
+            className="flex items-center focus:outline-none text-left py-2 cursor-pointer"
           >
             <Logo className="w-12 h-12 sm:w-13 sm:h-13" />
           </button>
@@ -95,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 key={link.id}
                 onClick={() => handleNavClick(link.id)}
-                className={`text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] transition-colors py-1 ${
+                className={`text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] transition-colors py-1 cursor-pointer ${
                   currentTab === link.id
                     ? 'text-[#F7E97F] border-b-2 border-[#F7E97F]'
                     : 'text-neutral-300 hover:text-[#F7E97F]'
@@ -106,27 +112,29 @@ export const Navbar: React.FC<NavbarProps> = ({
             ))}
 
             {/* Quick Categories dropdown trigger */}
-            <div className="relative group">
-              <button
-                onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
-                className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-neutral-300 hover:text-[#F7E97F] flex items-center gap-1 py-1"
-              >
-                <span>Kategorije</span>
-                <span className="text-[10px]">▼</span>
-              </button>
+            {visibleCategories.length > 0 && (
+              <div className="relative group">
+                <button
+                  onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
+                  className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-neutral-300 hover:text-[#F7E97F] flex items-center gap-1 py-1 cursor-pointer"
+                >
+                  <span>Kategorije</span>
+                  <span className="text-[10px]">▼</span>
+                </button>
 
-              <div className="absolute top-full left-0 hidden group-hover:block w-52 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50 animate-fadeIn">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => handleCategoryClick(cat)}
-                    className="w-full text-left px-4 py-2 text-xs font-['Inter'] font-semibold text-neutral-200 hover:bg-[#171717] hover:text-[#F7E97F] transition-colors block"
-                  >
-                    {cat}
-                  </button>
-                ))}
+                <div className="absolute top-full left-0 hidden group-hover:block w-52 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50 animate-fadeIn">
+                  {visibleCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => handleCategoryClick(cat)}
+                      className="w-full text-left px-4 py-2 text-xs font-['Inter'] font-semibold text-neutral-200 hover:bg-[#171717] hover:text-[#F7E97F] transition-colors block cursor-pointer"
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </nav>
 
           {/* Right Action Icons */}
@@ -134,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Search Trigger */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="p-2 text-neutral-300 hover:text-[#F7E97F] transition-colors"
+              className="p-2 text-neutral-300 hover:text-[#F7E97F] transition-colors cursor-pointer"
               title="Pretraži artikle"
             >
               <Search className="w-5 h-5" />
@@ -154,7 +162,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Favoriti (Srce) Ikona pored korpe */}
             <button
               onClick={() => handleNavClick('wishlist')}
-              className="relative p-2 text-neutral-300 hover:text-[#F7E97F] transition-colors flex items-center justify-center"
+              className="relative p-2 text-neutral-300 hover:text-[#F7E97F] transition-colors flex items-center justify-center cursor-pointer"
               title="Moji Favoriti"
             >
               <Heart className="w-5 h-5" />
@@ -168,7 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Cart Button */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative px-3.5 py-2.5 bg-[#171717] text-white border border-neutral-700 hover:bg-[#F7E97F] hover:text-[#0A0A0A] hover:border-[#F7E97F] transition-all flex items-center gap-2 group active:scale-95 shadow-sm ml-1"
+              className="relative px-3.5 py-2.5 bg-[#171717] text-white border border-neutral-700 hover:bg-[#F7E97F] hover:text-[#0A0A0A] hover:border-[#F7E97F] transition-all flex items-center gap-2 group active:scale-95 shadow-sm ml-1 cursor-pointer"
               aria-label="Otvori korpu"
             >
               <ShoppingBag className="w-4 h-4 transition-transform group-hover:scale-110" />
@@ -179,7 +187,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Dropdown Search Bar sa očišćenim tekstom */}
+        {/* Dropdown Search Bar */}
         {searchOpen && (
           <div className="py-3 border-t border-neutral-800 animate-fadeIn">
             <form onSubmit={handleSearchSubmit} className="relative flex items-center">
@@ -193,7 +201,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
               <button
                 type="submit"
-                className="absolute right-3 text-neutral-400 hover:text-[#F7E97F]"
+                className="absolute right-3 text-neutral-400 hover:text-[#F7E97F] cursor-pointer"
               >
                 <Search className="w-4 h-4" />
               </button>
@@ -217,7 +225,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     key={link.id}
                     onClick={() => handleNavClick(link.id)}
-                    className={`text-left text-sm font-['Poppins'] font-bold uppercase tracking-wider py-1.5 border-b border-neutral-900 ${
+                    className={`text-left text-sm font-['Poppins'] font-bold uppercase tracking-wider py-1.5 border-b border-neutral-900 cursor-pointer ${
                       currentTab === link.id ? 'text-[#F7E97F]' : 'text-neutral-300'
                     }`}
                   >
@@ -226,22 +234,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ))}
 
                 {/* Categories sub-list */}
-                <div className="pt-2">
-                  <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] text-[#F7E97F] block mb-2">
-                    KATEGORIJE PROIZVODA
-                  </span>
-                  <div className="flex flex-col space-y-1.5 pl-2">
-                    {CATEGORIES.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => handleCategoryClick(cat)}
-                        className="text-left text-xs font-['Inter'] font-semibold text-neutral-400 hover:text-white py-1"
-                      >
-                        • {cat}
-                      </button>
-                    ))}
+                {visibleCategories.length > 0 && (
+                  <div className="pt-2">
+                    <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] text-[#F7E97F] block mb-2">
+                      KATEGORIJE PROIZVODA
+                    </span>
+                    <div className="flex flex-col space-y-1.5 pl-2">
+                      {visibleCategories.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => handleCategoryClick(cat)}
+                          className="text-left text-xs font-['Inter'] font-semibold text-neutral-400 hover:text-white py-1 cursor-pointer"
+                        >
+                          • {cat}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </nav>
             </div>
 
