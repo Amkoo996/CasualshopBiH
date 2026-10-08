@@ -155,7 +155,7 @@ Casual Shop BiH`;
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Izravno slanje e-maila kupcu iz Admina preko EmailJS Template d2zqwni
+  // Izravno slanje e-maila kupcu iz Admina preko EmailJS Template template_atnmhpk
   const handleSendDirectEmail = async () => {
     if (!selectedSession?.email) {
       alert('Kupac nema unesen e-mail.');
@@ -175,7 +175,7 @@ Casual Shop BiH`;
         },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          template_id: 'template_d2zqwni', // ISPRAVLJEN TEMPLATE ID
+          template_id: 'template_atnmhpk', // TAČAN TEMPLATE ID SA EMAILJS DASHBOARDA
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
             customer_name: selectedSession.customerName || 'Kupac',
