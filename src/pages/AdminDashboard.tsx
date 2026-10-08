@@ -24,9 +24,10 @@ import {
   MessageCircle,
   FileText,
   Palette,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS } from '../types';
+import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS, Category } from '../types';
 import {
   getProducts,
   saveProduct,
@@ -77,7 +78,7 @@ export const AdminDashboard: React.FC = () => {
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('Sve');
   const [orderSearch, setOrderSearch] = useState('');
 
-  // Svi podržani nazivi veličina za formu
+  // Svi podržani nazivi veličina u fiksnom redoslijedu
   const availableSizesList: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 
   // Load admin data
@@ -277,7 +278,7 @@ export const AdminDashboard: React.FC = () => {
         images: editingProduct.images && editingProduct.images.length > 0
           ? editingProduct.images
           : ['https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1000&q=80'],
-        sizes: editingProduct.sizes || { S: 5, M: 8, L: 6, XL: 3 },
+        sizes: editingProduct.sizes || { S: 5, M: 8, L: 6, XL: 3, XXL: 0, '3XL': 0 },
         isNew: editingProduct.isNew ?? true,
         featured: editingProduct.featured ?? false,
         isHidden: editingProduct.isHidden ?? false,
@@ -328,13 +329,12 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // UPDATE ORDER STATUS (Sa automatskim vraćanjem na stock ako se otkaže)
+  // UPDATE ORDER STATUS
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
     try {
       const targetOrder = orders.find((o) => o.id === orderId);
       await updateOrderStatus(orderId, status);
 
-      // Ako se narudžba otkaže, automatski vraćamo zalihe
       if (status === 'Otkazana' && targetOrder && targetOrder.status !== 'Otkazana') {
         for (const item of targetOrder.items) {
           const prod = products.find((p) => p.id === item.id);
@@ -420,13 +420,13 @@ export const AdminDashboard: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => loadData()}
-            className="px-3.5 py-2 bg-white border-2 border-neutral-300 text-xs font-['Poppins'] font-bold uppercase tracking-wider hover:bg-neutral-100 text-neutral-800"
+            className="px-3.5 py-2 bg-white border-2 border-neutral-300 text-xs font-['Poppins'] font-bold uppercase tracking-wider hover:bg-neutral-100 text-neutral-800 cursor-pointer"
           >
             Osvježi
           </button>
           <button
             onClick={() => signOut()}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Odjavi se</span>
@@ -452,7 +452,7 @@ export const AdminDashboard: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 py-3 px-1 border-b-2 font-['Poppins'] font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-2 py-3 px-1 border-b-2 font-['Poppins'] font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-colors cursor-pointer ${
                 isActive
                   ? 'border-[#0A0A0A] text-[#0A0A0A]'
                   : 'border-transparent text-neutral-500 hover:text-black'
@@ -574,7 +574,7 @@ export const AdminDashboard: React.FC = () => {
                 </h3>
                 <button
                   onClick={() => setActiveTab('orders')}
-                  className="text-[11px] font-['Poppins'] font-bold text-neutral-700 hover:text-black uppercase underline"
+                  className="text-[11px] font-['Poppins'] font-bold text-neutral-700 hover:text-black uppercase underline cursor-pointer"
                 >
                   Vidi sve
                 </button>
@@ -645,7 +645,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PRODUCTS TAB (Sa brojačem pregleda po artiklima) */}
+      {/* PRODUCTS TAB */}
       {activeTab === 'products' && (
         <div className="space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -661,7 +661,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleSyncAuthenticProducts}
-                className="px-3.5 py-2.5 bg-[#F7E97F] text-[#0A0A0A] border-2 border-[#0A0A0A] hover:bg-yellow-300 text-xs font-['Poppins'] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-colors"
+                className="px-3.5 py-2.5 bg-[#F7E97F] text-[#0A0A0A] border-2 border-[#0A0A0A] hover:bg-yellow-300 text-xs font-['Poppins'] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
                 title="Sinhronizuj originalne majice i slike brenda"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -687,7 +687,7 @@ export const AdminDashboard: React.FC = () => {
                   });
                   setIsModalOpen(true);
                 }}
-                className="px-4 py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors"
+                className="px-4 py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>Dodaj novi artikal</span>
@@ -798,14 +798,14 @@ export const AdminDashboard: React.FC = () => {
                               setEditingProduct(p);
                               setIsModalOpen(true);
                             }}
-                            className="p-1.5 hover:bg-neutral-200 text-neutral-700 transition-colors"
+                            className="p-1.5 hover:bg-neutral-200 text-neutral-700 transition-colors cursor-pointer"
                             title="Uredi artikal"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteProduct(p.id, p.name)}
-                            className="p-1.5 hover:bg-red-100 text-red-600 transition-colors"
+                            className="p-1.5 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
                             title="Obriši artikal"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -831,7 +831,7 @@ export const AdminDashboard: React.FC = () => {
                 <button
                   key={status}
                   onClick={() => setOrderStatusFilter(status)}
-                  className={`px-3 py-1 text-xs font-['Poppins'] font-bold uppercase tracking-wider transition-colors border ${
+                  className={`px-3 py-1 text-xs font-['Poppins'] font-bold uppercase tracking-wider transition-colors border cursor-pointer ${
                     orderStatusFilter === status
                       ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A]'
                       : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100'
@@ -890,7 +890,7 @@ export const AdminDashboard: React.FC = () => {
                         name="orderStatus"
                         value={order.status}
                         onChange={(e) => handleUpdateStatus(order.id || '', e.target.value as OrderStatus)}
-                        className={`text-xs font-['Poppins'] font-bold uppercase px-3 py-1 border-2 focus:outline-none ${
+                        className={`text-xs font-['Poppins'] font-bold uppercase px-3 py-1 border-2 focus:outline-none cursor-pointer ${
                           order.status === 'Nova' ? 'bg-amber-50 text-amber-900 border-amber-400' :
                           order.status === 'Potvrđena' ? 'bg-blue-50 text-blue-900 border-blue-400' :
                           order.status === 'Poslana' ? 'bg-purple-50 text-purple-900 border-purple-400' :
@@ -999,7 +999,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <button
               onClick={handleExportCSV}
-              className="px-4 py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors"
+              className="px-4 py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>Izvezi u CSV</span>
@@ -1049,7 +1049,7 @@ export const AdminDashboard: React.FC = () => {
               Postavke trgovine
             </h2>
             <p className="text-xs text-neutral-600 font-['Inter']">
-              Prilagodite troškove dostave, kontakte, pravne podatke o firmi i tekstove na sajtu.
+              Prilagodite troškove dostave, kontakte, sakrijte ili prikažite kategorije te uredite pravne podatke o firmi.
             </p>
           </div>
 
@@ -1061,6 +1061,44 @@ export const AdminDashboard: React.FC = () => {
           )}
 
           <form onSubmit={handleSaveSettings} className="bg-white p-6 sm:p-8 border-2 border-neutral-300 space-y-6 shadow-sm">
+            
+            {/* 0. DINAMIČKO SAKRIVANJE KATEGORIJA */}
+            <div className="space-y-4 border-b pb-6 border-neutral-200">
+              <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black flex items-center gap-2">
+                <EyeOff className="w-4 h-4 text-[#0A0A0A]" />
+                <span>Upravljanje prikazom kategorija (Označite kategoriju za SAKRIVANJE iz navigacije i ponude)</span>
+              </h3>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#F4F2EC] p-4 border border-neutral-300">
+                {CATEGORIES.filter((c) => c !== 'Rasprodano').map((cat) => {
+                  const isHidden = (storeSettings.hiddenCategories || []).includes(cat);
+                  return (
+                    <label key={cat} className="flex items-center gap-2 cursor-pointer text-xs font-['Poppins'] font-bold select-none">
+                      <input
+                        type="checkbox"
+                        checked={isHidden}
+                        onChange={(e) => {
+                          const currentHidden = storeSettings.hiddenCategories || [];
+                          const updated = e.target.checked
+                            ? [...currentHidden, cat]
+                            : currentHidden.filter((c) => c !== cat);
+                          setStoreSettings({ ...storeSettings, hiddenCategories: updated });
+                        }}
+                        className="accent-black h-4 w-4 cursor-pointer"
+                      />
+                      <span className={isHidden ? 'text-red-600 line-through' : 'text-black'}>
+                        {cat}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-neutral-500 font-['Inter']">
+                Sakrivene kategorije se privremeno uklanjaju iz navigacijskog menija i sa početne stranice. Artikli iz tih kategorija i dalje ostaju sačuvani u bazi i možete ih ponovo aktivirati u bilo kojem trenutku.
+              </p>
+            </div>
+
+            {/* 1. Dostava */}
             <div className="space-y-4 border-b pb-6 border-neutral-200">
               <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
                 1. Dostava i prag za besplatnu dostavu
@@ -1117,6 +1155,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* 2. Kontakti */}
             <div className="space-y-4 border-b pb-6 border-neutral-200">
               <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
                 2. Kontakt podaci
@@ -1156,7 +1195,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="pt-2 flex justify-end">
               <button
                 type="submit"
-                className="px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors"
+                className="px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>Spremi sve postavke</span>
@@ -1173,7 +1212,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PRODUCT FORM MODAL (Sa svim veličinama) */}
+      {/* PRODUCT FORM MODAL (Sa fiksiranim redoslijedom veličina) */}
       {isModalOpen && editingProduct && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white max-w-2xl w-full p-6 sm:p-8 space-y-6 border-2 border-[#F7E97F] shadow-2xl relative my-8">
@@ -1183,7 +1222,7 @@ export const AdminDashboard: React.FC = () => {
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-neutral-500 hover:text-black p-1"
+                className="text-neutral-500 hover:text-black p-1 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1248,7 +1287,7 @@ export const AdminDashboard: React.FC = () => {
                     name="category"
                     value={editingProduct.category || 'Majice'}
                     onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value as any })}
-                    className="w-full border-2 border-neutral-300 p-2.5 text-xs sm:text-sm font-['Poppins'] font-bold focus:border-black focus:outline-none"
+                    className="w-full border-2 border-neutral-300 p-2.5 text-xs sm:text-sm font-['Poppins'] font-bold focus:border-black focus:outline-none cursor-pointer"
                   >
                     {CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
@@ -1356,7 +1395,7 @@ export const AdminDashboard: React.FC = () => {
                             type="button"
                             onClick={() => moveImage(idx, 'up')}
                             disabled={idx === 0}
-                            className="p-1 hover:bg-neutral-300 disabled:opacity-30"
+                            className="p-1 hover:bg-neutral-300 disabled:opacity-30 cursor-pointer"
                             title="Pomjeri gore"
                           >
                             <ArrowUp className="w-3.5 h-3.5" />
@@ -1365,7 +1404,7 @@ export const AdminDashboard: React.FC = () => {
                             type="button"
                             onClick={() => moveImage(idx, 'down')}
                             disabled={idx === (editingProduct.images?.length || 1) - 1}
-                            className="p-1 hover:bg-neutral-300 disabled:opacity-30"
+                            className="p-1 hover:bg-neutral-300 disabled:opacity-30 cursor-pointer"
                             title="Pomjeri dolje"
                           >
                             <ArrowDown className="w-3.5 h-3.5" />
@@ -1373,7 +1412,7 @@ export const AdminDashboard: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => removeImage(idx)}
-                            className="p-1 text-red-600 hover:bg-red-50"
+                            className="p-1 text-red-600 hover:bg-red-50 cursor-pointer"
                             title="Ukloni sliku"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1397,7 +1436,7 @@ export const AdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={addImage}
-                    className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase"
+                    className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase cursor-pointer"
                   >
                     Dodaj URL
                   </button>
@@ -1461,13 +1500,13 @@ export const AdminDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 border-2 border-neutral-300 font-['Poppins'] font-bold uppercase text-neutral-700 hover:bg-neutral-100"
+                  className="px-4 py-2.5 border-2 border-neutral-300 font-['Poppins'] font-bold uppercase text-neutral-700 hover:bg-neutral-100 cursor-pointer"
                 >
                   Odustani
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] font-bold uppercase flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors"
+                  className="px-6 py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] font-bold uppercase flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>Spremi artikal</span>
