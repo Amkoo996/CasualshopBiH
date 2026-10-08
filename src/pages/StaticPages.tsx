@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Instagram, ShieldCheck, Truck, RefreshCw, Send, CheckCircle2 } from 'lucide-react';
+import { Mail, MapPin, Instagram, ShieldCheck, Truck, RefreshCw, Send, CheckCircle2, PackageCheck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 interface StaticPageProps {
@@ -19,11 +19,9 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     }, 1000);
   };
 
-  const sellerNameDisplay = settings.sellerName?.trim() || '[uneseno u adminu]';
-  const sellerAddressDisplay = settings.sellerAddress?.trim() || '[uneseno u adminu]';
-  const sellerIdDisplay = settings.sellerIdNumber?.trim() || '[uneseno u adminu]';
-  const sellerEmailDisplay = settings.email?.trim() || '[uneseno u adminu]';
-  const sellerPhoneDisplay = settings.phone?.trim() || '[uneseno u adminu]';
+  const sellerNameDisplay = settings.sellerName?.trim() || 'Casual Shop BiH';
+  const sellerAddressDisplay = settings.sellerAddress?.trim() || 'Bosna i Hercegovina';
+  const sellerEmailDisplay = settings.email?.trim() || 'info@casualshop.ba';
 
   // 1. O NAMA
   if (page === 'about') {
@@ -55,7 +53,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
             <div className="p-4 bg-[#F4F2EC] border border-neutral-300">
               <h4 className="font-['Poppins'] font-bold text-sm uppercase text-black mb-1">Dostava širom BiH</h4>
               <p className="text-neutral-600">
-                Svaki grad i naselje u BiH, rok 2–5 radnih dana uz plaćanje kuriru pri preuzimanju.
+                Svaki grad i naselje u BiH, rok 48 do 72 sata uz mogućnost pregleda paketa i plaćanje kuriru.
               </p>
             </div>
             <div className="p-4 bg-[#F4F2EC] border border-neutral-300">
@@ -92,10 +90,10 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
             </h2>
             <ul className="list-disc list-inside space-y-1.5 text-neutral-700 pl-2">
               <li>Dostava se vrši na cijeloj teritoriji Bosne i Hercegovine putem ugovorene kurirske službe brze pošte.</li>
-              <li>Rok isporuke je <strong>2–5 radnih dana</strong> od telefonske potvrde narudžbe.</li>
+              <li>Rok isporuke je <strong>48 do 72 sata</strong> od potvrde narudžbe.</li>
+              <li>Moguće je <strong>otvaranje i pregled paketa prije preuzimanja</strong> od kurira.</li>
               <li>Kurir će kontaktirati kupca telefonom prije same isporuke paketa.</li>
-              <li>Kupac je dužan pregledati paket pri preuzimanju, a eventualna fizička oštećenja odmah prijaviti kuriru.</li>
-              <li>Cijena standardne dostave iznosi <strong>{settings.shippingFee} KM</strong>. Za sve narudžbe preko <strong>{settings.freeShippingThreshold} KM</strong>, dostava je <strong>BESPLATNA</strong>.</li>
+              <li>Cijena standardne dostave iznosi <strong>12 KM</strong>. Za sve narudžbe preko <strong>{settings.freeShippingThreshold || 100} KM</strong>, dostava je <strong>BESPLATNA</strong>.</li>
             </ul>
           </section>
 
@@ -117,10 +115,10 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
               <span>Povrat robe</span>
             </h2>
             <ul className="list-disc list-inside space-y-1.5 text-neutral-700 pl-2">
-              <li>Rok za povrat robe je <strong>14 dana</strong> od dana prijema pošiljke.</li>
+              <li>Rok za povrat robe je <strong>7 dni</strong> od dana prijema pošiljke.</li>
               <li>Artikal mora biti u potpunosti nenošen, neopran i u originalnom stanju s neoštećenom etiketom.</li>
-              <li>Zahtjev za povrat podnosi se putem e-maila (<strong>{settings.email}</strong>), telefona (<strong>{settings.phone}</strong>) ili našeg Instagram profila <strong>@casualshop.bih</strong> uz navođenje broja narudžbe.</li>
-              <li>Povrat novca se vrši u roku od <strong>14 dana</strong> od prijema i pregleda vraćene robe.</li>
+              <li>Zahtjev za povrat podnosi se putem e-maila (<strong>{sellerEmailDisplay}</strong>) ili našeg Instagram profila <strong>@casualshop.bih</strong> uz navođenje broja narudžbe.</li>
+              <li>Povrat novca ili zamjena vrši se nakon prijema i pregleda vraćene robe.</li>
             </ul>
           </section>
 
@@ -133,22 +131,12 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
               Ukoliko vam veličina ne odgovara, potrebno je da nam se javite sa brojem narudžbe. Zamjenu vršimo u dogovoru s kupcem u zavisnosti od trenutne dostupnosti zaliha željene veličine.
             </p>
           </section>
-
-          {/* Reklamacije */}
-          <section className="space-y-2.5">
-            <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black border-b pb-2 border-neutral-200">
-              <span>Reklamacije</span>
-            </h2>
-            <p className="text-neutral-700">
-              U slučaju fabričke greške ili oštećenja, kupac ima pravo podnijeti reklamaciju u roku od <strong>8 dana</strong> od prijema pošiljke uz priložene fotografije artikla i opis oštećenja.
-            </p>
-          </section>
         </div>
       </div>
     );
   }
 
-  // 3. USLOVI KORIŠTENJA
+  // 3. USLOVI KORIŠTENJA (Bez JIB-a, sa tokom povrata 7 dana)
   if (page === 'terms') {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
@@ -163,14 +151,13 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
         </div>
 
         <div className="bg-white border-2 border-neutral-200 p-6 sm:p-10 shadow-sm space-y-8 font-['Inter'] text-xs sm:text-sm text-neutral-800 leading-relaxed">
-          {/* Podaci o prodavcu */}
+          {/* Podaci o prodavcu - Sklonjen JIB */}
           <section className="space-y-2 bg-[#F4F2EC] p-4 border border-neutral-300">
             <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">1. Podaci o prodavcu</h2>
-            <p><strong>Naziv:</strong> {sellerNameDisplay}</p>
-            <p><strong>Sjedište i adresa:</strong> {sellerAddressDisplay}</p>
-            <p><strong>ID / JIB broj:</strong> {sellerIdDisplay}</p>
+            <p><strong>Naziv brenda:</strong> {sellerNameDisplay}</p>
+            <p><strong>Lokacija:</strong> {sellerAddressDisplay}</p>
             <p><strong>Kontakt e-mail:</strong> {sellerEmailDisplay}</p>
-            <p><strong>Kontakt telefon:</strong> {sellerPhoneDisplay}</p>
+            <p><strong>Instagram:</strong> @casualshop.bih</p>
           </section>
 
           <section className="space-y-2">
@@ -183,63 +170,42 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
           <section className="space-y-2">
             <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">3. Proizvodi i cijene</h2>
             <p>
-              Sve cijene na web stranici izražene su u Konvertibilnim markama (KM) sa uračunatim porezima. Fotografije na stranici su informativnog karaktera, ali vjerodostojno prikazuju boju i detalje ponuđenih artikala.
+              Sve cijene na web stranici izražene su u Konvertibilnim markama (KM). Fotografije na stranici vjerodostojno prikazuju boju i detalje ponuđenih artikala.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">4. Narudžba</h2>
+            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">4. Narudžba i dostava</h2>
             <p>
-              Narudžba se obavlja bez potrebe za registracijom korisničkog računa. Nakon slanja narudžbenice putem checkout forme, narudžba se smatra formalno zaprimljenom. Naš tim će kontaktirati kupca telefonom radi potvrde narudžbe. Narudžba postaje obavezujuća tek nakon uspješne potvrde. U slučaju da naručeni artikal ili veličina u međuvremenu nisu dostupni, kupac će biti obaviješten u najkraćem roku.
+              Narudžba se obavlja putem checkout forme. Dostava se vrši brzam poštom u roku 48 do 72 sata. Cijena dostave iznosi 12 KM. Kupac ima pravo otvaranja i pregleda paketa prije preuzimanja i plaćanja kuriru.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">5. Plaćanje</h2>
             <p>
-              Plaćanje se vrši pouzećem gotovinom kuriru brze pošte pri preuzimanju paketa. Kartično plaćanje uskoro u ponudi.
+              Plaćanje se vrši pouzećem gotovinom kuriru brze pošte pri preuzimanju paketa.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">6. Dostava</h2>
+            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">6. Povrat i zamjene</h2>
             <p>
-              Isporuka se vrši kurirskom službom na području Bosne i Hercegovine u roku 2–5 radnih dana od potvrde.
+              Kupac ima pravo na povrat ili zamjenu robe u roku od 7 dni od dneva prijema pošiljke, pod uslovom da artikal nije nošen, opran ili oštećen i posjeduje originalne etikete.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">7. Povrat i reklamacije</h2>
+            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">7. Intelektualno vlasništvo</h2>
             <p>
-              Kupac ima pravo na odustanak od ugovora i povrat robe u roku od 14 dana od dana prijema, pod uslovom da artikal nije nošen, opran ili oštećen i posjeduje originalne etikete. Reklamacije na vidljiva oštećenja prijavljuju se u roku od 8 dana od prijema.
+              Svi dizajni, logotip Casual Shop BiH i grafike zaštićeni su autorskim pravima. Zabranjeno je neovlašteno kopiranje bez izričitog odobrenja.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">8. Intelektualno vlasništvo</h2>
+            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">8. Izmjene uslova</h2>
             <p>
-              Svi dizajni, logotip Casual Shop BiH, autorski tekstovi i grafike zaštićeni su autorskim pravima. Zabranjeno je neovlašteno kopiranje i reprodukcija materijala bez izričitog odobrenja.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">9. Ograničenje odgovornosti</h2>
-            <p>
-              Prodavac ne snosi odgovornost za kašnjenja u isporuci uzrokovana višom silom ili propustima kurirske službe, ali se obavezuje učiniti sve da kupac dobije paket u najkraćem roku.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">10. Mjerodavno pravo</h2>
-            <p>
-              Na ove Uslove primjenjuju se važeći zakoni i propisi Bosne i Hercegovine. Eventualni sporovi rješavat će se mirnim putem, a u suprotnom pred nadležnim sudom u BiH.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">11. Izmjene uslova i datum ažuriranja</h2>
-            <p>
-              Zadržavamo pravo ažuriranja i izmjene ovih uslova. Sve promjene stupaju na snagu objavom na sajtu. Posljednje ažuriranje: {new Date().toLocaleDateString('bs-BA')}.
+              Zadržavamo pravo ažuriranja i izmjene ovih uslova. Posljednje ažuriranje: {new Date().toLocaleDateString('bs-BA')}.
             </p>
           </section>
         </div>
@@ -264,7 +230,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
         <div className="bg-white border-2 border-neutral-200 p-6 sm:p-10 shadow-sm space-y-8 font-['Inter'] text-xs sm:text-sm text-neutral-800 leading-relaxed">
           <section className="space-y-2 bg-[#F4F2EC] p-4 border border-neutral-300">
             <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">1. Rukovalac podacima</h2>
-            <p>Rukovalac ličnim podacima je <strong>{sellerNameDisplay}</strong>, sa sjedištem na adresi {sellerAddressDisplay}, kontakt e-mail: {sellerEmailDisplay}.</p>
+            <p>Rukovalac ličnim podacima je <strong>{sellerNameDisplay}</strong>, kontakt e-mail: {sellerEmailDisplay}.</p>
           </section>
 
           <section className="space-y-2">
@@ -272,55 +238,28 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
             <ul className="list-disc list-inside space-y-1 text-neutral-700 pl-2">
               <li><strong>Podaci pri narudžbi:</strong> ime, prezime, adresa dostave, grad, poštanski broj, broj telefona i opciono e-mail adresa.</li>
               <li><strong>Newsletter:</strong> e-mail adresa prijavljenog korisnika uz izričitu saglasnost.</li>
-              <li><strong>Automatski podaci:</strong> kolačići za rad korpe, sesije i analitiku (uz saglasnost).</li>
             </ul>
           </section>
 
           <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">3. Svrha obrade</h2>
+            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">3. Dijeljenje podataka</h2>
             <p>
-              Prikupljeni podaci koriste se isključivo za: obradu i slanje narudžbi, kontakt kurirske službe sa kupcem radi isporuke paketa, rješavanje reklamacija i slanje newsletter obavijesti onima koji su se prijavili.
+              Podaci o kupcu dijele se isključivo sa ugovorenom kurirskom službom radi fizičke dostave narudžbe. Vaši lični podaci se <strong>nikada ne prodaju</strong> niti ustupaju trećim licima.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">4. Dijeljenje podataka</h2>
+            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">4. Prava korisnika</h2>
             <p>
-              Podaci o kupcu dijele se isključivo sa ugovorenom kurirskom službom radi fizičke dostave narudžbe. Vaši lični podaci se <strong>nikada ne prodaju</strong> niti ustupaju trećim licima u marketinške svrhe.
+              Korisnik ima pravo u svakom trenutku zatražiti uvid, ispravku ili brisanje svojih podataka slanjem zahtjeva na <strong>{sellerEmailDisplay}</strong>.
             </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">5. Rok čuvanja podataka</h2>
-            <p>
-              Podaci o narudžbi čuvaju se onoliko koliko je zakonski potrebno radi računovodstvenih evidencija i garantnih rokova. Podaci za newsletter čuvaju se do opoziva saglasnosti.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">6. Prava korisnika</h2>
-            <p>
-              Korisnik ima pravo u svakom trenutku zatražiti uvid u svoje podatke, ispravku, brisanje ili povlačenje saglasnosti za primanje newslettera slanjem zahtjeva na <strong>{sellerEmailDisplay}</strong>.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">7. Kolačići (Cookies)</h2>
-            <p>
-              Stranica koristi neophodne kolačiće za funkcionisanje korpe i narudžbe. Analitički kolačići (Google Analytics 4) i marketinški pikseli (Meta Pixel) aktiviraju se isključivo nakon što korisnik na cookie banneru klikne "Prihvati sve".
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">8. Datum ažuriranja</h2>
-            <p>Ova politika privatnosti posljednji put je ažurirana: {new Date().toLocaleDateString('bs-BA')}.</p>
           </section>
         </div>
       </div>
     );
   }
 
-  // 5. KONTAKT
+  // 5. KONTAKT (Sklonjen WhatsApp)
   if (page === 'contact') {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
@@ -348,41 +287,28 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                   href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 bg-[#F4F2EC] border border-neutral-300 hover:border-black transition-colors"
+                  className="flex items-center gap-3 p-3.5 bg-[#F4F2EC] border border-neutral-300 hover:border-black transition-colors"
                 >
-                  <Instagram className="w-5 h-5 text-pink-600" />
+                  <Instagram className="w-5 h-5 text-pink-600 shrink-0" />
                   <div>
                     <span className="font-['Poppins'] font-bold uppercase block text-black">Instagram DM</span>
                     <span className="text-neutral-500">@casualshop.bih (Najbrži odgovor)</span>
                   </div>
                 </a>
 
-                <a
-                  href={`https://wa.me/${(settings.whatsappNumber || '38761000000').replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 bg-[#F4F2EC] border border-neutral-300 hover:border-black transition-colors"
-                >
-                  <Phone className="w-5 h-5 text-emerald-600" />
-                  <div>
-                    <span className="font-['Poppins'] font-bold uppercase block text-black">WhatsApp / Telefon</span>
-                    <span className="text-neutral-500">{settings.whatsappNumber || '+387 61 000 000'}</span>
-                  </div>
-                </a>
-
-                <div className="flex items-center gap-3 p-3 bg-[#F4F2EC] border border-neutral-300">
-                  <Mail className="w-5 h-5 text-neutral-800" />
+                <div className="flex items-center gap-3 p-3.5 bg-[#F4F2EC] border border-neutral-300">
+                  <Mail className="w-5 h-5 text-neutral-800 shrink-0" />
                   <div>
                     <span className="font-['Poppins'] font-bold uppercase block text-black">E-mail adresa</span>
-                    <span className="text-neutral-500">{settings.email || 'info@casualshop.ba'}</span>
+                    <span className="text-neutral-500">{sellerEmailDisplay}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3 bg-[#F4F2EC] border border-neutral-300">
-                  <MapPin className="w-5 h-5 text-neutral-800" />
+                <div className="flex items-center gap-3 p-3.5 bg-[#F4F2EC] border border-neutral-300">
+                  <MapPin className="w-5 h-5 text-neutral-800 shrink-0" />
                   <div>
                     <span className="font-['Poppins'] font-bold uppercase block text-black">Isporuka</span>
-                    <span className="text-neutral-500">Pokrivamo sve gradove u Bosni i Hercegovini</span>
+                    <span className="text-neutral-500">Brza pošta u sve gradove BiH (48-72h)</span>
                   </div>
                 </div>
               </div>
