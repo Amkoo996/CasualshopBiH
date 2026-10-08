@@ -16,7 +16,7 @@ import { OrderSuccessPage } from './pages/OrderSuccessPage';
 import { StaticPages } from './pages/StaticPages';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Product, Order } from './types';
-import { getProducts } from './lib/db';
+import { getProducts, getStoreSettings } from './lib/db';
 import { trackVisit } from './lib/tracking';
 import { applyTheme } from './utils/theme';
 
@@ -28,32 +28,32 @@ export function AppContent() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [shopCategory, setShopCategory] = useState<string>('Sve');
 
-  // Učitavanje teme i proizvoda pri pokretanju
+  // Load products & theme settings from Firebase
   useEffect(() => {
-    // 1. Primijeni sačuvanu temu iz localStorage-a (ili sa API-ja)
-    const savedTheme = localStorage.getItem('site_theme');
-    if (savedTheme) {
-      try {
-        applyTheme(JSON.parse(savedTheme));
-      } catch (e) {
-        console.error('Greška pri učitavanju teme:', e);
-        applyTheme();
-      }
-    } else {
-      applyTheme(); // Učitava defaultne CSS varijable
-    }
-
-    // 2. Tracking i dohvaćanje kataloga
     trackVisit();
-    const fetchCatalog = async () => {
+
+    const init = async () => {
       try {
+        // Preuzimanje i primjena postavki trgovine i teme iz Firebase-a
+        const settings = await getStoreSettings();
+        if (settings) {
+          applyTheme(settings);
+        }
+      } catch (e) {
+        console.error('Greška pri učitavanju postavki teme:', e);
+        applyTheme(); // Vraća na default u slučaju greške
+      }
+
+      try {
+        // Dohvatanje kataloga proizvoda
         const data = await getProducts(false);
         setProducts(data);
       } catch (e) {
-        console.error('Error fetching catalog:', e);
+        console.error('Greška pri dohvatanju kataloga:', e);
       }
     };
-    fetchCatalog();
+
+    init();
   }, []);
 
   // Sync document title dynamically for SEO
@@ -77,7 +77,7 @@ export function AppContent() {
     }
   }, [currentTab, selectedProduct]);
 
-  // Handle URL hash changes
+  // Handle URL hash changes or direct deep-links
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.replace('#/', '').replace('#', '');
@@ -117,7 +117,7 @@ export function AppContent() {
   };
 
   return (
-    // Uklonjene hardkodovane boje (bg-[#F4F2EC], text-[#111111]) – sada sve vodi index.css i CSS varijable
+    // Uklonjene hardkodovane boje (bg-[#F4F2EC], text-[#111111]) – sve sada vode CSS varijable
     <div className="min-h-screen flex flex-col antialiased selection:bg-yellow-brand selection:text-[#0A0A0A]">
       {/* Sticky Header */}
       <Navbar
