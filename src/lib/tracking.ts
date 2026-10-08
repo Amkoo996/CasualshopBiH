@@ -29,7 +29,7 @@ export interface AnalyticsEvent {
   metadata?: Record<string, any>;
 }
 
-// Inicijalne čistije vrijednosti (bez lažnih brojki)
+// Inicijalne čistije vrijednosti
 export const DEFAULT_METRICS: StoreFunnelMetrics = {
   totalVisits: 0,
   productViews: 0,
@@ -51,9 +51,6 @@ export async function recordAnalyticsEvent(
   eventType: AnalyticsEvent['eventType'],
   metadata?: Record<string, any>
 ) {
-  // Praćenje se izvršava samo ako je korisnik prihvatio kolačiće
-  if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
-
   try {
     const visitorId = getVisitorId();
     const now = new Date();
@@ -91,7 +88,7 @@ export async function recordAnalyticsEvent(
 }
 
 // ------------------------------------------------------------------
-// KOMPLETNE POMOĆNE EXPORT FUNKCIJE ZA SVE KOMPONENTE REPOZITORIJA
+// POMOĆNE EXPORT FUNKCIJE SA STATISTIKOM ZA PROIZVODE
 // ------------------------------------------------------------------
 
 export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
@@ -121,8 +118,52 @@ export async function getAbandonedCarts(): Promise<any[]> {
   }
 }
 
-export async function recordProductView(productId?: string) {
+// 📊 POJEDINAČNO PRAĆENJE OTVARANJA PROIZVODA
+export async function recordProductView(productOrId?: any) {
+  const productId = typeof productOrId === 'string' ? productOrId : productOrId?.id;
+  
+  // 1. Zabilježi opšti analytics event
   await recordAnalyticsEvent('product_view', productId ? { productId } : undefined);
+
+  // 2. Ako imamo ID artikla, uvećaj pojedinačni brojač otvaranja u bazi
+  if (productId) {
+    try {
+      const statsRef = doc(db, 'product_stats', productId);
+      await updateDoc(statsRef, {
+        viewsCount: increment(1),
+        lastViewedAt: new Date().toISOString()
+      }).catch(async () => {
+        await setDoc(statsRef, {
+          productId,
+          viewsCount: 1,
+          lastViewedAt: new Date().toISOString()
+        }, { merge: true });
+      });
+    } catch (err) {
+      console.warn('Greška pri ažuriranju statistike proizvoda:', err);
+    }
+  }
+}
+
+// 📈 Dohvaćanje broja otvaranja za sve proizvode (Za Admin Panel)
+export async function getProductViewStats(): Promise<Record<string, number>> {
+  try {
+    const statsRef = collection(db, 'product_stats');
+    const snap = await getDocs(statsRef);
+    const statsMap: Record<string, number> = {};
+    
+    snap.docs.forEach((d) => {
+      const data = d.data();
+      if (data.productId) {
+        statsMap[data.productId] = data.viewsCount || 0;
+      }
+    });
+    
+    return statsMap;
+  } catch (error) {
+    console.error('Greška pri dohvatanju statistike proizvoda:', error);
+    return {};
+  }
 }
 
 export async function recordAddToCartEvent(productId?: string) {
@@ -138,8 +179,6 @@ export async function recordCompletedPurchase(orderNumber?: string, total?: numb
 }
 
 export async function trackVisit() {
-  if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
-  
   const lastVisit = sessionStorage.getItem('casualshop_visited_session');
   if (!lastVisit) {
     sessionStorage.setItem('casualshop_visited_session', 'true');
@@ -148,8 +187,6 @@ export async function trackVisit() {
 }
 
 export async function saveCartSession(cartData: any) {
-  if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
-  
   try {
     const visitorId = getVisitorId();
     const cartRef = doc(db, 'abandoned_carts', visitorId);
