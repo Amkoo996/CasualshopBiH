@@ -18,6 +18,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { Product, Order } from './types';
 import { getProducts } from './lib/db';
 import { trackVisit } from './lib/tracking';
+import { applyTheme } from './utils/theme';
 
 export function AppContent() {
   const [currentTab, setCurrentTab] = useState<string>('home');
@@ -27,8 +28,22 @@ export function AppContent() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [shopCategory, setShopCategory] = useState<string>('Sve');
 
-  // Load products on mount
+  // Učitavanje teme i proizvoda pri pokretanju
   useEffect(() => {
+    // 1. Primijeni sačuvanu temu iz localStorage-a (ili sa API-ja)
+    const savedTheme = localStorage.getItem('site_theme');
+    if (savedTheme) {
+      try {
+        applyTheme(JSON.parse(savedTheme));
+      } catch (e) {
+        console.error('Greška pri učitavanju teme:', e);
+        applyTheme();
+      }
+    } else {
+      applyTheme(); // Učitava defaultne CSS varijable
+    }
+
+    // 2. Tracking i dohvaćanje kataloga
     trackVisit();
     const fetchCatalog = async () => {
       try {
@@ -62,7 +77,7 @@ export function AppContent() {
     }
   }, [currentTab, selectedProduct]);
 
-  // Handle URL hash changes or direct deep-links (e.g. #/admin)
+  // Handle URL hash changes
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.replace('#/', '').replace('#', '');
@@ -102,7 +117,8 @@ export function AppContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F4F2EC] text-[#111111] font-['Inter'] antialiased selection:bg-[#F7E97F] selection:text-[#0A0A0A]">
+    // Uklonjene hardkodovane boje (bg-[#F4F2EC], text-[#111111]) – sada sve vodi index.css i CSS varijable
+    <div className="min-h-screen flex flex-col antialiased selection:bg-yellow-brand selection:text-[#0A0A0A]">
       {/* Sticky Header */}
       <Navbar
         currentTab={currentTab}
@@ -183,7 +199,7 @@ export function AppContent() {
       {/* Cookie Consent Banner */}
       <CookieConsent />
 
-      {/* Newsletter Popup (15 seconds) */}
+      {/* Newsletter Popup */}
       <NewsletterPopup />
     </div>
   );
