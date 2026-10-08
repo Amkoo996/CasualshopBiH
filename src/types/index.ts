@@ -101,6 +101,9 @@ export interface StoreSettings {
   sellerAddress?: string;
   sellerIdNumber?: string;
 
+  // 🙈 Sakrivene kategorije u trgovini (Uredivo iz Admin Panela)
+  hiddenCategories?: Category[];
+
   // 🎨 Postavke Teme (Dev Settings)
   bgColor?: string;
   textColor?: string;
@@ -124,6 +127,15 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   sellerName: '',
   sellerAddress: '',
   sellerIdNumber: '',
+
+  // Po defaultu sakrivamo neaktivne kategorije osim 'Majice', 'Jakne' i 'Rasprodano'
+  hiddenCategories: [
+    'Duksevi i hoodice',
+    'Pantalone i trenerke',
+    'Šorcevi',
+    'Kape i šeširi',
+    'Dodaci',
+  ],
 
   // 🎨 Defaultne vrijednosti vizuelne teme
   bgColor: '#F4F2EC',
