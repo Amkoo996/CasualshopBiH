@@ -185,7 +185,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           },
           body: JSON.stringify({
             service_id: 'service_h4rxrv2',
-            template_id: '6ylwum8',
+            template_id: 'template_b7r6ees',
             user_id: 'mPKyquhWRcGkRq4gS',
             template_params: {
               order_number: finalizedOrder.orderNumber,
