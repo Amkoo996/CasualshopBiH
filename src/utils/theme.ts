@@ -1,4 +1,15 @@
-export const DEFAULT_THEME = {
+export interface SiteTheme {
+  bgColor: string;
+  textColor: string;
+  yellowBrand: string;
+  scrollThumb: string;
+  fontBody: string;
+  fontHeading: string;
+  fontSize: number;
+  bgImage: string;
+}
+
+export const DEFAULT_THEME: SiteTheme = {
   bgColor: '#F4F2EC',
   textColor: '#111111',
   yellowBrand: '#F7E97F',
@@ -6,10 +17,10 @@ export const DEFAULT_THEME = {
   fontBody: "'Inter', sans-serif",
   fontHeading: "'Poppins', sans-serif",
   fontSize: 16,
-  bgImage: ''
+  bgImage: '',
 };
 
-export const applyTheme = (theme = {}) => {
+export const applyTheme = (theme: Partial<SiteTheme> = {}) => {
   const root = document.documentElement;
   const t = { ...DEFAULT_THEME, ...theme };
 
@@ -18,7 +29,7 @@ export const applyTheme = (theme = {}) => {
   root.style.setProperty('--yellow-brand', t.yellowBrand);
   root.style.setProperty('--scroll-track', t.bgColor);
   root.style.setProperty('--scroll-thumb', t.scrollThumb);
-  
+
   root.style.setProperty('--font-body', t.fontBody);
   root.style.setProperty('--font-heading', t.fontHeading);
   root.style.setProperty('--base-font-size', `${t.fontSize}px`);
