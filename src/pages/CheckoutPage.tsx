@@ -62,9 +62,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     const nextForm = { ...formData, [name]: val };
     setFormData(nextForm);
+
     if (errors[name as keyof CustomerDetails]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
+
     if (nextForm.email || nextForm.phone) {
       saveCartSession({
         email: nextForm.email,
@@ -135,7 +137,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         createdAt: new Date().toISOString(),
       };
 
-      // 1. Spremanje narudžbe u bazi
+      // 1. Spremanje narudžbe u bazu (Firestore)
       const docId = await createOrder(orderData);
       const finalizedOrder: Order = {
         ...orderData,
@@ -171,6 +173,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ? `\n\nHVALA NA KUPOVINI! Tvoj promo kod od 10% za narednu narudžbu (važi 30 dana): ${nextPromoCode}`
           : '';
 
+        // Provjera e-mail adrese da EmailJS ne bi vratio 400 Bad Request
+        const recipientEmail = formData.email && formData.email.includes('@') 
+          ? formData.email 
+          : 'redemption19@gmail.com'; // Fallback na vasu e-mail adresu ako kupac nije unio mail
+
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
           headers: {
@@ -184,13 +191,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               order_number: finalizedOrder.orderNumber,
               customer_name: `${formData.firstName} ${formData.lastName}`,
               customer_phone: formData.phone,
-              customer_email: formData.email || 'Nije unesen',
+              customer_email: recipientEmail,
               customer_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
               customer_note: (formData.note || 'Nema napomene') + promoNote,
               items_summary: itemsSummary,
               total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
               shipping_fee: shippingFee === 0 ? 'BESPLATNO' : `${shippingFee.toFixed(2)} KM`,
-              reply_to: formData.email || 'noreply@casualshop.ba',
+              reply_to: formData.email || 'redemption19@gmail.com',
             },
           }),
         });
