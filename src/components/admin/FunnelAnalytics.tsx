@@ -5,26 +5,13 @@ import {
   CreditCard,
   CheckCircle2,
   TrendingUp,
-  AlertTriangle,
   RefreshCw,
   HelpCircle,
   Activity,
-  Layers,
   Database,
-  Calendar,
   Clock,
-  ArrowUpRight,
+  Eye,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
 import { AnalyticsStats, StoreFunnelMetrics } from '../../types';
 import { getAnalyticsStats, getFunnelMetrics } from '../../lib/tracking';
 
@@ -36,20 +23,23 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
   const [analyticsData, setAnalyticsData] = useState<AnalyticsStats | null>(null);
   const [funnelMetrics, setFunnelMetrics] = useState<StoreFunnelMetrics | null>(null);
   const [loading, setLoading] = useState(false);
-  const [timeFilter, setTimeFilter] = useState<'30' | '14' | '7'>('30');
+  const [timeFilter, setTimeFilter] = useState<'30' | '14' | '7'>('14');
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [stats, funnel] = await Promise.all([
-        getAnalyticsStats(),
-        getFunnelMetrics(),
+        getAnalyticsStats().catch(() => null),
+        getFunnelMetrics().catch(() => null),
       ]);
-      setAnalyticsData(stats);
-      setFunnelMetrics({
-        ...funnel,
-        completedPurchases: Math.max(ordersCount, funnel.completedPurchases),
-      });
+
+      if (stats) setAnalyticsData(stats);
+      if (funnel) {
+        setFunnelMetrics({
+          ...funnel,
+          completedPurchases: Math.max(ordersCount || 0, funnel.completedPurchases || 0),
+        });
+      }
     } catch (e) {
       console.warn('Error loading analytics:', e);
     } finally {
@@ -61,50 +51,29 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
     fetchData();
   }, [ordersCount]);
 
-  const uniqueVisitors = analyticsData?.uniqueVisitorsCount ?? 124;
-  const totalVisits = analyticsData?.totalVisitsCount ?? 186;
-  const addToCartEvents = analyticsData?.addToCartCount ?? 52;
-  const uniqueAddToCartUsers = analyticsData?.uniqueAddToCartUsersCount ?? 38;
-  const addToCartRate = analyticsData?.addToCartRate ?? 30.6;
-  const completedOrders = Math.max(ordersCount, funnelMetrics?.completedPurchases ?? 14);
+  // Sigurne vrijednosti bez opasnosti od pucanja
+  const uniqueVisitors = analyticsData?.uniqueVisitorsCount ?? 0;
+  const totalVisits = analyticsData?.totalVisitsCount ?? 0;
+  const addToCartEvents = analyticsData?.addToCartCount ?? 0;
+  const uniqueAddToCartUsers = analyticsData?.uniqueAddToCartUsersCount ?? 0;
+  const addToCartRate = analyticsData?.addToCartRate ?? 0;
+  const completedOrders = Math.max(ordersCount || 0, funnelMetrics?.completedPurchases ?? 0);
 
-  // Conversion rate
+  // Stopa konverzije
   const visitorConversionRate = uniqueVisitors > 0
     ? ((completedOrders / uniqueVisitors) * 100).toFixed(1)
     : '0.0';
 
-  // Filter daily trend data
-  const filteredDailyTrends = (analyticsData?.dailyTrends || []).slice(-Number(timeFilter));
+  // Filtrirani dnevni trendovi
+  const rawDailyTrends = analyticsData?.dailyTrends || [];
+  const filteredDailyTrends = rawDailyTrends.slice(-Number(timeFilter));
 
-  const CustomChartTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-[#0A0A0A] text-white p-3 border-2 border-[#F7E97F] shadow-xl text-xs font-['Inter'] space-y-1">
-          <div className="font-['Poppins'] font-bold text-[#F7E97F] border-b border-neutral-700 pb-1">
-            {label} ({data.fullDate})
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-neutral-300">Jedinstveni posjetioci:</span>
-            <span className="font-bold text-white">{data.uniqueVisitors}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-neutral-300">Ukupno posjeta:</span>
-            <span className="text-neutral-400">{data.visits}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-amber-400">Dodano u korpu:</span>
-            <span className="font-bold text-[#F7E97F]">{data.addToCart}</span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Izračun max vrijednosti za bars/grafikon
+  const maxTrendVisitors = Math.max(...filteredDailyTrends.map((d) => d.uniqueVisitors || 0), 1);
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header with live sync */}
+    <div className="space-y-6 font-['Inter'] animate-fadeIn">
+      {/* 1. Header sa dugmetom za osvežavanje */}
       <div className="bg-white border-2 border-neutral-200 p-5 sm:p-7 shadow-sm space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-neutral-200">
           <div>
@@ -112,7 +81,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
               <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] bg-[#0A0A0A] text-[#F7E97F] px-2 py-0.5 border border-[#F7E97F]">
                 FIRESTORE: ANALYTICS_EVENTS
               </span>
-              <span className="text-xs text-neutral-500 font-['Inter'] flex items-center gap-1">
+              <span className="text-xs text-neutral-500 flex items-center gap-1">
                 <Database className="w-3.5 h-3.5 text-neutral-400" />
                 <span>Zasebna kolekcija za praćenje akcija</span>
               </span>
@@ -121,7 +90,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
               <Activity className="w-6 h-6 text-[#0A0A0A]" />
               <span>Praćenje jedinstvenih posjetilaca & Dodavanje u korpu</span>
             </h3>
-            <p className="text-xs text-neutral-500 font-['Inter']">
+            <p className="text-xs text-neutral-500">
               Analitika ponašanja kupaca u Casual Shop BiH u realnom vremenu uz evidenciju u bazi.
             </p>
           </div>
@@ -129,10 +98,10 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
           <button
             onClick={fetchData}
             disabled={loading}
-            className="px-4 py-2.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white border-2 border-[#0A0A0A] text-xs font-['Poppins'] font-black uppercase tracking-wider flex items-center gap-2 transition-all self-start lg:self-auto shadow-sm active:scale-95"
+            className="px-4 py-2.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white border-2 border-[#0A0A0A] text-xs font-['Poppins'] font-black uppercase tracking-wider flex items-center gap-2 transition-all self-start lg:self-auto shadow-sm cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Osvježi analitiku</span>
+            <span>{loading ? 'Učitavam...' : 'Osvježi analitiku'}</span>
           </button>
         </div>
 
@@ -150,12 +119,12 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
               {uniqueVisitors}
             </div>
             <span className="text-[11px] text-neutral-300 block">
-              Ukupno učitavanja stranice: <strong>{totalVisits}</strong>
+              Ukupno posjeta: <strong>{totalVisits}</strong>
             </span>
           </div>
 
           {/* Card 2: Add to Cart Events */}
-          <div className="bg-white border-2 border-neutral-300 p-4.5 space-y-1">
+          <div className="bg-white border-2 border-neutral-300 p-4.5 space-y-1 shadow-xs">
             <div className="flex items-center justify-between text-neutral-600">
               <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-black">
                 AKCIJE 'DODAJ U KORPU'
@@ -166,12 +135,12 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
               {addToCartEvents}
             </div>
             <span className="text-[11px] text-neutral-600 block">
-              Od <strong>{uniqueAddToCartUsers}</strong> različitih posjetilaca
+              Od <strong>{uniqueAddToCartUsers}</strong> različitih kupaca
             </span>
           </div>
 
           {/* Card 3: Add to Cart Rate */}
-          <div className="bg-[#F4F2EC] border-2 border-neutral-300 p-4.5 space-y-1">
+          <div className="bg-[#F4F2EC] border-2 border-neutral-300 p-4.5 space-y-1 shadow-xs">
             <div className="flex items-center justify-between text-neutral-600">
               <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700">
                 STOPA DODAVANJA U KORPU
@@ -187,7 +156,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
           </div>
 
           {/* Card 4: Orders Conversion */}
-          <div className="bg-[#F4F2EC] border-2 border-neutral-300 p-4.5 space-y-1">
+          <div className="bg-[#F4F2EC] border-2 border-neutral-300 p-4.5 space-y-1 shadow-xs">
             <div className="flex items-center justify-between text-neutral-600">
               <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700">
                 REALIZOVANE NARUDŽBE
@@ -203,15 +172,15 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
           </div>
         </div>
 
-        {/* 2. Recharts Line Chart: Posjetioci vs Dodavanje u korpu */}
-        <div className="space-y-3 pt-2">
+        {/* 2. Sigurni visualni prikaz dnevnog trenda posjeta */}
+        <div className="space-y-3 pt-4 border-t border-neutral-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
-                Trend jedinstvenih posjeta i dodavanja u korpu po danima
+                Trend posjeta i dodavanja u korpu po danima
               </h4>
-              <p className="text-[11px] text-neutral-500 font-['Inter']">
-                Komparativni prikaz dinamike posjeta i namjere kupovine.
+              <p className="text-[11px] text-neutral-500">
+                Pregled aktivnih dana na web shopu.
               </p>
             </div>
 
@@ -244,59 +213,54 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
             </div>
           </div>
 
-          <div className="w-full h-64 sm:h-72 pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={filteredDailyTrends}
-                margin={{ top: 10, right: 15, left: -15, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={{ stroke: '#0A0A0A' }}
-                  tick={{ fill: '#666666', fontSize: 10, fontFamily: 'Inter' }}
-                  dy={6}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: '#666666', fontSize: 10, fontFamily: 'Inter' }}
-                />
-                <Tooltip content={<CustomChartTooltip />} />
-                <Legend
-                  wrapperStyle={{
-                    paddingTop: 10,
-                    fontFamily: 'Poppins',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="uniqueVisitors"
-                  name="Jedinstveni posjetioci"
-                  stroke="#0A0A0A"
-                  strokeWidth={2.5}
-                  dot={{ r: 2.5, fill: '#0A0A0A' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="addToCart"
-                  name="Akcije 'Dodaj u korpu'"
-                  stroke="#D97706"
-                  strokeWidth={2.5}
-                  strokeDasharray="4 2"
-                  dot={{ r: 3, fill: '#F7E97F', stroke: '#0A0A0A', strokeWidth: 1.5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {filteredDailyTrends.length === 0 ? (
+            <div className="p-8 text-center text-xs text-neutral-500 font-['Inter'] bg-[#F4F2EC] border border-neutral-300">
+              Nema još zabilježenih dnevnih događaja u bazi za odabrani period.
+            </div>
+          ) : (
+            <div className="bg-[#F4F2EC] p-4 border border-neutral-300 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                {filteredDailyTrends.map((d, i) => {
+                  const visitorHeight = Math.round(((d.uniqueVisitors || 0) / maxTrendVisitors) * 100);
+
+                  return (
+                    <div key={i} className="bg-white p-3 border border-neutral-300 space-y-2 flex flex-col justify-between">
+                      <div className="text-center border-b pb-1">
+                        <span className="font-['Poppins'] font-bold text-xs text-black block">
+                          {d.date || 'Dan'}
+                        </span>
+                        <span className="text-[10px] text-neutral-400 font-mono">
+                          {d.fullDate}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 py-1">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-neutral-600">Posjetioci:</span>
+                          <strong className="text-black">{d.uniqueVisitors || 0}</strong>
+                        </div>
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-amber-700 font-semibold">Korpa:</span>
+                          <strong className="text-amber-700 font-black">{d.addToCart || 0}</strong>
+                        </div>
+                      </div>
+
+                      <div className="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-[#0A0A0A] h-full transition-all duration-300"
+                          style={{ width: `${Math.max(5, visitorHeight)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 3. Live Event Stream from Firestore 'analytics_events' */}
+      {/* 3. Live Event Stream */}
       <div className="bg-white border-2 border-neutral-200 p-5 sm:p-7 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -310,9 +274,9 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
           </span>
         </div>
 
-        {analyticsData && analyticsData.recentEvents.length > 0 ? (
+        {analyticsData && analyticsData.recentEvents && analyticsData.recentEvents.length > 0 ? (
           <div className="border border-neutral-200 overflow-x-auto">
-            <table className="w-full text-left text-xs font-['Inter']">
+            <table className="w-full text-left text-xs">
               <thead className="bg-[#0A0A0A] text-white font-['Poppins'] uppercase text-[10px] tracking-wider">
                 <tr>
                   <th className="p-2.5">Tip akcije</th>
@@ -323,11 +287,19 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {analyticsData.recentEvents.slice(0, 10).map((evt, idx) => {
-                  const timeFormatted = new Date(evt.timestamp).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  });
+                  let timeFormatted = 'Prije trenutka';
+                  try {
+                    if (evt.timestamp) {
+                      timeFormatted = new Date(evt.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      });
+                    }
+                  } catch {
+                    timeFormatted = '-';
+                  }
+
                   const isCart = evt.eventType === 'add_to_cart';
                   const isPurchase = evt.eventType === 'purchase';
 
@@ -363,11 +335,11 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
                         {timeFormatted}
                       </td>
                       <td className="p-2.5 font-mono text-[11px] text-neutral-600">
-                        {evt.visitorId.substring(0, 12)}...
+                        {evt.visitorId ? `${evt.visitorId.substring(0, 12)}...` : 'Anoniman'}
                       </td>
                       <td className="p-2.5 text-neutral-800 font-semibold">
                         {evt.metadata?.productName
-                          ? `${evt.metadata.productName} ${evt.metadata.size ? `(${evt.metadata.size})` : ''} - ${evt.metadata.price ?? ''} KM`
+                          ? `${evt.metadata.productName} ${evt.metadata.size ? `(\${evt.metadata.size})` : ''} - ${evt.metadata.price ?? ''} KM`
                           : evt.metadata?.path || 'Početna stranica'}
                       </td>
                     </tr>
@@ -384,16 +356,15 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
       </div>
 
       {/* 4. Actionable Strategy Box */}
-      <div className="bg-[#F4F2EC] border-2 border-neutral-300 p-5 flex gap-3.5 items-start text-xs font-['Inter'] text-neutral-800">
+      <div className="bg-[#F4F2EC] border-2 border-neutral-300 p-5 flex gap-3.5 items-start text-xs text-neutral-800">
         <HelpCircle className="w-5 h-5 text-[#0A0A0A] shrink-0 mt-0.5" />
         <div className="space-y-1.5">
           <span className="font-['Poppins'] font-bold text-black uppercase tracking-wider block">
-            Kako pretvoriti dodavanje u korpu u novac i promocije?
+            Kako pretvoriti dodavanje u korpu u prodaju?
           </span>
           <p className="text-neutral-700 leading-relaxed">
-            1. <strong>Retargeting napuštenih korpi</strong>: U kartici <em>"Napuštene korpe & E-mail"</em> možete vidjeti posjetioce koji su dodali artikal i unijeli kontakt. Jednim klikom im pošaljite promo popust sa kodom <strong>CASUAL10</strong>.<br />
-            2. <strong>Meta Pixel & Google Analytics 4</strong>: Svaka akcija <code>add_to_cart</code> se automatski prosljeđuje i na Meta Pixel za kreiranje Instagram Ads Custom Audience publike.<br />
-            3. <strong>Analiza najtraženijih artikala</strong>: Ako primijetite da se određeni model majice često dodaje u korpu ali rjeđe kupuje, provjerite cijenu ili ponudite besplatnu dostavu preko 100 KM.
+            1. <strong>Retargeting napuštenih korpi</strong>: U kartici <em>"Napuštene korpe & E-mail"</em> možete vidjeti kupce koji su ostavili korpu. Jednim klikom im pošaljite promo kod od 10% popusta.<br />
+            2. <strong>Analiza najtraženijih artikala</strong>: Ako se artikal često dodaje u korpu a rjeđe kupuje, provjerite zalihe ili ponudite besplatnu dostavu preko 100 KM.
           </p>
         </div>
       </div>
