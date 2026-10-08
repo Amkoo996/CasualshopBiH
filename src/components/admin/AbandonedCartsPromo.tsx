@@ -164,6 +164,7 @@ Casual Shop BiH`;
 
     setSendingEmail(true);
     try {
+      const fullEmailContent = generateEmailBody(selectedSession);
       const itemsSummary = selectedSession.items
         .map((i) => `• ${i.name} (Veličina: ${i.size})`)
         .join('\n');
@@ -183,6 +184,7 @@ Casual Shop BiH`;
             promo_code: promoCode,
             discount_percent: promoDiscount,
             items_summary: itemsSummary,
+            email_body: fullEmailContent, // Šalje kompletan tekst koji se vidi u Admin panelu
             reply_to: 'redemption19@gmail.com',
           },
         }),
