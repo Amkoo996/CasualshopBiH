@@ -20,24 +20,55 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Load wishlist when user changes
+  // Load wishlist when user changes or from localStorage for guests
   useEffect(() => {
     let isMounted = true;
+
     const load = async () => {
       try {
-        const ids = await getUserWishlist(user?.uid);
-        if (isMounted) {
-          setWishlistIds(ids);
+        if (user?.uid) {
+          // Ako je korisnik prijavljen, učitaj iz Firebase-a
+          const ids = await getUserWishlist(user.uid);
+          if (isMounted) {
+            setWishlistIds(ids || []);
+          }
+        } else {
+          // Ako je gost, učitaj iz localStorage-a
+          const localSaved = localStorage.getItem('casualshop_guest_wishlist');
+          if (isMounted && localSaved) {
+            try {
+              setWishlistIds(JSON.parse(localSaved) || []);
+            } catch {
+              setWishlistIds([]);
+            }
+          } else if (isMounted) {
+            setWishlistIds([]);
+          }
         }
       } catch (err) {
-        console.warn('Error loading wishlist:', err);
+        console.warn('Greška pri učitavanju liste želja:', err);
       }
     };
+
     load();
+
     return () => {
       isMounted = false;
     };
   }, [user?.uid]);
+
+  // Pomoćna funkcija za spremanje stanja (Firebase za korisnika ili localStorage za gosta)
+  const syncWishlist = async (updatedIds: string[]) => {
+    setWishlistIds(updatedIds);
+
+    if (user?.uid) {
+      // Šalji u bazu samo ako imamo validan user.uid
+      await saveUserWishlist(user.uid, updatedIds);
+    } else {
+      // Za goste spremaj lokalno u pretraživač
+      localStorage.setItem('casualshop_guest_wishlist', JSON.stringify(updatedIds));
+    }
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -66,21 +97,18 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
 
-    setWishlistIds(updated);
-    await saveUserWishlist(user?.uid, updated);
+    await syncWishlist(updated);
     return !isSaved;
   };
 
   const removeFromWishlist = async (productId: string): Promise<void> => {
     const updated = wishlistIds.filter((id) => id !== productId);
-    setWishlistIds(updated);
-    await saveUserWishlist(user?.uid, updated);
+    await syncWishlist(updated);
     showToast('Artikal uklonjen iz liste želja.');
   };
 
   const clearWishlist = async (): Promise<void> => {
-    setWishlistIds([]);
-    await saveUserWishlist(user?.uid, []);
+    await syncWishlist([]);
     showToast('Lista želja je ispražnjena.');
   };
 
