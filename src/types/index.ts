@@ -86,9 +86,6 @@ export interface NewsletterSubscriber {
   subscribedAt: string;
 }
 
-// ------------------------------------------------------------------
-// POSTAVKE TRGOVINE I TEMA (STORE SETTINGS & THEME)
-// ------------------------------------------------------------------
 export interface StoreSettings {
   shippingFee: number; // Cijena dostave
   freeShippingThreshold: number; // Prag besplatne dostave
@@ -102,7 +99,7 @@ export interface StoreSettings {
   sellerAddress?: string;
   sellerIdNumber?: string;
 
-  // 🎨 NOVO: Dev Settings / Tema
+  // 🎨 Postavke Teme (Dev Settings)
   bgColor?: string;
   textColor?: string;
   yellowBrand?: string;
@@ -121,12 +118,12 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   instagramUrl: 'https://www.instagram.com/casualshop.bih',
   whatsappNumber: '+387 61 000 000',
   topBarText: 'Plaćanje pouzećem • Dostava 10 KM (Besplatna preko 100 KM) širom BiH',
-  sizeGuideText: 'Sve naše majice i duksevi imaju ugodan streetwear kroj...',
+  sizeGuideText: 'Sve naše majice i duksevi imaju ugodan streetwear kroj. Dimenzije su izražene u centimetrima (cm): S (Širina 54cm, Dužina 70cm), M (Širina 57cm, Dužina 73cm), L (Širina 60cm, Dužina 76cm), XL (Širina 63cm, Dužina 79cm). Kape i dodaci su u univerzalnoj veličini (One size).',
   sellerName: '',
   sellerAddress: '',
   sellerIdNumber: '',
 
-  // 🎨 Defaultne vrijednosti teme
+  // 🎨 Defaultne vrijednosti vizuelne teme
   bgColor: '#F4F2EC',
   textColor: '#111111',
   yellowBrand: '#F7E97F',
