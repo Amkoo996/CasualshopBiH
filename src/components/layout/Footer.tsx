@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Instagram, Phone, Mail, MapPin, Truck, ShieldCheck, RefreshCw, CreditCard, Send, CheckCircle2 } from 'lucide-react';
+import { Instagram, Mail, MapPin, Truck, ShieldCheck, RefreshCw, CreditCard, Send, CheckCircle2, Lock } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useCart } from '../../context/CartContext';
 import { subscribeNewsletter } from '../../lib/db';
@@ -38,23 +38,23 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div className="flex flex-col items-center p-3">
             <Truck className="w-7 h-7 text-[#F7E97F] mb-2.5" />
             <span className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-white">
-              Dostava širom BiH
+              Dostava 12 KM (48-72h)
             </span>
-            <span className="text-[11px] text-neutral-400 mt-1">2–5 radnih dana na vašu adresu</span>
+            <span className="text-[11px] text-neutral-400 mt-1">Moguće otvaranje paketa prije preuzimanja</span>
           </div>
           <div className="flex flex-col items-center p-3">
             <CreditCard className="w-7 h-7 text-[#F7E97F] mb-2.5" />
             <span className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-white">
               Plaćanje pouzećem
             </span>
-            <span className="text-[11px] text-neutral-400 mt-1">Plaćaš kuriru pri preuzimanju</span>
+            <span className="text-[11px] text-neutral-400 mt-1">Plaćaš kuriru tek pri preuzimanju</span>
           </div>
           <div className="flex flex-col items-center p-3">
             <RefreshCw className="w-7 h-7 text-[#F7E97F] mb-2.5" />
             <span className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-white">
               Zamjena i povrat
             </span>
-            <span className="text-[11px] text-neutral-400 mt-1">Pravo na povrat u roku 14 dana</span>
+            <span className="text-[11px] text-neutral-400 mt-1">Pravo na povrat u roku 7 dana</span>
           </div>
           <div className="flex flex-col items-center p-3">
             <ShieldCheck className="w-7 h-7 text-[#F7E97F] mb-2.5" />
@@ -84,15 +84,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               >
                 <Instagram className="w-4 h-4 text-[#F7E97F] hover:text-[#0A0A0A]" />
                 <span>@casualshop.bih</span>
-              </a>
-              <a
-                href={`https://wa.me/${(settings.whatsappNumber || '38761000000').replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#171717] hover:bg-[#F7E97F] text-white hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold px-3.5 py-2 border border-neutral-800 transition-colors"
-              >
-                <Phone className="w-4 h-4 text-[#F7E97F]" />
-                <span>WhatsApp</span>
               </a>
             </div>
           </div>
@@ -161,10 +152,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </h4>
             <ul className="space-y-3 text-xs text-neutral-300 font-['Inter']">
               <li className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-[#F7E97F] shrink-0" />
-                <span>{settings.phone || '+387 61 000 000'}</span>
-              </li>
-              <li className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-[#F7E97F] shrink-0" />
                 <span>{settings.email || 'info@casualshop.ba'}</span>
               </li>
@@ -223,11 +210,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Bottom Bar sa specificiranim tekstom */}
+        {/* Bottom Bar sa diskretno sakrivenim Admin linkom na dnu */}
         <div className="border-t border-neutral-900 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 gap-4">
           <p>© {new Date().getFullYear()} Casual Shop BiH. Sva prava zadržana.</p>
-          <div className="font-['Poppins'] font-bold text-xs text-neutral-300 text-center sm:text-right">
-            <span>Plaćanje pouzećem. Kartično plaćanje uskoro u ponudi.</span>
+
+          <div className="flex items-center gap-4">
+            <span className="font-['Poppins'] font-bold text-xs text-neutral-300">
+              Plaćanje pouzećem.
+            </span>
+            {/* Sakriveni diskretni link za Admin Panel */}
+            <button
+              onClick={() => onNavigate('admin')}
+              className="text-neutral-800 hover:text-neutral-500 transition-colors p-1"
+              title="Admin Access"
+            >
+              <Lock className="w-3 h-3" />
+            </button>
           </div>
         </div>
       </div>
