@@ -19,15 +19,20 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
   const { wishlistIds = [], clearWishlist } = useWishlist();
   const { user, signInWithGoogle } = useAuth();
 
-  // Ekstrakcija čistih string ID-jeva bez obzira na zapis
-  const rawIds = (wishlistIds || []).map((item: any) =>
-    typeof item === 'object' && item !== null ? String(item.id) : String(item)
-  );
+  // 1. Ekstrakcija i normalizacija ID-jeva iz wishlista (i ako je string i ako je objekat)
+  const normalizedWishlistIds = (wishlistIds || []).map((item: any) => {
+    if (typeof item === 'object' && item !== null) {
+      return String(item.id || item._id || '').trim();
+    }
+    return String(item || '').trim();
+  }).filter(Boolean);
 
-  // Filtracija artikala s višestrukom provjerom (ID, slug ili podudaranje naziva)
-  const wishlistProducts = (products || []).filter((p) =>
-    rawIds.includes(String(p.id))
-  );
+  // 2. Filtracija proizvoda uz cjelokupnu provjeru ID-jeva
+  const wishlistProducts = (products || []).filter((p) => {
+    if (!p) return false;
+    const prodId = String(p.id || (p as any)._id || '').trim();
+    return normalizedWishlistIds.includes(prodId);
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 space-y-8 animate-fadeIn">
