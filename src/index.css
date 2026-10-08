@@ -1,14 +1,38 @@
 @import "tailwindcss";
 
+/* 1. Definicija default teme preko CSS varijabli */
+:root {
+  --bg-color: #F4F2EC;
+  --text-color: #111111;
+  --yellow-brand: #F7E97F;
+  --scroll-track: #F4F2EC;
+  --scroll-thumb: #0A0A0A;
+  
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Poppins', sans-serif;
+  --base-font-size: 16px;
+  
+  --bg-image: none;
+}
+
 @layer base {
+  html {
+    font-size: var(--base-font-size);
+  }
+
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: #F4F2EC;
-    color: #111111;
+    font-family: var(--font-body);
+    background-color: var(--bg-color);
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    color: var(--text-color);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--font-heading);
     letter-spacing: -0.02em;
   }
 }
@@ -41,23 +65,23 @@
   animation: slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Yellow accent section border utility */
+/* Brand utility klase sada prate CSS varijable */
 .border-yellow-brand {
-  border-color: #F7E97F;
+  border-color: var(--yellow-brand);
 }
 
 .bg-yellow-brand {
-  background-color: #F7E97F;
+  background-color: var(--yellow-brand);
 }
 
-/* Custom scrollbars */
+/* Custom scrollbars vezani na CSS varijable */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F4F2EC;
+  background: var(--scroll-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: #0A0A0A;
+  background: var(--scroll-thumb);
 }
