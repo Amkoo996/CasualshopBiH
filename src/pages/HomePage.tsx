@@ -88,11 +88,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-28 w-full">
           <div className="max-w-2xl space-y-6">
-            <div className="inline-flex items-center gap-2 border-2 border-[#F7E97F] bg-[#0A0A0A]/90 px-3.5 py-1 text-xs font-['Poppins'] uppercase tracking-[0.2em] text-[#F7E97F]">
-              <span className="w-2 h-2 rounded-full bg-[#F7E97F] animate-ping" />
-              <span>Službena BiH Online Prodavnica</span>
-            </div>
-
+            {/* Slogan & Titles */}
             <div className="space-y-3">
               <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
                 CASUAL. <br />
@@ -108,6 +104,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               Plaćanje pouzećem gotovinom prilikom preuzimanja od kurira.
             </p>
 
+            {/* CTA Buttons */}
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
               <button
                 onClick={() => onNavigateToShop('Sve')}
