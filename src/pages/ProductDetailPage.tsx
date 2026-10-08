@@ -2,14 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Truck,
-  ShieldCheck,
-  RefreshCw,
   ShoppingBag,
   Check,
   Ruler,
   X,
-  CreditCard,
-  Info,
   Heart,
 } from 'lucide-react';
 import { Product, Size } from '../types';
@@ -38,26 +34,33 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
 
+  // 1. STRIKTAN REDOSLIJED VELIČINA
+  const SIZE_ORDER: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
+
+  // Mapiramo i sortiramo isključivo po definisanom redoslijedu niza SIZE_ORDER
+  const sortedSizes = SIZE_ORDER.filter(
+    (size) => product.sizes && size in product.sizes
+  ).map((size) => [size, product.sizes[size] ?? 0] as [Size, number]);
+
   useEffect(() => {
     trackViewItem(product);
     recordProductView(product);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Pre-select first available size
-    const availableSizes = Object.entries(product.sizes || {}).filter(
-      ([_, stock]) => (stock ?? 0) > 0
-    );
-    if (availableSizes.length > 0) {
-      setSelectedSize(availableSizes[0][0] as Size);
+    // Pre-select prve dostupne veličine po STRIKTNOM redoslijedu
+    const firstAvailable = sortedSizes.find(([_, stock]) => stock > 0);
+    if (firstAvailable) {
+      setSelectedSize(firstAvailable[0]);
     }
   }, [product]);
 
-  // Check if sold out
+  // Provjera zaliha
   const totalStock = Object.values(product.sizes || {}).reduce(
     (acc, val) => acc + (val || 0),
     0
   );
   const isSoldOut = totalStock <= 0;
+  const isLowStock = totalStock > 0 && totalStock < 5;
 
   const currentSizeStock = selectedSize ? product.sizes[selectedSize] ?? 0 : 0;
 
@@ -76,14 +79,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       {/* Back button */}
       <button
         onClick={onBack}
-        className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-8 transition-colors"
+        className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-8 transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Nazad na kolekciju</span>
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-        {/* IMAGE GALLERY */}
+        {/* GALERIJA SLIKA */}
         <div className="space-y-4">
           <div className="relative aspect-[3/4] bg-white overflow-hidden border-2 border-neutral-300">
             <img
@@ -96,17 +99,24 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             />
 
             {/* Badges */}
-            <div className="absolute top-4 left-4 flex flex-col gap-2">
+            <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
               {isSoldOut ? (
                 <span className="bg-[#9A9A9A] text-white text-[11px] font-['Poppins'] font-black uppercase tracking-[0.2em] px-3 py-1">
                   RASPRODANO
                 </span>
               ) : (
-                product.isNew && (
-                  <span className="bg-[#0A0A0A] text-[#F7E97F] border border-[#F7E97F] text-[11px] font-['Poppins'] font-black uppercase tracking-[0.2em] px-3 py-1">
-                    NOVO
-                  </span>
-                )
+                <>
+                  {isLowStock && (
+                    <span className="bg-[#E63946] text-white text-[11px] font-['Poppins'] font-black uppercase tracking-[0.2em] px-3 py-1 animate-pulse">
+                      POSLJEDNJI KOMADI
+                    </span>
+                  )}
+                  {product.isNew && (
+                    <span className="bg-[#0A0A0A] text-[#F7E97F] border border-[#F7E97F] text-[11px] font-['Poppins'] font-black uppercase tracking-[0.2em] px-3 py-1">
+                      NOVO
+                    </span>
+                  )}
+                </>
               )}
               {hasDiscount && (
                 <span className="bg-[#F7E97F] text-[#0A0A0A] text-[11px] font-['Poppins'] font-black uppercase tracking-[0.2em] px-3 py-1">
@@ -123,7 +133,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 <button
                   key={idx}
                   onClick={() => setSelectedImageIndex(idx)}
-                  className={`relative w-20 h-24 bg-white shrink-0 border-2 transition-all ${
+                  className={`relative w-20 h-24 bg-white shrink-0 border-2 transition-all cursor-pointer ${
                     selectedImageIndex === idx
                       ? 'border-[#0A0A0A] opacity-100'
                       : 'border-transparent opacity-60 hover:opacity-100'
@@ -144,7 +154,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           )}
         </div>
 
-        {/* BUY BOX & SPECIFICATIONS */}
+        {/* DETAILS & BUY BOX */}
         <div className="flex flex-col space-y-6">
           <div className="space-y-2 border-b-2 border-neutral-200 pb-6">
             <div className="flex items-center gap-3">
@@ -178,7 +188,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
           </div>
 
-          {/* SIZES SELECTOR */}
+          {/* SIZES SELECTOR (ČIST PRIKAZ BEZ STANJA KOMADA & STRIKTAN REDOSLIJED) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-900">
@@ -186,7 +196,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </label>
               <button
                 onClick={() => setSizeChartOpen(true)}
-                className="inline-flex items-center gap-1.5 text-xs font-['Poppins'] font-bold text-neutral-700 hover:text-black underline"
+                className="inline-flex items-center gap-1.5 text-xs font-['Poppins'] font-bold text-neutral-700 hover:text-black underline cursor-pointer"
               >
                 <Ruler className="w-3.5 h-3.5 text-[#0A0A0A]" />
                 <span>Tabela veličina</span>
@@ -194,8 +204,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
 
             <div className="flex flex-wrap gap-2.5">
-              {Object.entries(product.sizes || {}).map(([size, stock]) => {
-                const isAvailable = (stock ?? 0) > 0;
+              {sortedSizes.map(([size, stock]) => {
+                const isAvailable = stock > 0;
                 const isSelected = selectedSize === size;
 
                 return (
@@ -203,31 +213,28 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     key={size}
                     disabled={!isAvailable}
                     onClick={() => {
-                      setSelectedSize(size as Size);
+                      setSelectedSize(size);
                       setQuantity(1);
                     }}
-                    className={`min-w-14 py-3 px-3 text-xs font-['Poppins'] font-bold tracking-wider uppercase border-2 transition-all flex flex-col items-center justify-center ${
+                    className={`min-w-14 h-12 px-4 text-xs font-['Poppins'] font-bold tracking-wider uppercase border-2 transition-all flex items-center justify-center cursor-pointer ${
                       isSelected
                         ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A]'
                         : isAvailable
                         ? 'bg-white text-neutral-900 border-neutral-300 hover:border-[#0A0A0A]'
-                        : 'bg-neutral-100 text-[#9A9A9A] border-neutral-200 cursor-not-allowed line-through'
+                        : 'bg-neutral-100 text-[#9A9A9A] border-neutral-200 cursor-not-allowed line-through opacity-50'
                     }`}
                   >
                     <span>{size}</span>
-                    <span className="text-[9px] font-normal tracking-tight opacity-75 mt-0.5">
-                      {isAvailable ? `${stock} kom` : '0 kom'}
-                    </span>
                   </button>
                 );
               })}
             </div>
 
             {selectedSize && (
-              <div className="text-xs font-medium text-neutral-600 pt-1 flex items-center gap-1.5">
+              <div className="text-xs font-medium text-neutral-600 pt-1 flex items-center gap-1.5 font-['Inter']">
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
                 <span>
-                  Odabrana veličina: <strong>{selectedSize}</strong> ({currentSizeStock} kom na stanju)
+                  Odabrana veličina: <strong>{selectedSize}</strong>
                 </span>
               </div>
             )}
@@ -241,7 +248,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   disabled={quantity <= 1 || isSoldOut}
-                  className="px-3.5 py-3 hover:bg-neutral-100 font-bold disabled:opacity-30"
+                  className="px-3.5 py-3 hover:bg-neutral-100 font-bold disabled:opacity-30 cursor-pointer"
                 >
                   -
                 </button>
@@ -252,18 +259,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   type="button"
                   onClick={() => setQuantity(Math.min(currentSizeStock, quantity + 1))}
                   disabled={quantity >= currentSizeStock || isSoldOut}
-                  className="px-3.5 py-3 hover:bg-neutral-100 font-bold disabled:opacity-30"
+                  className="px-3.5 py-3 hover:bg-neutral-100 font-bold disabled:opacity-30 cursor-pointer"
                 >
                   +
                 </button>
               </div>
 
-              {/* Dugme: crno sa bijelim tekstom, hover žuta sa crnim tekstom */}
+              {/* Dugme za dodavanje u korpu */}
               <button
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isSoldOut || !selectedSize || currentSizeStock <= 0}
-                className="flex-1 py-3.5 px-6 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] disabled:bg-[#9A9A9A] disabled:text-white disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 active:scale-[0.99] border-2 border-[#0A0A0A]"
+                className="flex-1 py-3.5 px-6 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] disabled:bg-[#9A9A9A] disabled:text-white disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 active:scale-[0.99] border-2 border-[#0A0A0A] cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4" />
                 <span>
@@ -292,14 +299,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
 
             {addedSuccess && (
-              <div className="bg-white border-2 border-[#F7E97F] text-[#0A0A0A] text-xs p-3 font-semibold flex items-center gap-2 animate-fadeIn">
+              <div className="bg-white border-2 border-[#F7E97F] text-[#0A0A0A] text-xs p-3 font-semibold flex items-center gap-2 animate-fadeIn font-['Inter']">
                 <Check className="w-4 h-4 text-emerald-600" />
                 <span>Artikal je uspješno dodan u vašu korpu!</span>
               </div>
             )}
           </div>
 
-          {/* MATERIAL, OPIS & NJEGA */}
+          {/* OPIS I NJEGA */}
           <div className="space-y-4 pt-4 border-t-2 border-neutral-200">
             {product.material && (
               <div className="bg-white p-3.5 border border-neutral-200">
@@ -329,25 +336,25 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             )}
           </div>
 
-          {/* BLOK "DOSTAVA I POVRAT" U KRATKOM OBLIKU */}
+          {/* INFORMACIJE O DOSTAVI */}
           <div className="bg-white p-4 border-2 border-[#F7E97F] space-y-2.5 text-xs text-neutral-700">
             <h4 className="font-['Poppins'] font-bold text-xs uppercase tracking-wider text-[#0A0A0A] flex items-center gap-2">
               <Truck className="w-4 h-4 text-[#0A0A0A]" />
               <span>Dostava i povrat (Kratke informacije)</span>
             </h4>
             <ul className="space-y-1.5 text-xs text-neutral-600 font-['Inter']">
-              <li>• <strong>Dostava:</strong> Brza pošta na teritoriji BiH (rok 2–5 radnih dana). Dostava {settings.shippingFee} KM (besplatna preko {settings.freeShippingThreshold} KM).</li>
+              <li>• <strong>Dostava:</strong> Brza pošta na teritoriji BiH (rok 48–72h). Dostava {settings.shippingFee || 12} KM (besplatna preko {settings.freeShippingThreshold || 100} KM). Moguće otvaranje paketa prije preuzimanja.</li>
               <li>• <strong>Plaćanje:</strong> Pouzećem, gotovinom kuriru pri preuzimanju paketa.</li>
-              <li>• <strong>Zamjena & Povrat:</strong> Rok od 14 dana od prijema robe (artikal nenošen s originalnom etiketom).</li>
+              <li>• <strong>Zamjena & Povrat:</strong> Pravo na povrat u roku od 7 dana od prijema pošiljke.</li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* CUSTOMER REVIEWS & RATINGS (FIRESTORE) */}
+      {/* REVIEWS */}
       <ProductReviews productId={product.id} productName={product.name} />
 
-      {/* TABELA VELIČINA MODAL (UREDIV TEKST IZ ADMINA) */}
+      {/* TABELA VELIČINA MODAL */}
       {sizeChartOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white max-w-lg w-full p-6 sm:p-8 space-y-5 border-2 border-[#F7E97F] shadow-2xl relative">
@@ -360,7 +367,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
               <button
                 onClick={() => setSizeChartOpen(false)}
-                className="text-neutral-500 hover:text-black p-1"
+                className="text-neutral-500 hover:text-black p-1 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -400,6 +407,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       <td className="p-2.5">79 cm</td>
                     </tr>
                     <tr>
+                      <td className="p-2.5 font-bold">XXL</td>
+                      <td className="p-2.5">66 cm</td>
+                      <td className="p-2.5">82 cm</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2.5 font-bold">3XL</td>
+                      <td className="p-2.5">69 cm</td>
+                      <td className="p-2.5">85 cm</td>
+                    </tr>
+                    <tr>
                       <td className="p-2.5 font-bold">One size</td>
                       <td className="p-2.5" colSpan={2}>Univerzalna veličina za kape i dodatke</td>
                     </tr>
@@ -411,7 +428,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             <div className="pt-2">
               <button
                 onClick={() => setSizeChartOpen(false)}
-                className="w-full py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-wider transition-colors"
+                className="w-full py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Zatvori
               </button>
