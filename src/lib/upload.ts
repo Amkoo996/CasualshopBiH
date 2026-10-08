@@ -1,33 +1,27 @@
-const CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD || 'rvlsak2u';
-// ⚠️ Zamijeni 'casual_preset' sa tačnim imenom Unsigned Preset-a iz Cloudinary Settings -> Upload
-const PRESET = import.meta.env.VITE_CLOUDINARY_PRESET || 'casual_preset';
+const CLOUD_NAME = 'rvlsak2u';
+// ⚠️ Zamijeni 'ml_default' sa imenom preseta koji si napravio u Koraku 1
+const UPLOAD_PRESET = 'ml_default'; 
 
 export async function uploadImage(file: File): Promise<string> {
-  // 1. Provjera da li je unesen preset
-  if (!PRESET || PRESET === 'TVOJ_UNSIGNED_PRESET') {
-    throw new Error('Cloudinary Unsigned Preset nije podešen u upload.ts.');
-  }
-
-  // 2. Ograničenje veličine slike na 10 MB
   if (file.size > 10 * 1024 * 1024) {
     throw new Error('Slika je veća od 10 MB. Odaberite manji fajl.');
   }
 
-  const form = new FormData();
-  form.append('file', file);
-  form.append('upload_preset', PRESET);
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', UPLOAD_PRESET);
 
   try {
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`, {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
       method: 'POST',
-      body: form,
+      body: formData,
     });
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       console.error('Cloudinary API Error:', errorData);
       throw new Error(
-        errorData?.error?.message || 'Upload slike nije uspio. Provjerite da li je Preset označen kao Unsigned u Cloudinary-ju.'
+        errorData?.error?.message || 'Upload nije uspio. Provjerite da li je Preset označen kao Unsigned.'
       );
     }
 
@@ -39,7 +33,6 @@ export async function uploadImage(file: File): Promise<string> {
   }
 }
 
-// Pomoćna funkcija za automatsku optimizaciju i promjenu dimenzija slika na klijentu
 export const optimizeImage = (url: string, width = 800) =>
   url && url.includes('res.cloudinary.com')
     ? url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`)
