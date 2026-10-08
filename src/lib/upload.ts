@@ -1,8 +1,8 @@
 const CLOUD_NAME = 'rvlsak2u';
-// ⚠️ Zamijeni 'ml_default' sa imenom preseta koji si napravio u Koraku 1
-const UPLOAD_PRESET = 'ml_default'; 
+const UPLOAD_PRESET = 'casual_preset'; 
 
 export async function uploadImage(file: File): Promise<string> {
+  // 1. Provjera veličine slike (limit 10 MB)
   if (file.size > 10 * 1024 * 1024) {
     throw new Error('Slika je veća od 10 MB. Odaberite manji fajl.');
   }
@@ -21,7 +21,7 @@ export async function uploadImage(file: File): Promise<string> {
       const errorData = await res.json().catch(() => ({}));
       console.error('Cloudinary API Error:', errorData);
       throw new Error(
-        errorData?.error?.message || 'Upload nije uspio. Provjerite da li je Preset označen kao Unsigned.'
+        errorData?.error?.message || 'Upload slike nije uspio.'
       );
     }
 
@@ -33,6 +33,7 @@ export async function uploadImage(file: File): Promise<string> {
   }
 }
 
+// Pomoćna funkcija za automatsku optimizaciju i izmjenu dimenzija
 export const optimizeImage = (url: string, width = 800) =>
   url && url.includes('res.cloudinary.com')
     ? url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`)
