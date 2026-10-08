@@ -1,10 +1,11 @@
 const CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD || 'rvlsak2u';
-const PRESET = import.meta.env.VITE_CLOUDINARY_PRESET;
+// ⚠️ Zamijeni 'casual_preset' sa tačnim imenom Unsigned Preset-a iz Cloudinary Settings -> Upload
+const PRESET = import.meta.env.VITE_CLOUDINARY_PRESET || 'casual_preset';
 
 export async function uploadImage(file: File): Promise<string> {
-  // 1. Provjera da li postoje potrebne varijable
-  if (!CLOUD || !PRESET) {
-    throw new Error('Cloudinary nije podešen. Provjerite VITE_CLOUDINARY_PRESET u .env fajlu.');
+  // 1. Provjera da li je unesen preset
+  if (!PRESET || PRESET === 'TVOJ_UNSIGNED_PRESET') {
+    throw new Error('Cloudinary Unsigned Preset nije podešen u upload.ts.');
   }
 
   // 2. Ograničenje veličine slike na 10 MB
@@ -26,7 +27,7 @@ export async function uploadImage(file: File): Promise<string> {
       const errorData = await res.json().catch(() => ({}));
       console.error('Cloudinary API Error:', errorData);
       throw new Error(
-        errorData?.error?.message || 'Upload slike nije uspio. Provjerite da li je Preset označen kao Unsigned.'
+        errorData?.error?.message || 'Upload slike nije uspio. Provjerite da li je Preset označen kao Unsigned u Cloudinary-ju.'
       );
     }
 
