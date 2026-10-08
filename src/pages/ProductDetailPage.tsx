@@ -20,6 +20,9 @@ interface ProductDetailPageProps {
   onBack: () => void;
 }
 
+// 1. STRIKTAN FIKSNI REDOSLIJED VELIČINA (Izvan komponente radi stabilnosti)
+const SIZE_ORDER: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
+
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   product,
   onBack,
@@ -34,23 +37,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
 
-  // 1. STRIKTAN REDOSLIJED VELIČINA
-  const SIZE_ORDER: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
-
-  // Mapiramo i sortiramo isključivo po definisanom redoslijedu niza SIZE_ORDER
-  const sortedSizes = SIZE_ORDER.filter(
-    (size) => product.sizes && size in product.sizes
-  ).map((size) => [size, product.sizes[size] ?? 0] as [Size, number]);
-
   useEffect(() => {
     trackViewItem(product);
     recordProductView(product);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Pre-select prve dostupne veličine po STRIKTNOM redoslijedu
-    const firstAvailable = sortedSizes.find(([_, stock]) => stock > 0);
+    // Pre-select prve dostupne veličine po STRIKTNOM redoslijedu (S -> M -> L -> XL...)
+    const firstAvailable = SIZE_ORDER.find(
+      (sz) => (product.sizes?.[sz] ?? 0) > 0
+    );
     if (firstAvailable) {
-      setSelectedSize(firstAvailable[0]);
+      setSelectedSize(firstAvailable);
+    } else {
+      setSelectedSize(null);
     }
   }, [product]);
 
@@ -62,7 +61,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const isSoldOut = totalStock <= 0;
   const isLowStock = totalStock > 0 && totalStock < 5;
 
-  const currentSizeStock = selectedSize ? product.sizes[selectedSize] ?? 0 : 0;
+  const currentSizeStock = selectedSize ? product.sizes?.[selectedSize] ?? 0 : 0;
 
   const handleAddToCart = () => {
     if (!selectedSize || currentSizeStock <= 0) return;
@@ -90,7 +89,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         <div className="space-y-4">
           <div className="relative aspect-[3/4] bg-white overflow-hidden border-2 border-neutral-300">
             <img
-              src={product.images[selectedImageIndex] || product.images[0]}
+              src={product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg'}
               alt={product.name}
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
@@ -127,7 +126,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           </div>
 
           {/* Thumbnails */}
-          {product.images.length > 1 && (
+          {product.images && product.images.length > 1 && (
             <div className="flex gap-3 overflow-x-auto pb-2">
               {product.images.map((img, idx) => (
                 <button
@@ -204,13 +203,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
 
             <div className="flex flex-wrap gap-2.5">
-              {sortedSizes.map(([size, stock]) => {
+              {SIZE_ORDER.filter(
+                (size) => product.sizes && size in product.sizes
+              ).map((size) => {
+                const stock = product.sizes?.[size] ?? 0;
                 const isAvailable = stock > 0;
                 const isSelected = selectedSize === size;
 
                 return (
                   <button
                     key={size}
+                    type="button"
                     disabled={!isAvailable}
                     onClick={() => {
                       setSelectedSize(size);
