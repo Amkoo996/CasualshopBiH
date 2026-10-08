@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, CreditCard, ShieldCheck, ArrowLeft, Lock } from 'lucide-react';
+import emailjs from '@emailjs/browser';
 import { useCart } from '../context/CartContext';
 import { CustomerDetails, Order } from '../types';
 import { createOrder } from '../lib/db';
@@ -115,30 +116,32 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       // 2. Trajno spremanje zadnje narudžbe u localStorage za prikaz potvrde
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
 
-      // 3. Automatsko slanje e-mail obavijesti preko EmailJS-a
+      // 3. Automatsko slanje e-mail obavijesti preko EmailJS-a prema tvom predlošku
       try {
-        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            service_id: 'service_h4rxrv2',
-            template_id: 'template_b7r6ees',
-            user_id: 'mPKyquhWRcGkRq4gS',
-            template_params: {
-              order_number: finalizedOrder.orderNumber,
-              customer_name: `${formData.firstName} ${formData.lastName}`,
-              customer_phone: formData.phone,
-              customer_email: formData.email || 'Nije uneseno',
-              customer_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
-              customer_note: formData.note || 'Nema napomene',
-              total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
-              shipping_fee: shippingFee === 0 ? 'BESPLATNO' : `${shippingFee.toFixed(2)} KM`,
-              items_summary: items.map(i => `${i.quantity}x ${i.name} (Vel: ${i.size}) - ${(i.price * i.quantity).toFixed(2)} KM`).join('\n')
-            }
-          })
-        });
+        const itemsSummary = items
+          .map((i) => `- ${i.quantity}x ${i.name} (Vel: ${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
+          .join('\n');
+
+        await emailjs.send(
+          'service_h4rxrv2',     // Tvoj Service ID
+          '6ylwum8',             // Tvoj Template ID sa slike
+          {
+            order_number: finalizedOrder.orderNumber,
+            customer_name: `${formData.firstName} ${formData.lastName}`,
+            customer_phone: formData.phone,
+            customer_email: formData.email || 'Nije unesen',
+            customer_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
+            customer_note: formData.note || 'Nema napomene',
+            items_summary: itemsSummary,
+            total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
+            shipping_fee: shippingFee === 0 ? 'BESPLATNO' : `${shippingFee.toFixed(2)} KM`,
+            reply_to: formData.email || 'noreply@casualshop.ba',
+          },
+          'mPKyquhWRcGkRq4gS'    // Tvoj EmailJS Public Key
+        );
+        console.log('E-mail obavijest uspješno poslana na admin email!');
       } catch (err: any) {
-        console.warn('E-mail obavijest nije poslana, ali narudžba je spremljena u bazu:', err?.message || err);
+        console.warn('E-mail obavijest nije poslana, ali je narudžba spremljena u bazu:', err?.message || err);
       }
 
       // Analytics event purchase
