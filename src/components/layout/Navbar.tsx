@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Menu, X, Instagram, Search, ShieldCheck, Heart } from 'lucide-react';
+import { ShoppingBag, Menu, X, Instagram, Search, Heart } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { CATEGORIES } from '../../types';
 
@@ -20,17 +19,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectCategory,
 }) => {
   const { totalCount, setIsCartOpen, settings } = useCart();
-  const { isAdmin } = useAuth();
   const { wishlistCount } = useWishlist();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
 
+  // Reorganizovane navigacijske linije bez 'wishlist'
   const navLinks = [
     { id: 'home', label: 'Početna' },
     { id: 'shop', label: 'Kolekcija' },
-    { id: 'wishlist', label: 'Lista želja' },
     { id: 'about', label: 'O nama' },
     { id: 'shipping', label: 'Dostava i povrat' },
     { id: 'contact', label: 'Kontakt' },
@@ -64,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-[#0A0A0A] text-white border-b border-neutral-800">
-      {/* Tanka traka iznad headera: "Plaćanje pouzećem • Dostava širom BiH" */}
+      {/* Tanka traka iznad headera */}
       <div className="bg-[#0A0A0A] text-[#F7E97F] text-[11px] font-['Poppins'] font-bold tracking-widest uppercase py-1.5 px-4 text-center border-b border-neutral-900 flex items-center justify-center gap-3">
         <span>{settings.topBarText || 'Plaćanje pouzećem • Dostava širom BiH'}</span>
       </div>
@@ -132,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Right Action Icons */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Search Trigger */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
@@ -153,28 +151,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Instagram className="w-5 h-5" />
             </a>
 
-            {/* Admin Dashboard Link */}
+            {/* Favoriti (Srce) Ikona pored korpe */}
             <button
-              onClick={() => handleNavClick('admin')}
-              className={`p-2 transition-colors flex items-center gap-1 text-xs font-['Poppins'] font-bold ${
-                currentTab === 'admin'
-                  ? 'text-[#F7E97F]'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-              title="Admin Panel"
+              onClick={() => handleNavClick('wishlist')}
+              className="relative p-2 text-neutral-300 hover:text-[#F7E97F] transition-colors flex items-center justify-center"
+              title="Moji Favoriti"
             >
-              <ShieldCheck className="w-5 h-5" />
-              {isAdmin && (
-                <span className="hidden xl:inline text-[9px] bg-[#F7E97F] text-[#0A0A0A] px-1.5 py-0.5 font-black uppercase rounded-xs">
-                  ADMIN
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                  {wishlistCount}
                 </span>
               )}
             </button>
 
-            {/* Cart Button: Black with white text, hover yellow with black text */}
+            {/* Cart Button */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative px-3.5 py-2.5 bg-[#171717] text-white border border-neutral-700 hover:bg-[#F7E97F] hover:text-[#0A0A0A] hover:border-[#F7E97F] transition-all flex items-center gap-2 group active:scale-95 shadow-sm"
+              className="relative px-3.5 py-2.5 bg-[#171717] text-white border border-neutral-700 hover:bg-[#F7E97F] hover:text-[#0A0A0A] hover:border-[#F7E97F] transition-all flex items-center gap-2 group active:scale-95 shadow-sm ml-1"
               aria-label="Otvori korpu"
             >
               <ShoppingBag className="w-4 h-4 transition-transform group-hover:scale-110" />
@@ -185,7 +179,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Dropdown Search Bar */}
+        {/* Dropdown Search Bar sa očišćenim tekstom */}
         {searchOpen && (
           <div className="py-3 border-t border-neutral-800 animate-fadeIn">
             <form onSubmit={handleSearchSubmit} className="relative flex items-center">
@@ -193,7 +187,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="text"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="Pretraži: majica, away days, sarajevo, bucket..."
+                placeholder="Pretražite artikle (npr. majica, dukserica, jakna...)"
                 className="w-full bg-[#171717] border border-neutral-700 text-white px-4 py-2.5 pr-10 text-xs focus:ring-1 focus:ring-[#F7E97F] focus:border-[#F7E97F] placeholder-neutral-500"
                 autoFocus
               />
@@ -248,14 +242,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ))}
                   </div>
                 </div>
-
-                <button
-                  onClick={() => handleNavClick('admin')}
-                  className="text-left text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-400 hover:text-white flex items-center gap-2 pt-3"
-                >
-                  <ShieldCheck className="w-4 h-4 text-[#F7E97F]" />
-                  Admin Panel {isAdmin && '(Prijavljen)'}
-                </button>
               </nav>
             </div>
 
