@@ -37,7 +37,7 @@ export const AbandonedCartsPromo: React.FC = () => {
       email: 'tarik.hadzic@gmail.com',
       phone: '+387 61 455 210',
       subtotal: 75.0,
-      lastUpdated: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(), // Prije 3 dana
+      lastUpdated: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
       items: [
         {
           id: 'cs-tee-sarajevo-geo-01',
@@ -65,7 +65,7 @@ export const AbandonedCartsPromo: React.FC = () => {
       email: 'amar.begic98@hotmail.com',
       phone: '+387 62 119 844',
       subtotal: 40.0,
-      lastUpdated: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(), // Prije 5 dni
+      lastUpdated: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
       items: [
         {
           id: 'cs-tee-standing-not-running-05',
@@ -91,7 +91,7 @@ export const AbandonedCartsPromo: React.FC = () => {
       }
     } catch {
       setCarts(sampleSessions);
-    } finally {
+    } fontally {
       setLoading(false);
     }
   };
@@ -106,7 +106,6 @@ export const AbandonedCartsPromo: React.FC = () => {
     setEmailSentSuccess(false);
 
     try {
-      // Generiši ili preuzmi promo kod za ovog kupca (trajanje 48 sati)
       const generated = await createPromoCode(
         session.email || 'gost@casualshop.ba',
         'abandoned_cart',
@@ -138,7 +137,7 @@ Kako bi tvoja kombinacija bila spremna, pripremili smo ekskluzivni promo kod za 
 Plaćanje je sigurno pouzećem prilikom preuzimanja od kurira, a dostava stiže u roku 48–72h širom BiH.
 
 Klikni na link i dovrši narudžbu dok su zalihe u tvojoj veličini još dostupne:
-https://casualshop.ba
+https://casualshopbih.pages.dev
 
 Ako imaš pitanja oko veličine ili dostave, samo odgovori na ovu poruku ili nam se javi na Instagram @casualshop.bih.
 
@@ -155,7 +154,7 @@ Casual Shop BiH`;
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Izravno slanje e-maila kupcu iz Admina
+  // Izravno slanje e-maila kupcu iz Admina (AŽURIRANO NA TEMPLATE_D2ZQWNI)
   const handleSendDirectEmail = async () => {
     if (!selectedSession?.email) {
       alert('Kupac nema unesen e-mail.');
@@ -165,7 +164,7 @@ Casual Shop BiH`;
     setSendingEmail(true);
     try {
       const itemsSummary = selectedSession.items
-        .map((i) => `- ${i.quantity}x ${i.name} (Vel: ${i.size})`)
+        .map((i) => `• ${i.name} (Veličina: ${i.size})`)
         .join('\n');
 
       const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
@@ -175,19 +174,15 @@ Casual Shop BiH`;
         },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          template_id: '6ylwum8',
+          template_id: 'template_d2zqwni', // AŽURIRANI TEMPLATE ID ZA NAPUŠTENE KORPE
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
-            order_number: 'PODSJETNIK - NAPUŠTENA KORPA',
             customer_name: selectedSession.customerName || 'Kupac',
-            customer_phone: selectedSession.phone || 'Nije unesen',
             customer_email: selectedSession.email,
-            customer_address: 'KORPA NIJE ZAVRŠENA',
-            customer_note: `Ekskluzivni promo kod za 10% popusta: ${promoCode} (Traje 48 sati)`,
+            promo_code: promoCode,
+            discount_percent: promoDiscount,
             items_summary: itemsSummary,
-            total_amount: `${selectedSession.subtotal.toFixed(2)} KM`,
-            shipping_fee: '12.00 KM',
-            reply_to: 'pupalovicahmed96@gmail.com',
+            reply_to: 'redemption19@gmail.com',
           },
         }),
       });
@@ -195,7 +190,9 @@ Casual Shop BiH`;
       if (response.ok) {
         setEmailSentSuccess(true);
       } else {
-        alert('Slanje e-maila nije uspjelo. Provjerite EmailJS postavke.');
+        const errText = await response.text();
+        console.error('EmailJS Error:', errText);
+        alert(`Slanje e-maila nije uspjelo: ${errText}`);
       }
     } catch (err) {
       console.error('Greška pri slanju e-maila:', err);
