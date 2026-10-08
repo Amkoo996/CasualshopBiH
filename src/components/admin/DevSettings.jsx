@@ -1,47 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import { applyTheme, DEFAULT_THEME } from '../../utils/theme';
+import { StoreSettings, DEFAULT_STORE_SETTINGS } from '../../types';
+import { getStoreSettings, saveStoreSettings } from '../../lib/db';
+import { applyTheme } from '../../utils/theme';
 
-export default function DevSettings() {
-  const [theme, setTheme] = useState(DEFAULT_THEME);
+export function DevSettings() {
+  const [settings, setSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
 
+  // 1. Učitavanje postavki direktno iz Firebase baze
   useEffect(() => {
-    // Učitaj trenutno sačuvana podešavanja
-    const saved = localStorage.getItem('site_theme');
-    if (saved) {
-      setTheme({ ...DEFAULT_THEME, ...JSON.parse(saved) });
-    }
+    const fetchSettings = async () => {
+      try {
+        const data = await getStoreSettings();
+        setSettings(data);
+        applyTheme(data);
+      } catch (err) {
+        console.error('Greška pri učitavanju postavki:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
   }, []);
 
-  const handleChange = (field, value) => {
-    const updatedTheme = { ...theme, [field]: value };
-    setTheme(updatedTheme);
-    // Trenutno primenjuje promenu na ekranu (Live Preview)
-    applyTheme(updatedTheme);
+  // 2. Ažuriranje lokalnog stanja i instant Live Preview na ekranu
+  const handleChange = (field: keyof StoreSettings, value: any) => {
+    const updated = { ...settings, [field]: value };
+    setSettings(updated);
+    applyTheme(updated);
   };
 
-  const handleSave = () => {
-    // Čuvanje u LocalStorage (zameni sa fetch/axios pozivom prema svom backendu ako imaš bazni API)
-    localStorage.setItem('site_theme', JSON.stringify(theme));
-    alert('Podešavanja sajta su uspešno sačuvana!');
+  // 3. Spremanje u Firebase Firestore bazu
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await saveStoreSettings(settings);
+      applyTheme(settings);
+      alert('Postavke teme su uspješno sačuvane u Firebase bazu za sve kupce!');
+    } catch (err) {
+      console.error('Greška pri spremanju:', err);
+      alert('Došlo je do greške pri spremanju u bazu.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleReset = () => {
-    setTheme(DEFAULT_THEME);
-    applyTheme(DEFAULT_THEME);
-    localStorage.removeItem('site_theme');
+  // 4. Vraćanje na fabričke postavke
+  const handleReset = async () => {
+    if (window.confirm('Da li ste sigurni da želite vratiti sve vizuelne postavke na početne?')) {
+      setSettings(DEFAULT_STORE_SETTINGS);
+      applyTheme(DEFAULT_STORE_SETTINGS);
+      try {
+        await saveStoreSettings(DEFAULT_STORE_SETTINGS);
+        alert('Postavke vraćene na fabričke!');
+      } catch (err) {
+        console.error('Greška pri resetovanju:', err);
+      }
+    }
   };
+
+  if (loading) {
+    return <div className="p-6 text-center text-gray-500">Učitavanje postavki...</div>;
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-md my-8 text-black">
       <h2 className="text-2xl font-bold mb-6 border-b pb-2">Dev Settings — Stil i Tema Sajta</h2>
 
-      <div className="space-y-5">
+      <form onSubmit={handleSave} className="space-y-5">
         {/* Pozadinska boja */}
         <div className="flex items-center justify-between">
           <label className="font-medium">Pozadinska boja (Background):</label>
           <input
             type="color"
-            value={theme.bgColor}
+            value={settings.bgColor || '#F4F2EC'}
             onChange={(e) => handleChange('bgColor', e.target.value)}
             className="w-12 h-10 border rounded cursor-pointer"
           />
@@ -52,7 +86,7 @@ export default function DevSettings() {
           <label className="font-medium">Boja teksta (Text Color):</label>
           <input
             type="color"
-            value={theme.textColor}
+            value={settings.textColor || '#111111'}
             onChange={(e) => handleChange('textColor', e.target.value)}
             className="w-12 h-10 border rounded cursor-pointer"
           />
@@ -63,7 +97,7 @@ export default function DevSettings() {
           <label className="font-medium">Brend akcentna boja (Brand Accent):</label>
           <input
             type="color"
-            value={theme.yellowBrand}
+            value={settings.yellowBrand || '#F7E97F'}
             onChange={(e) => handleChange('yellowBrand', e.target.value)}
             className="w-12 h-10 border rounded cursor-pointer"
           />
@@ -75,7 +109,7 @@ export default function DevSettings() {
           <input
             type="text"
             placeholder="https://example.com/background.jpg"
-            value={theme.bgImage}
+            value={settings.bgImage || ''}
             onChange={(e) => handleChange('bgImage', e.target.value)}
             className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-black"
           />
@@ -85,7 +119,7 @@ export default function DevSettings() {
         <div>
           <label className="block font-medium mb-1">Font za tekst (Body Font):</label>
           <select
-            value={theme.fontBody}
+            value={settings.fontBody || "'Inter', sans-serif"}
             onChange={(e) => handleChange('fontBody', e.target.value)}
             className="w-full p-2 border border-gray-300 rounded"
           >
@@ -100,7 +134,7 @@ export default function DevSettings() {
         <div>
           <label className="block font-medium mb-1">Font za naslove (Headings Font):</label>
           <select
-            value={theme.fontHeading}
+            value={settings.fontHeading || "'Poppins', sans-serif"}
             onChange={(e) => handleChange('fontHeading', e.target.value)}
             className="w-full p-2 border border-gray-300 rounded"
           >
@@ -114,34 +148,38 @@ export default function DevSettings() {
         {/* Veličina Fonta */}
         <div>
           <label className="block font-medium mb-1">
-            Bazna veličina fonta: <span className="font-bold">{theme.fontSize}px</span>
+            Bazna veličina fonta: <span className="font-bold">{settings.fontSize || 16}px</span>
           </label>
           <input
             type="range"
             min="14"
             max="20"
-            value={theme.fontSize}
+            value={settings.fontSize || 16}
             onChange={(e) => handleChange('fontSize', Number(e.target.value))}
-            className="w-full cursor-pointer"
+            className="w-full cursor-pointer accent-black"
           />
         </div>
 
         {/* Akcije */}
         <div className="flex gap-4 pt-4 border-t">
           <button
-            onClick={handleSave}
-            className="flex-1 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition-colors font-semibold"
+            type="submit"
+            disabled={saving}
+            className="flex-1 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition-colors font-semibold disabled:opacity-50"
           >
-            Sačuvaj Promene
+            {saving ? 'Spremanje...' : 'Sačuvaj Promene'}
           </button>
           <button
+            type="button"
             onClick={handleReset}
             className="bg-gray-200 text-gray-800 py-2 px-4 rounded hover:bg-gray-300 transition-colors"
           >
             Vrati na Default
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
+
+export default DevSettings;
