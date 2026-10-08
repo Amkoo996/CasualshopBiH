@@ -12,11 +12,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isSaved = isInWishlist(product.id);
 
-  // Check if sold out (all size stocks are 0)
+  // Računanje ukupne zalihe
   const totalStock = Object.values(product.sizes || {}).reduce((acc, stock) => acc + (stock || 0), 0);
   const isSoldOut = totalStock <= 0;
+  
+  // Note "POSLJEDNJI KOMADI" ako je zaliha ispod 5 komada
+  const isLowStock = totalStock > 0 && totalStock < 5;
 
-  // Check if new (isNew flag or created in last 30 days)
+  // Provjera za NOVO (posljednjih 30 dana)
   const isWithin30Days = product.createdAt
     ? (Date.now() - new Date(product.createdAt).getTime()) <= (30 * 24 * 60 * 60 * 1000)
     : false;
@@ -29,6 +32,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
     toggleWishlist(product.id);
   };
 
+  // Redoslijed prikazivanja veličina
+  const sizeOrder = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
+  const sortedSizes = Object.entries(product.sizes || {}).sort(
+    ([a], [b]) => sizeOrder.indexOf(a) - sizeOrder.indexOf(b)
+  );
+
   return (
     <div
       onClick={() => onSelect(product)}
@@ -36,7 +45,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
     >
       {/* Product Image Container */}
       <div className="relative aspect-[3/4] bg-neutral-100 overflow-hidden">
-        {/* Wishlist Heart Button */}
+        {/* Favoriti (Srce) Dugme */}
         <button
           type="button"
           onClick={handleHeartClick}
@@ -60,7 +69,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
         />
 
-        {/* Secondary hover image if available */}
+        {/* Druga slika na hover ako postoji */}
         {product.images[1] && (
           <img
             src={product.images[1]}
@@ -81,6 +90,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
             </span>
           ) : (
             <>
+              {isLowStock && (
+                <span className="bg-[#E63946] text-white text-[10px] font-['Poppins'] font-black uppercase tracking-[0.18em] px-2.5 py-1 shadow-sm animate-pulse">
+                  POSLJEDNJI KOMADI
+                </span>
+              )}
               {showNewBadge && (
                 <span className="bg-[#0A0A0A] text-[#F7E97F] border border-[#F7E97F] text-[10px] font-['Poppins'] font-black uppercase tracking-[0.18em] px-2.5 py-1">
                   NOVO
@@ -95,9 +109,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           )}
         </div>
 
-        {/* Available Sizes preview badge */}
+        {/* Dostupne veličine na hover (bez otkrivanja tačnog broja na zalihi) */}
         <div className="absolute bottom-0 inset-x-0 bg-[#0A0A0A]/90 text-white py-1.5 px-2 text-[10px] font-['Inter'] font-semibold tracking-wider flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          {Object.entries(product.sizes || {}).map(([size, stock]) => (
+          {sortedSizes.map(([size, stock]) => (
             <span
               key={size}
               className={`${
@@ -134,11 +148,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
             )}
           </div>
 
-          <span className="text-[10px] font-['Poppins'] font-bold text-neutral-400 uppercase">
+          <span className="text-[10px] font-['Poppins'] font-bold uppercase">
             {isSoldOut ? (
               <span className="text-[#9A9A9A]">RASPRODANO</span>
+            ) : isLowStock ? (
+              <span className="text-[#E63946]">POSLJEDNJI KOMADI</span>
             ) : (
-              'DOSTUPNO'
+              <span className="text-neutral-400">DOSTUPNO</span>
             )}
           </span>
         </div>
