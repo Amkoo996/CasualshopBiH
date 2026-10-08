@@ -5,7 +5,8 @@ export type Category =
   | 'Pantalone i trenerke'
   | 'Šorcevi'
   | 'Kape i šeširi'
-  | 'Dodaci';
+  | 'Dodaci'
+  | 'Rasprodano';
 
 export const CATEGORIES: Category[] = [
   'Majice',
@@ -15,9 +16,10 @@ export const CATEGORIES: Category[] = [
   'Šorcevi',
   'Kape i šeširi',
   'Dodaci',
+  'Rasprodano',
 ];
 
-export type Size = 'S' | 'M' | 'L' | 'XL' | 'One size';
+export type Size = 'S' | 'M' | 'L' | 'XL' | 'XXL' | '3XL' | 'One size';
 
 export type SizeStock = {
   [key in Size]?: number;
@@ -111,14 +113,14 @@ export interface StoreSettings {
 }
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
-  shippingFee: 10.0,
+  shippingFee: 12.0,
   freeShippingThreshold: 100.0,
   phone: '+387 61 000 000',
   email: 'info@casualshop.ba',
   instagramUrl: 'https://www.instagram.com/casualshop.bih',
   whatsappNumber: '+387 61 000 000',
-  topBarText: 'Plaćanje pouzećem • Dostava 10 KM (Besplatna preko 100 KM) širom BiH',
-  sizeGuideText: 'Sve naše majice i duksevi imaju ugodan streetwear kroj. Dimenzije su izražene u centimetrima (cm): S (Širina 54cm, Dužina 70cm), M (Širina 57cm, Dužina 73cm), L (Širina 60cm, Dužina 76cm), XL (Širina 63cm, Dužina 79cm). Kape i dodaci su u univerzalnoj veličini (One size).',
+  topBarText: 'Plaćanje pouzećem • Brza pošta 12 KM • Moguće otvaranje paketa prije preuzimanja',
+  sizeGuideText: 'Sve naše majice i duksevi imaju ugodan streetwear kroj. Dimenzije su izražene u centimetrima (cm): S (Širina 54cm, Dužina 70cm), M (Širina 57cm, Dužina 73cm), L (Širina 60cm, Dužina 76cm), XL (Širina 63cm, Dužina 79cm), XXL (Širina 66cm, Dužina 82cm). Kape i dodaci su u univerzalnoj veličini (One size).',
   sellerName: '',
   sellerAddress: '',
   sellerIdNumber: '',
