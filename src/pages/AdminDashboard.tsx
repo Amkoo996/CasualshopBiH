@@ -38,6 +38,7 @@ import {
   saveStoreSettings,
 } from '../lib/db';
 import { uploadImage } from '../lib/upload';
+import { getProductViewStats } from '../lib/tracking';
 import { useCart } from '../context/CartContext';
 import { SalesTrendChart } from '../components/admin/SalesTrendChart';
 import { FunnelAnalytics } from '../components/admin/FunnelAnalytics';
@@ -54,6 +55,7 @@ export const AdminDashboard: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
+  const [productViewsMap, setProductViewsMap] = useState<Record<string, number>>({});
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -75,20 +77,25 @@ export const AdminDashboard: React.FC = () => {
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('Sve');
   const [orderSearch, setOrderSearch] = useState('');
 
+  // Svi podržani nazivi veličina za formu
+  const availableSizesList: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
+
   // Load admin data
   const loadData = async () => {
     setLoading(true);
     try {
-      const [prodsData, ordersData, subsData, settingsData] = await Promise.all([
+      const [prodsData, ordersData, subsData, settingsData, viewsData] = await Promise.all([
         getProducts(true),
         getOrders().catch(() => []),
         getSubscribers().catch(() => []),
         getStoreSettings().catch(() => DEFAULT_STORE_SETTINGS),
+        getProductViewStats().catch(() => ({})),
       ]);
       setProducts(prodsData);
       setOrders(ordersData);
       setSubscribers(subsData);
       setStoreSettings(settingsData);
+      setProductViewsMap(viewsData);
     } catch (e) {
       console.error('Failed to load admin data:', e);
     } finally {
@@ -110,11 +117,7 @@ export const AdminDashboard: React.FC = () => {
       await loginWithEmail(email, password, rememberMe);
     } catch (err: any) {
       console.error('Login error:', err);
-      if (err.message) {
-        setLoginError(err.message);
-      } else {
-        setLoginError('Pogrešan email ili lozinka.');
-      }
+      setLoginError(err.message || 'Pogrešan email ili lozinka.');
     } finally {
       setLoginLoading(false);
     }
@@ -325,13 +328,28 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // UPDATE ORDER STATUS
+  // UPDATE ORDER STATUS (Sa automatskim vraćanjem na stock ako se otkaže)
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
     try {
+      const targetOrder = orders.find((o) => o.id === orderId);
       await updateOrderStatus(orderId, status);
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status } : o))
-      );
+
+      // Ako se narudžba otkaže, automatski vraćamo zalihe
+      if (status === 'Otkazana' && targetOrder && targetOrder.status !== 'Otkazana') {
+        for (const item of targetOrder.items) {
+          const prod = products.find((p) => p.id === item.id);
+          if (prod) {
+            const currentStock = prod.sizes[item.size] ?? 0;
+            const updatedSizes = { ...prod.sizes, [item.size]: currentStock + item.quantity };
+            await saveProduct({ id: prod.id, sizes: updatedSizes } as any);
+          }
+        }
+        await loadData();
+      } else {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+        );
+      }
     } catch {
       alert('Greška pri ažuriranju statusa.');
     }
@@ -627,7 +645,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PRODUCTS TAB */}
+      {/* PRODUCTS TAB (Sa brojačem pregleda po artiklima) */}
       {activeTab === 'products' && (
         <div className="space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -636,7 +654,7 @@ export const AdminDashboard: React.FC = () => {
                 Upravljanje proizvodima ({products.length})
               </h2>
               <p className="text-xs text-neutral-500 font-['Inter']">
-                Dodajte, uredite ili sakrijte artikle. Veličine sa 0 zaliha automatski dobijaju oznaku RASPRODANO.
+                Dodajte, uredite ili sakrijte artikle. Pratite statistiku otvaranja po proizvodu u realnom vremenu.
               </p>
             </div>
 
@@ -662,7 +680,7 @@ export const AdminDashboard: React.FC = () => {
                     description: '',
                     careInstructions: 'Prati na 30°C izvrnuto',
                     images: ['https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1000&q=80'],
-                    sizes: { S: 5, M: 8, L: 6, XL: 3 },
+                    sizes: { S: 5, M: 8, L: 6, XL: 3, XXL: 0, '3XL': 0 },
                     isNew: true,
                     featured: false,
                     isHidden: false,
@@ -683,7 +701,7 @@ export const AdminDashboard: React.FC = () => {
                 <tr>
                   <th className="p-3">Artikal</th>
                   <th className="p-3">Kategorija</th>
-                  <th className="p-3">Boja / Materijal</th>
+                  <th className="p-3">Pregledi 👁️</th>
                   <th className="p-3">Cijena (KM)</th>
                   <th className="p-3">Zalihe</th>
                   <th className="p-3">Status</th>
@@ -694,6 +712,7 @@ export const AdminDashboard: React.FC = () => {
                 {products.map((p) => {
                   const totalStock = Object.values(p.sizes || {}).reduce((sum, v) => sum + (v || 0), 0);
                   const isSoldOut = totalStock <= 0;
+                  const viewsCount = productViewsMap[p.id] || 0;
 
                   return (
                     <tr key={p.id} className={`hover:bg-neutral-50 ${p.isHidden ? 'opacity-50 bg-neutral-100' : ''}`}>
@@ -712,9 +731,11 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-3 font-semibold text-neutral-700">{p.category}</td>
-                      <td className="p-3 text-[11px] text-neutral-600">
-                        <div>{p.color}</div>
-                        <div className="text-neutral-400 text-[10px]">{p.material}</div>
+                      <td className="p-3">
+                        <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-neutral-100 border border-neutral-300 rounded font-['Poppins'] font-bold text-neutral-900 text-[11px]">
+                          <Eye className="w-3.5 h-3.5 text-neutral-600" />
+                          <span>{viewsCount} otvaranja</span>
+                        </div>
                       </td>
                       <td className="p-3 font-['Poppins'] font-bold text-neutral-900">
                         {p.price.toFixed(2)} KM
@@ -726,18 +747,21 @@ export const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="p-3 font-mono">
                         <div className="flex flex-wrap gap-1 text-[10px]">
-                          {Object.entries(p.sizes || {}).map(([sz, stock]) => (
-                            <span
-                              key={sz}
-                              className={`px-1.5 py-0.5 border ${
-                                (stock ?? 0) > 0
-                                  ? 'bg-[#F4F2EC] text-neutral-900 border-neutral-300'
-                                  : 'bg-neutral-200 text-[#9A9A9A] border-neutral-300 font-bold'
-                              }`}
-                            >
-                              {sz}: {stock}
-                            </span>
-                          ))}
+                          {availableSizesList.map((sz) => {
+                            const stock = p.sizes?.[sz] ?? 0;
+                            return (
+                              <span
+                                key={sz}
+                                className={`px-1.5 py-0.5 border ${
+                                  stock > 0
+                                    ? 'bg-[#F4F2EC] text-neutral-900 border-neutral-300'
+                                    : 'bg-neutral-200 text-[#9A9A9A] border-neutral-300'
+                                }`}
+                              >
+                                {sz}: {stock}
+                              </span>
+                            );
+                          })}
                         </div>
                         <span className="text-[10px] text-neutral-400 mt-0.5 block">
                           Ukupno: {totalStock} kom
@@ -1057,9 +1081,6 @@ export const AdminDashboard: React.FC = () => {
                     onChange={(e) => setStoreSettings({ ...storeSettings, shippingFee: Number(e.target.value) })}
                     className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-bold font-mono focus:border-black focus:outline-none"
                   />
-                  <span className="text-[10px] text-neutral-400 mt-0.5 block font-['Inter']">
-                    Zadano: 6.00 KM
-                  </span>
                 </div>
 
                 <div>
@@ -1076,9 +1097,6 @@ export const AdminDashboard: React.FC = () => {
                     onChange={(e) => setStoreSettings({ ...storeSettings, freeShippingThreshold: Number(e.target.value) })}
                     className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-bold font-mono focus:border-black focus:outline-none"
                   />
-                  <span className="text-[10px] text-neutral-400 mt-0.5 block font-['Inter']">
-                    Zadano: 100.00 KM
-                  </span>
                 </div>
               </div>
 
@@ -1093,7 +1111,7 @@ export const AdminDashboard: React.FC = () => {
                   required
                   value={storeSettings.topBarText}
                   onChange={(e) => setStoreSettings({ ...storeSettings, topBarText: e.target.value })}
-                  placeholder="Plaćanje pouzećem • Dostava širom BiH"
+                  placeholder="Plaćanje pouzećem • Brza pošta 12 KM • Moguće otvaranje paketa prije preuzimanja"
                   className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-bold focus:border-black focus:outline-none"
                 />
               </div>
@@ -1101,24 +1119,10 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="space-y-4 border-b pb-6 border-neutral-200">
               <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
-                2. Kontakt podaci i društvene mreže
+                2. Kontakt podaci
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="settings-phone" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                    Kontakt telefon
-                  </label>
-                  <input
-                    id="settings-phone"
-                    name="phone"
-                    type="text"
-                    value={storeSettings.phone}
-                    onChange={(e) => setStoreSettings({ ...storeSettings, phone: e.target.value })}
-                    className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
-                  />
-                </div>
-
                 <div>
                   <label htmlFor="settings-email" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     E-mail adresa
@@ -1146,93 +1150,6 @@ export const AdminDashboard: React.FC = () => {
                     className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
                   />
                 </div>
-
-                <div>
-                  <label htmlFor="settings-whatsapp" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                    WhatsApp broj
-                  </label>
-                  <input
-                    id="settings-whatsapp"
-                    name="whatsappNumber"
-                    type="text"
-                    value={storeSettings.whatsappNumber}
-                    onChange={(e) => setStoreSettings({ ...storeSettings, whatsappNumber: e.target.value })}
-                    className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4 border-b pb-6 border-neutral-200">
-              <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
-                3. Tekst i upute za tabelu veličina
-              </h3>
-
-              <div>
-                <label htmlFor="settings-sizeguide" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                  Urediv opis u modalu tabele veličina
-                </label>
-                <textarea
-                  id="settings-sizeguide"
-                  name="sizeGuideText"
-                  rows={3}
-                  value={storeSettings.sizeGuideText || ''}
-                  onChange={(e) => setStoreSettings({ ...storeSettings, sizeGuideText: e.target.value })}
-                  className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-['Inter'] focus:border-black focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
-                4. Podaci o prodavcu (Za Uslove korištenja i Politiku privatnosti)
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label htmlFor="settings-seller-name" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                    Naziv firme / prodavca
-                  </label>
-                  <input
-                    id="settings-seller-name"
-                    name="sellerName"
-                    type="text"
-                    value={storeSettings.sellerName || ''}
-                    onChange={(e) => setStoreSettings({ ...storeSettings, sellerName: e.target.value })}
-                    placeholder="Casual Shop BiH d.o.o."
-                    className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="settings-seller-address" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                    Sjedište i adresa
-                  </label>
-                  <input
-                    id="settings-seller-address"
-                    name="sellerAddress"
-                    type="text"
-                    value={storeSettings.sellerAddress || ''}
-                    onChange={(e) => setStoreSettings({ ...storeSettings, sellerAddress: e.target.value })}
-                    placeholder="Sarajevo, BiH"
-                    className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="settings-seller-id" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                    ID / JIB broj
-                  </label>
-                  <input
-                    id="settings-seller-id"
-                    name="sellerIdNumber"
-                    type="text"
-                    value={storeSettings.sellerIdNumber || ''}
-                    onChange={(e) => setStoreSettings({ ...storeSettings, sellerIdNumber: e.target.value })}
-                    placeholder="4200000000000"
-                    className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
-                  />
-                </div>
               </div>
             </div>
 
@@ -1256,7 +1173,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PRODUCT FORM MODAL */}
+      {/* PRODUCT FORM MODAL (Sa svim veličinama) */}
       {isModalOpen && editingProduct && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white max-w-2xl w-full p-6 sm:p-8 space-y-6 border-2 border-[#F7E97F] shadow-2xl relative my-8">
@@ -1376,12 +1293,13 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* ZALIHE PO VELIČINAMA */}
               <div className="space-y-2 bg-[#F4F2EC] p-4 border-2 border-neutral-300">
                 <label className="block font-['Poppins'] font-black uppercase text-black">
                   Zalihe po veličinama (komada na stanju):
                 </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {(['S', 'M', 'L', 'XL', 'One size'] as Size[]).map((sz) => (
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                  {availableSizesList.map((sz) => (
                     <div key={sz}>
                       <label htmlFor={`stock-size-${sz}`} className="block font-['Poppins'] font-bold text-center mb-1 text-[11px]">{sz}</label>
                       <input
@@ -1402,13 +1320,12 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* UPLOAD SLIKA SA UREĐAJA / URL GALERIJA */}
+              {/* UPLOAD SLIKA */}
               <div className="space-y-2 border-2 border-neutral-300 p-4 bg-white">
                 <label className="block font-['Poppins'] font-bold uppercase text-neutral-800">
                   Galerija slika (Prva slika je glavna za prikaz):
                 </label>
 
-                {/* Dugme za preuzimanje sa telefona / računara */}
                 <div className="mb-3">
                   <label className="inline-block px-4 py-2 bg-[#F7E97F] text-[#0A0A0A] font-bold text-xs uppercase cursor-pointer border border-[#0A0A0A] shadow-sm hover:bg-yellow-300 transition-colors">
                     {uploading ? 'Učitavanje...' : 'Učitaj slike sa uređaja'}
@@ -1499,21 +1416,6 @@ export const AdminDashboard: React.FC = () => {
                   onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
                   className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
                   placeholder="Streetwear kroj, grafika, detalji..."
-                />
-              </div>
-
-              <div>
-                <label htmlFor="product-care-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
-                  Upute za njegu i pranje
-                </label>
-                <input
-                  id="product-care-input"
-                  name="careInstructions"
-                  type="text"
-                  value={editingProduct.careInstructions || ''}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, careInstructions: e.target.value })}
-                  placeholder="Prati na 30°C izvrnuto..."
-                  className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
                 />
               </div>
 
