@@ -23,6 +23,7 @@ import {
   ArrowRight,
   MessageCircle,
   FileText,
+  Palette,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS } from '../types';
@@ -43,12 +44,13 @@ import { FunnelAnalytics } from '../components/admin/FunnelAnalytics';
 import { AbandonedCartsPromo } from '../components/admin/AbandonedCartsPromo';
 import { TrafficAndCartStatsTable } from '../components/admin/TrafficAndCartStatsTable';
 import { generateOrderInvoicePDF, getWhatsAppConfirmationUrl } from '../lib/pdfInvoice';
+import DevSettings from '../components/admin/DevSettings';
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin, loginWithEmail, signOut } = useAuth();
   const { refreshSettings } = useCart();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'leads' | 'products' | 'orders' | 'subscribers' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'leads' | 'products' | 'orders' | 'subscribers' | 'settings' | 'dev-settings'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
@@ -424,6 +426,7 @@ export const AdminDashboard: React.FC = () => {
           { id: 'orders', label: `Narudžbe (${orders.length})`, icon: ShoppingBag },
           { id: 'subscribers', label: `Newsletter (${subscribers.length})`, icon: Users },
           { id: 'settings', label: 'Postavke Trgovine', icon: Settings },
+          { id: 'dev-settings', label: 'Dev Settings & Tema', icon: Palette },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -452,7 +455,7 @@ export const AdminDashboard: React.FC = () => {
               <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-400">
                 UKUPAN PRIHOD
               </span>
-              <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">
+              <div className="font-[#Poppins] text-2xl sm:text-3xl font-black text-black">
                 {totalRevenue.toFixed(2)} KM
               </div>
               <span className="text-[11px] text-emerald-600 font-semibold block font-['Inter']">
@@ -1243,6 +1246,13 @@ export const AdminDashboard: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* DEV SETTINGS TAB */}
+      {activeTab === 'dev-settings' && (
+        <div className="animate-fadeIn">
+          <DevSettings />
         </div>
       )}
 
