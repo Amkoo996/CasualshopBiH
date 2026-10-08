@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, CreditCard, ShieldCheck, ArrowLeft, Lock } from 'lucide-react';
+import { Truck, CreditCard, ShieldCheck, ArrowLeft, Tag, Check, Loader2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { CustomerDetails, Order } from '../types';
 import { createOrder } from '../lib/db';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics';
 import { recordCheckoutStart, recordCompletedPurchase, saveCartSession } from '../lib/tracking';
+import { validateAndApplyPromoCode, markPromoCodeAsUsed, createPromoCode } from '../lib/promo';
 
 interface CheckoutPageProps {
   onBack: () => void;
@@ -17,7 +18,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onOrderSuccess,
   onNavigateToPage,
 }) => {
-  const { items, subtotal, shippingFee, freeShippingThreshold, total, clearCart } = useCart();
+  const { items, subtotal, shippingFee, freeShippingThreshold, clearCart } = useCart();
 
   const [formData, setFormData] = useState<CustomerDetails>({
     firstName: '',
@@ -34,9 +35,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerDetails | 'terms', string>>>({});
 
+  // Promo Code State
+  const [promoInput, setPromoInput] = useState('');
+  const [promoDiscountPercent, setPromoDiscountPercent] = useState(0);
+  const [appliedPromoCode, setAppliedPromoCode] = useState('');
+  const [promoValidating, setPromoValidating] = useState(false);
+  const [promoMessage, setPromoMessage] = useState<{ text: string; error: boolean } | null>(null);
+
+  // Izračun konačnog iznosa s popustom
+  const discountAmount = (subtotal * promoDiscountPercent) / 100;
+  const finalSubtotal = subtotal - discountAmount;
+  const calculatedTotal = finalSubtotal + shippingFee;
+
   useEffect(() => {
     if (items.length > 0) {
-      trackBeginCheckout(items, total);
+      trackBeginCheckout(items, calculatedTotal);
       recordCheckoutStart();
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -58,9 +71,26 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         phone: nextForm.phone,
         customerName: `${nextForm.firstName} ${nextForm.lastName}`.trim(),
         items,
-        subtotal,
+        subtotal: calculatedTotal,
       });
     }
+  };
+
+  // Primjena Promo Koda
+  const handleApplyPromo = async () => {
+    if (!promoInput.trim()) return;
+    setPromoValidating(true);
+    setPromoMessage(null);
+
+    const result = await validateAndApplyPromoCode(promoInput);
+    if (result.valid) {
+      setPromoDiscountPercent(result.discountPercent);
+      setAppliedPromoCode(promoInput.trim().toUpperCase());
+      setPromoMessage({ text: result.message, error: false });
+    } else {
+      setPromoMessage({ text: result.message, error: true });
+    }
+    setPromoValidating(false);
   };
 
   const validate = (): boolean => {
@@ -97,29 +127,49 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         orderNumber,
         items,
         customer: formData,
-        subtotal,
+        subtotal: finalSubtotal,
         shippingFee,
-        total,
+        total: calculatedTotal,
         paymentMethod: 'cash_on_delivery',
         status: 'Nova',
         createdAt: new Date().toISOString(),
       };
 
-      // 1. Spremanje narudžbe i umanjivanje zalihe u bazi
+      // 1. Spremanje narudžbe u bazi
       const docId = await createOrder(orderData);
       const finalizedOrder: Order = {
         ...orderData,
         id: docId,
       };
 
-      // 2. Trajno spremanje zadnje narudžbe u localStorage za prikaz potvrde
+      // 2. Ako je korišten promo kod, označi ga kao iskorištenog
+      if (appliedPromoCode) {
+        await markPromoCodeAsUsed(appliedPromoCode);
+      }
+
+      // 3. Generisanje NOVOG promo koda od 10% za NAREDNU kupovinu (trajanje 30 dana)
+      let nextPromoCode = '';
+      if (formData.email) {
+        try {
+          const nextPromo = await createPromoCode(formData.email, 'post_purchase', 30 * 24);
+          nextPromoCode = nextPromo.code;
+        } catch (err) {
+          console.warn('Greška pri kreiranju koda za narednu kupovinu:', err);
+        }
+      }
+
+      // 4. Trajno spremanje u localStorage
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
 
-      // 3. Automatsko slanje e-maila preko EmailJS REST API-ja (BEZ POTREBE ZA NPM)
+      // 5. Automatsko slanje e-maila preko EmailJS
       try {
         const itemsSummary = items
           .map((i) => `- ${i.quantity}x ${i.name} (Vel: ${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
           .join('\n');
+
+        const promoNote = nextPromoCode
+          ? `\n\nHVALA NA KUPOVINI! Tvoj promo kod od 10% za narednu narudžbu (važi 30 dana): ${nextPromoCode}`
+          : '';
 
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
@@ -136,7 +186,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               customer_phone: formData.phone,
               customer_email: formData.email || 'Nije unesen',
               customer_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
-              customer_note: formData.note || 'Nema napomene',
+              customer_note: (formData.note || 'Nema napomene') + promoNote,
               items_summary: itemsSummary,
               total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
               shipping_fee: shippingFee === 0 ? 'BESPLATNO' : `${shippingFee.toFixed(2)} KM`,
@@ -144,9 +194,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             },
           }),
         });
-        console.log('E-mail obavijest je uspješno poslata!');
       } catch (err: any) {
-        console.warn('E-mail obavijest nije poslana, ali narudžba je sačuvana:', err);
+        console.warn('E-mail obavijest nije poslana:', err);
       }
 
       // Analytics
@@ -175,7 +224,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         </p>
         <button
           onClick={onBack}
-          className="px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-widest transition-colors"
+          className="px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer"
         >
           Povratak na kolekciju
         </button>
@@ -187,7 +236,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
       <button
         onClick={onBack}
-        className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-8 transition-colors"
+        className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-8 transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Nazad na korpu</span>
@@ -383,7 +432,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     Plaćanje pouzećem (Gotovinom kuriru pri preuzimanju)
                   </span>
                   <p className="text-xs text-neutral-300 font-['Inter']">
-                    Plaćaš gotovinom kuriru brze pošte tek kada paket stigne na tvoju adresu.
+                    Plaćaš gotovinom kuriru brze pošte tek kada paket stigne na tvoju adresu. Moguće otvaranje paketa prije preuzimanja.
                   </p>
                 </div>
               </label>
@@ -404,7 +453,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigateToPage('terms')}
-                  className="font-bold underline text-black"
+                  className="font-bold underline text-black cursor-pointer"
                 >
                   Uslovima korištenja
                 </button>{' '}
@@ -412,7 +461,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <button
                   type="button"
                   onClick={() => onNavigateToPage('privacy')}
-                  className="font-bold underline text-black"
+                  className="font-bold underline text-black cursor-pointer"
                 >
                   Politikom privatnosti
                 </button>
@@ -431,13 +480,47 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               Pregled narudžbe ({items.length})
             </h2>
 
-            <div className="divide-y divide-neutral-200 max-h-72 overflow-y-auto pr-1">
+            {/* UNOS PROMO KODA */}
+            <div className="space-y-2 bg-[#F4F2EC] p-3.5 border border-neutral-300">
+              <label className="block text-[11px] font-['Poppins'] font-bold uppercase text-neutral-700">
+                Imate promo kod za popust?
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                  placeholder="npr. WELCOME10"
+                  disabled={Boolean(appliedPromoCode)}
+                  className="w-full bg-white border border-neutral-300 px-3 py-1.5 text-xs font-mono font-bold focus:border-black focus:outline-none uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyPromo}
+                  disabled={promoValidating || Boolean(appliedPromoCode)}
+                  className="px-4 py-1.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-wider shrink-0 transition-colors border border-black cursor-pointer disabled:opacity-50"
+                >
+                  {promoValidating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Primijeni'}
+                </button>
+              </div>
+
+              {promoMessage && (
+                <p className={`text-[11px] font-['Inter'] font-semibold ${promoMessage.error ? 'text-red-600' : 'text-emerald-700'}`}>
+                  {promoMessage.text}
+                </p>
+              )}
+            </div>
+
+            <div className="divide-y divide-neutral-200 max-h-64 overflow-y-auto pr-1">
               {items.map((item) => (
                 <div key={`${item.id}-${item.size}`} className="py-3 flex gap-3 first:pt-0">
                   <img
                     src={item.image}
                     alt={item.name}
                     className="w-14 h-16 object-cover bg-neutral-100 shrink-0 border border-neutral-200"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
+                    }}
                   />
                   <div className="flex-1 flex flex-col justify-between text-xs">
                     <div>
@@ -461,6 +544,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <span>Iznos artikala:</span>
                 <span className="font-['Poppins'] font-bold">{subtotal.toFixed(2)} KM</span>
               </div>
+
+              {promoDiscountPercent > 0 && (
+                <div className="flex justify-between text-emerald-700 font-bold">
+                  <span>Popust ({promoDiscountPercent}%):</span>
+                  <span className="font-['Poppins']">-{discountAmount.toFixed(2)} KM</span>
+                </div>
+              )}
+
               <div className="flex justify-between text-neutral-700">
                 <span>Dostava (Brza pošta BiH):</span>
                 <span className="font-['Poppins'] font-bold">
@@ -471,16 +562,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   )}
                 </span>
               </div>
+
               <div className="flex justify-between text-base font-black text-black pt-3 border-t-2 border-neutral-200 font-['Poppins']">
                 <span className="uppercase tracking-wider">UKUPNO:</span>
-                <span className="text-xl">{total.toFixed(2)} KM</span>
+                <span className="text-xl">{calculatedTotal.toFixed(2)} KM</span>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.99] border-2 border-[#0A0A0A]"
+              className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.99] border-2 border-[#0A0A0A] cursor-pointer"
             >
               <ShieldCheck className="w-4 h-4" />
               <span>
