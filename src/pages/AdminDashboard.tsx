@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Copy, Check, Send, AlertCircle, RefreshCw, MessageSquare } from 'lucide-react';
-import { getAbandonedCarts, AbandonedCart } from '../../lib/tracking';
-import { createPromoCode } from '../../lib/promo';
+import { getAbandonedCarts, AbandonedCart } from '../lib/tracking';
+import { createPromoCode } from '../lib/promo';
 
 export const AbandonedCartsPromo: React.FC = () => {
   const [carts, setCarts] = useState<AbandonedCart[]>([]);
