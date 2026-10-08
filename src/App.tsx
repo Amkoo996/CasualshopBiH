@@ -117,8 +117,7 @@ export function AppContent() {
   };
 
   return (
-    // Uklonjene hardkodovane boje (bg-[#F4F2EC], text-[#111111]) – sve sada vode CSS varijable
-    <div className="min-h-screen flex flex-col antialiased selection:bg-yellow-brand selection:text-[#0A0A0A]">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col antialiased selection:bg-yellow-brand selection:text-[#0A0A0A]">
       {/* Sticky Header */}
       <Navbar
         currentTab={currentTab}
