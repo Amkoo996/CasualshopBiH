@@ -175,10 +175,11 @@ export async function saveStoreSettings(settings: StoreSettings): Promise<void> 
 }
 
 // ------------------------------------------------------------------
-// 5. LISTA ŽELJA (WISHLIST)
+// 5. LISTA ŽELJA (WISHLIST - Osigurano od undefined userId)
 // ------------------------------------------------------------------
 
-export async function getUserWishlist(userId: string): Promise<string[]> {
+export async function getUserWishlist(userId?: string): Promise<string[]> {
+  if (!userId) return []; // Sprečava Firestore da izbaci grešku 'fromString'
   try {
     const wishlistRef = doc(db, WISHLISTS_COLLECTION, userId);
     const snap = await getDoc(wishlistRef);
@@ -191,7 +192,8 @@ export async function getUserWishlist(userId: string): Promise<string[]> {
   return [];
 }
 
-export async function saveUserWishlist(userId: string, productIds: string[]): Promise<void> {
+export async function saveUserWishlist(userId: string | undefined, productIds: string[]): Promise<void> {
+  if (!userId) return; // Sprečava upis ako korisnik nije prijavljen
   try {
     const wishlistRef = doc(db, WISHLISTS_COLLECTION, userId);
     await setDoc(wishlistRef, { productIds, updatedAt: new Date().toISOString() }, { merge: true });
