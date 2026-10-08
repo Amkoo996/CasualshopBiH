@@ -86,9 +86,12 @@ export interface NewsletterSubscriber {
   subscribedAt: string;
 }
 
+// ------------------------------------------------------------------
+// POSTAVKE TRGOVINE I TEMA (STORE SETTINGS & THEME)
+// ------------------------------------------------------------------
 export interface StoreSettings {
-  shippingFee: number; // Cijena dostave: 10 KM ispod 100 KM
-  freeShippingThreshold: number; // Prag besplatne dostave: 100 KM
+  shippingFee: number; // Cijena dostave
+  freeShippingThreshold: number; // Prag besplatne dostave
   phone: string;
   email: string;
   instagramUrl: string;
@@ -98,20 +101,40 @@ export interface StoreSettings {
   sellerName?: string;
   sellerAddress?: string;
   sellerIdNumber?: string;
+
+  // 🎨 NOVO: Dev Settings / Tema
+  bgColor?: string;
+  textColor?: string;
+  yellowBrand?: string;
+  scrollThumb?: string;
+  fontBody?: string;
+  fontHeading?: string;
+  fontSize?: number;
+  bgImage?: string;
 }
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
-  shippingFee: 10.0, // Ažurirano: 10 KM
-  freeShippingThreshold: 100.0, // Besplatno preko 100 KM
+  shippingFee: 10.0,
+  freeShippingThreshold: 100.0,
   phone: '+387 61 000 000',
   email: 'info@casualshop.ba',
   instagramUrl: 'https://www.instagram.com/casualshop.bih',
   whatsappNumber: '+387 61 000 000',
   topBarText: 'Plaćanje pouzećem • Dostava 10 KM (Besplatna preko 100 KM) širom BiH',
-  sizeGuideText: 'Sve naše majice i duksevi imaju ugodan streetwear kroj. Dimenzije su izražene u centimetrima (cm): S (Širina 54cm, Dužina 70cm), M (Širina 57cm, Dužina 73cm), L (Širina 60cm, Dužina 76cm), XL (Širina 63cm, Dužina 79cm). Kape i dodaci su u univerzalnoj veličini (One size).',
+  sizeGuideText: 'Sve naše majice i duksevi imaju ugodan streetwear kroj...',
   sellerName: '',
   sellerAddress: '',
   sellerIdNumber: '',
+
+  // 🎨 Defaultne vrijednosti teme
+  bgColor: '#F4F2EC',
+  textColor: '#111111',
+  yellowBrand: '#F7E97F',
+  scrollThumb: '#0A0A0A',
+  fontBody: "'Inter', sans-serif",
+  fontHeading: "'Poppins', sans-serif",
+  fontSize: 16,
+  bgImage: '',
 };
 
 export interface AbandonedCartSession {
@@ -185,4 +208,3 @@ export interface UserWishlist {
   productIds: string[];
   updatedAt: string;
 }
-
