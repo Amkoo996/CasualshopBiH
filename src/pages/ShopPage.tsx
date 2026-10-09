@@ -22,7 +22,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   const [selectedSize, setSelectedSize] = useState<Size | ''>('');
   const [sortOption, setSortOption] = useState<string>('newest');
 
-  // KLJUČNA ISPRAVKA: Sinhronizacija kategorije pri kliku na meni/Navbar
+  // Sinhronizacija kategorije pri kliku na meni/Navbar
   useEffect(() => {
     setSelectedCategory(initialCategory);
   }, [initialCategory]);
@@ -44,8 +44,15 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
   const [priceRange, setPriceRange] = useState<number>(maxProductPrice);
 
+  // Ažuriranje priceRange ako se učitaju novi proizvodi
+  useEffect(() => {
+    setPriceRange(maxProductPrice);
+  }, [maxProductPrice]);
+
   // Logika filtriranja i sortiranja artikala
   const filteredProducts = useMemo(() => {
+    const normalizedSelectedCat = selectedCategory.trim().toLowerCase();
+
     return products
       .filter((product) => {
         // Ukupna zaliha po svim veličinama
@@ -56,21 +63,24 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         const isSoldOut = totalStock <= 0;
 
         // Ako je odabrana kategorija "Rasprodano", prikaži SAMO rasprodane artikle
-        if (selectedCategory === 'Rasprodano') {
+        if (normalizedSelectedCat === 'rasprodano') {
           if (!isSoldOut) return false;
         } else {
           // Za sve ostale kategorije (uključujući "Sve"), SAKRIJ rasprodane artikle
           if (isSoldOut) return false;
 
-          // Filtriranje po specifičnoj kategoriji (npr. Majice, Duksevi i hoodice...)
-          if (selectedCategory !== 'Sve' && product.category !== selectedCategory) {
+          // Filtriranje po specifičnoj kategoriji (Case-insensitive & Trimmed poređenje)
+          if (
+            normalizedSelectedCat !== 'sve' &&
+            (product.category || '').trim().toLowerCase() !== normalizedSelectedCat
+          ) {
             return false;
           }
         }
 
         // Filtriranje po veličini
         if (selectedSize !== '') {
-          const sizeStock = product.sizes[selectedSize] ?? 0;
+          const sizeStock = product.sizes?.[selectedSize] ?? 0;
           if (sizeStock <= 0) return false;
         }
 
@@ -81,10 +91,10 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
         // Pretraga po nazivu, opisu ili kategoriji
         if (searchTerm.trim() !== '') {
-          const term = searchTerm.toLowerCase();
-          const matchName = product.name.toLowerCase().includes(term);
-          const matchDesc = product.description.toLowerCase().includes(term);
-          const matchCat = product.category.toLowerCase().includes(term);
+          const term = searchTerm.trim().toLowerCase();
+          const matchName = (product.name || '').toLowerCase().includes(term);
+          const matchDesc = (product.description || '').toLowerCase().includes(term);
+          const matchCat = (product.category || '').toLowerCase().includes(term);
           if (!matchName && !matchDesc && !matchCat) return false;
         }
 
