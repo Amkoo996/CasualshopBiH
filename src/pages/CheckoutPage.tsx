@@ -6,6 +6,7 @@ import { createOrder } from '../lib/db';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics';
 import { recordCheckoutStart, recordCompletedPurchase, saveCartSession } from '../lib/tracking';
 import { validateAndApplyPromoCode, markPromoCodeAsUsed, createPromoCode } from '../lib/promo';
+import { normalizePhone, isValidEmail, isValidName } from '../lib/validation';
 
 interface CheckoutPageProps {
   onBack: () => void;
@@ -103,18 +104,27 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof CustomerDetails | 'terms' | 'pickupTime', string>> = {};
-    if (!formData.firstName.trim()) newErrors.firstName = 'Ime je obavezno';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Prezime je obavezno';
+
+    if (!isValidName(formData.firstName)) newErrors.firstName = 'Unesite ispravno ime (samo slova)';
+    if (!isValidName(formData.lastName)) newErrors.lastName = 'Unesite ispravno prezime (samo slova)';
+
     if (!formData.phone.trim()) {
       newErrors.phone = 'Broj telefona je obavezan';
-    } else if (formData.phone.trim().length < 6) {
-      newErrors.phone = 'Unesite ispravan broj telefona';
+    } else if (!normalizePhone(formData.phone)) {
+      newErrors.phone = 'Unesite ispravan broj telefona, npr. 061 123 456';
+    }
+
+    const mail = formData.email.trim();
+    if (mail && !isValidEmail(mail)) {
+      newErrors.email = 'Unesite ispravnu e-mail adresu';
     }
 
     if (deliveryMethod === 'courier') {
-      if (!formData.city.trim()) newErrors.city = 'Grad je obavezan';
-      if (!formData.address.trim()) newErrors.address = 'Ulica i kućni broj su obavezni';
-      if (!formData.postalCode.trim()) newErrors.postalCode = 'Poštanski broj je obavezan';
+      if (formData.city.trim().length < 2) newErrors.city = 'Grad je obavezan';
+      if (formData.address.trim().length < 5) newErrors.address = 'Unesite ulicu i kućni broj';
+      if (formData.postalCode.trim() && !/^[0-9]{5}\$/.test(formData.postalCode.trim())) {
+        newErrors.postalCode = 'Poštanski broj mora imati 5 cifara';
+      }
     } else {
       if (!pickupTime.trim()) {
         newErrors.pickupTime = 'Molimo navedite željeni dan i okvirno vrijeme preuzimanja';
@@ -126,32 +136,66 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
 
     setErrors(newErrors);
+
+    // Skrolaj do prve greške
+    const firstKey = Object.keys(newErrors)[0];
+    if (firstKey) {
+      requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLElement>(`[name="${firstKey}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.focus();
+      });
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (submitting) return; // Sprečava dvostruki submit na brzi enter
     if (!validate()) return;
     if (items.length === 0) return;
+
+    // Zaštita od spama botova (30 sekundi između narudžbi)
+    const lastOrderTime = localStorage.getItem('casualshop_last_order_time');
+    if (lastOrderTime && Date.now() - parseInt(lastOrderTime) < 30000) {
+      setSubmitError('Molimo sačekajte 30 sekundi prije nove narudžbe.');
+      return;
+    }
 
     setSubmitting(true);
     setSubmitError(null);
 
     try {
-      const orderNumber = `CS-${Math.floor(100000 + Math.random() * 900000)}`;
+      // Novi sigurniji i pregledniji ID narudžbe: CS-MMDD-XXXX (npr. CS-1009-A4F2)
+      const date = new Date();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const orderNumber = `CS-${mm}${dd}-${randomStr}`;
+
+      // Čišćenje i formatiranje podataka prije slanja
+      const cleanPhone = normalizePhone(formData.phone) || formData.phone.trim();
+      const cleanEmail = formData.email.trim().toLowerCase();
+
       const noteDetails = deliveryMethod === 'pickup'
-        ? `LIČNO PREUZIMANJE (Sarajevo). Željeno vrijeme: ${pickupTime}. ${formData.note || ''}`
-        : formData.note || '';
+        ? `LIČNO PREUZIMANJE (Sarajevo). Željeno vrijeme: ${pickupTime}. ${formData.note.trim()}`
+        : formData.note.trim();
 
       const orderData: Omit<Order, 'id'> = {
         orderNumber,
         items,
         customer: {
           ...formData,
-          address: deliveryMethod === 'pickup' ? 'Lično preuzimanje - Sarajevo' : formData.address,
-          city: deliveryMethod === 'pickup' ? 'Sarajevo' : formData.city,
-          postalCode: deliveryMethod === 'pickup' ? '71000' : formData.postalCode,
-          note: noteDetails,
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          phone: cleanPhone,
+          email: cleanEmail,
+          address: deliveryMethod === 'pickup' ? 'Lično preuzimanje - Sarajevo' : formData.address.trim(),
+          city: deliveryMethod === 'pickup' ? 'Sarajevo' : formData.city.trim(),
+          postalCode: deliveryMethod === 'pickup' ? '71000' : formData.postalCode.trim(),
+          note: noteDetails.substring(0, 300), // Ograničenje dužine napomene
         },
         subtotal: finalSubtotal,
         shippingFee: activeShippingFee,
@@ -169,13 +213,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       };
 
       if (appliedPromoCode) {
-        await markPromoCodeAsUsed(appliedPromoCode);
+        try {
+          await markPromoCodeAsUsed(appliedPromoCode);
+        } catch (err) {
+          console.warn('Upozorenje: Promo kod primijenjen ali nije označen kao iskorišten:', err);
+        }
       }
 
       let nextPromoCode = '';
-      if (formData.email) {
+      if (cleanEmail) {
         try {
-          const nextPromo = await createPromoCode(formData.email, 'post_purchase', 30 * 24);
+          const nextPromo = await createPromoCode(cleanEmail, 'post_purchase', 30 * 24);
           nextPromoCode = nextPromo.code;
         } catch (err) {
           console.warn('Greška pri kreiranju narednog koda:', err);
@@ -183,6 +231,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       }
 
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
+      localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
       // Slanje e-mail obavijesti preko EmailJS
       const fallbackSellerEmail = settings?.email || 'info@casualshop.ba';
@@ -195,8 +244,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ? `\n\nHVALA NA KUPOVINI! Tvoj promo kod od 10% za narednu narudžbu (važi 30 dana): ${nextPromoCode}`
           : '';
 
-        const recipientEmail = formData.email && formData.email.includes('@')
-          ? formData.email
+        const recipientEmail = cleanEmail && cleanEmail.includes('@')
+          ? cleanEmail
           : fallbackSellerEmail;
 
         const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
@@ -211,14 +260,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             template_params: {
               order_number: finalizedOrder.orderNumber,
               customer_name: `${formData.firstName} ${formData.lastName}`,
-              customer_phone: formData.phone,
+              customer_phone: cleanPhone,
               customer_email: recipientEmail,
               customer_address: finalizedOrder.customer.address,
               customer_note: (noteDetails || 'Nema napomene') + promoNote,
               items_summary: itemsSummary,
               total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
               shipping_fee: activeShippingFee === 0 ? 'BESPLATNO (Lično preuzimanje / Prag)' : `${activeShippingFee.toFixed(2)} KM`,
-              reply_to: formData.email || fallbackSellerEmail,
+              reply_to: cleanEmail || fallbackSellerEmail,
             },
           }),
         });
@@ -237,7 +286,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       onOrderSuccess(finalizedOrder);
     } catch (error: any) {
       console.error('Greška pri kreiranju narudžbe:', error);
-      setSubmitError(error?.message || 'Došlo je do greške prilikom obrade narudžbe. Pokušajte ponovo.');
+      setSubmitError(error?.message || 'Došlo je do greške prilikom obrade narudžbe. Osvježite stranicu i pokušajte ponovo.');
     } finally {
       setSubmitting(false);
     }
@@ -357,6 +406,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <input
                   type="text"
                   name="firstName"
+                  autoComplete="given-name"
+                  maxLength={50}
                   value={formData.firstName}
                   onChange={handleChange}
                   placeholder="npr. Haris"
@@ -376,6 +427,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <input
                   type="text"
                   name="lastName"
+                  autoComplete="family-name"
+                  maxLength={50}
                   value={formData.lastName}
                   onChange={handleChange}
                   placeholder="npr. Hodžić"
@@ -396,6 +449,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </label>
                 <input
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  maxLength={20}
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
@@ -404,6 +460,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     errors.phone ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                   }`}
                 />
+                <p className="text-[10px] text-neutral-500 mt-1">Nazvat ćemo te radi potvrde.</p>
                 {errors.phone && (
                   <p className="text-[11px] text-red-600 mt-1">{errors.phone}</p>
                 )}
@@ -415,12 +472,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </label>
                 <input
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  maxLength={100}
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="npr. haris@gmail.com"
-                  className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs sm:text-sm focus:bg-white focus:border-black focus:outline-none"
+                  className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                    errors.email ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                  }`}
                 />
+                <p className="text-[10px] text-neutral-500 mt-1">Za slanje promo koda za iduću kupovinu.</p>
+                {errors.email && (
+                  <p className="text-[11px] text-red-600 mt-1">{errors.email}</p>
+                )}
               </div>
             </div>
 
@@ -434,6 +500,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     <input
                       type="text"
                       name="city"
+                      autoComplete="address-level2"
+                      maxLength={50}
                       value={formData.city}
                       onChange={handleChange}
                       placeholder="npr. Sarajevo, Tuzla..."
@@ -448,11 +516,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
                   <div>
                     <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                      Poštanski broj *
+                      Poštanski broj
                     </label>
                     <input
                       type="text"
                       name="postalCode"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                      maxLength={5}
                       value={formData.postalCode}
                       onChange={handleChange}
                       placeholder="npr. 71000"
@@ -473,9 +544,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <input
                     type="text"
                     name="address"
+                    autoComplete="street-address"
+                    maxLength={100}
                     value={formData.address}
                     onChange={handleChange}
-                    placeholder="npr. Maršala Tita 15"
+                    placeholder="npr. Maršala Tita 15 (ili bb)"
                     className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                       errors.address ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                     }`}
@@ -492,6 +565,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </label>
                 <input
                   type="text"
+                  name="pickupTime"
                   value={pickupTime}
                   onChange={(e) => setPickupTime(e.target.value)}
                   placeholder="npr. Sutra u 17:00h / Subota u toku dana"
@@ -512,6 +586,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <textarea
                 name="note"
                 rows={2}
+                maxLength={300}
                 value={formData.note}
                 onChange={handleChange}
                 placeholder="Dodatne napomene..."
