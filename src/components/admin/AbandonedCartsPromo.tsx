@@ -48,6 +48,16 @@ export const AbandonedCartsPromo: React.FC = () => {
     loadCarts();
   }, []);
 
+  // Sigurno parsiranje datuma bez obzira na format polja lastUpdated
+  const parseDate = (dateVal: any): Date => {
+    if (!dateVal) return new Date();
+    if (typeof dateVal === 'object' && typeof dateVal.toDate === 'function') {
+      return dateVal.toDate();
+    }
+    const parsed = new Date(dateVal);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+  };
+
   const handleOpenPromoModal = async (session: AbandonedCartSession) => {
     setSelectedSession(session);
     setEmailSentSuccess(false);
@@ -154,7 +164,8 @@ Casual Shop BiH`;
     const rows = carts
       .map((c) => {
         const itemNames = c.items.map((i) => `${i.name} (${i.size})`).join('; ');
-        return `"${c.customerName || ''}","${c.email || ''}","${c.phone || ''}","${c.subtotal.toFixed(2)}","${itemNames}","${new Date(c.lastUpdated).toLocaleString('bs-BA')}"`;
+        const formattedDate = parseDate(c.lastUpdated).toLocaleString('bs-BA');
+        return `"${c.customerName || ''}","${c.email || ''}","${c.phone || ''}","${c.subtotal.toFixed(2)}","${itemNames}","${formattedDate}"`;
       })
       .join('\n');
 
@@ -228,7 +239,8 @@ Casual Shop BiH`;
               </tr>
             ) : (
               carts.map((c) => {
-                const daysDiff = Math.floor((Date.now() - new Date(c.lastUpdated).getTime()) / (1000 * 3600 * 24));
+                const dateObj = parseDate(c.lastUpdated);
+                const daysDiff = Math.floor((Date.now() - dateObj.getTime()) / (1000 * 3600 * 24));
                 const is2to5Days = daysDiff >= 2 && daysDiff <= 5;
                 const isMoreThan7Days = daysDiff >= 7;
 
@@ -282,7 +294,7 @@ Casual Shop BiH`;
                     <td className="p-3 text-neutral-500 whitespace-nowrap text-[11px]">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3 text-neutral-400" />
-                        <span>{new Date(c.lastUpdated).toLocaleDateString('bs-BA')}</span>
+                        <span>{dateObj.toLocaleDateString('bs-BA')}</span>
                       </div>
                       {is2to5Days && (
                         <span className="text-[10px] font-['Poppins'] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 mt-1 inline-block">
