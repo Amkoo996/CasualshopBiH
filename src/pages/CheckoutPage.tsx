@@ -18,7 +18,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onOrderSuccess,
   onNavigateToPage,
 }) => {
-  const { items, subtotal, shippingFee, clearCart } = useCart();
+  const { items, subtotal, shippingFee, clearCart, settings } = useCart();
 
   const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'pickup'>('courier');
   const [pickupTime, setPickupTime] = useState('');
@@ -36,6 +36,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerDetails | 'terms' | 'pickupTime', string>>>({});
 
   // Promo Code State
@@ -47,9 +48,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   // Izračun konačnih iznosa
   const activeShippingFee = deliveryMethod === 'pickup' ? 0 : shippingFee;
-  const discountAmount = (subtotal * promoDiscountPercent) / 100;
-  const finalSubtotal = subtotal - discountAmount;
-  const calculatedTotal = finalSubtotal + activeShippingFee;
+  const discountAmount = Number(((subtotal * promoDiscountPercent) / 100).toFixed(2));
+  const finalSubtotal = Number((subtotal - discountAmount).toFixed(2));
+  const calculatedTotal = Number((finalSubtotal + activeShippingFee).toFixed(2));
 
   useEffect(() => {
     if (items.length > 0) {
@@ -70,6 +71,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     if (errors[name as keyof CustomerDetails]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
+
+    if (submitError) setSubmitError(null);
 
     if (nextForm.email || nextForm.phone) {
       saveCartSession({
@@ -132,6 +135,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     if (items.length === 0) return;
 
     setSubmitting(true);
+    setSubmitError(null);
 
     try {
       const orderNumber = `CS-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -152,9 +156,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         subtotal: finalSubtotal,
         shippingFee: activeShippingFee,
         total: calculatedTotal,
-        paymentMethod: deliveryMethod === 'pickup' ? 'cash_on_delivery' : 'cash_on_delivery',
+        paymentMethod: 'cash_on_delivery',
         status: 'Nova',
         createdAt: new Date().toISOString(),
+        ...(appliedPromoCode ? { promoCode: appliedPromoCode, discountAmount } : {}),
       };
 
       const docId = await createOrder(orderData);
@@ -173,13 +178,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           const nextPromo = await createPromoCode(formData.email, 'post_purchase', 30 * 24);
           nextPromoCode = nextPromo.code;
         } catch (err) {
-          console.warn('Greška pri kreiranju koda:', err);
+          console.warn('Greška pri kreiranju narednog koda:', err);
         }
       }
 
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
 
       // Slanje e-mail obavijesti preko EmailJS
+      const fallbackSellerEmail = settings?.email || 'info@casualshop.ba';
       try {
         const itemsSummary = items
           .map((i) => `- ${i.quantity}x ${i.name} (Vel: ${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
@@ -191,9 +197,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
         const recipientEmail = formData.email && formData.email.includes('@')
           ? formData.email
-          : 'redemption19@gmail.com';
+          : fallbackSellerEmail;
 
-        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -212,12 +218,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               items_summary: itemsSummary,
               total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
               shipping_fee: activeShippingFee === 0 ? 'BESPLATNO (Lično preuzimanje / Prag)' : `${activeShippingFee.toFixed(2)} KM`,
-              reply_to: formData.email || 'redemption19@gmail.com',
+              reply_to: formData.email || fallbackSellerEmail,
             },
           }),
         });
+
+        if (!emailRes.ok) {
+          console.warn('EmailJS obavijest nije uspješno poslata:', await emailRes.text());
+        }
       } catch (err: any) {
-        console.warn('E-mail obavijest nije poslana:', err);
+        console.warn('Greška pri slanju e-maila:', err);
       }
 
       trackPurchase(finalizedOrder);
@@ -227,7 +237,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       onOrderSuccess(finalizedOrder);
     } catch (error: any) {
       console.error('Greška pri kreiranju narudžbe:', error);
-      alert(error?.message || 'Došlo je do greške prilikom obrade narudžbe.');
+      setSubmitError(error?.message || 'Došlo je do greške prilikom obrade narudžbe. Pokušajte ponovo.');
     } finally {
       setSubmitting(false);
     }
@@ -271,6 +281,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         </p>
       </div>
 
+      {submitError && (
+        <div className="mb-8 p-4 bg-red-50 border-2 border-red-500 text-red-800 text-xs font-['Inter'] flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+          <span className="font-semibold">{submitError}</span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-7 space-y-8">
           
@@ -294,7 +311,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <span className="font-['Poppins'] text-xs font-bold uppercase block">
                     Brza pošta (BiH)
                   </span>
-                  <span className="text-[11px] opacity-80 block">Dostava na vašu adresu (12.00 KM)</span>
+                  <span className="text-[11px] opacity-80 block">Dostava na vašu adresu ({shippingFee.toFixed(2)} KM)</span>
                 </div>
               </label>
 
