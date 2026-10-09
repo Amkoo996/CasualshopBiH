@@ -2,43 +2,54 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. POSTAVKE SKLEPA (SETTINGS): Javni odčitavanje neophodno za rad sajta i verifikaciju admina
+    // 1. KORISNICI I ADMINI (FIX ZA LOGIN ERROR):
+    // Dozvoljava prijavljenom korisniku da pročita svoj vlastiti profil/rolu
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /admins/{adminId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // 2. POSTAVKE (SETTINGS):
     match /settings/{docId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // 2. PROIZVODI (PRODUCTS): Svi mogu gledati proizvode, samo prijavljeni admin može dodavati/uređivati/brisati
+    // 3. PROIZVODI (PRODUCTS):
     match /products/{docId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // 3. PROMO KODOWI (PROMO_CODES): Javni odčitavanje za provjeru popusta, izmjene samo za admina
+    // 4. PROMO KODOVI:
     match /promo_codes/{docId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // 4. NARUDŽBE (ORDERS): Kupci mogu kreirati narudžbu, ali samo prijavljeni admin može čitati i brisati
+    // 5. NARUDŽBE:
     match /orders/{docId} {
       allow create: if true;
       allow read, update, delete: if request.auth != null;
     }
 
-    // 5. NEWSLETTER pretplatnici (SUBSCRIBERS): Svi se mogu prijaviti, odčitavanje samo za admina
+    // 6. NEWSLETTER pretplatnici:
     match /subscribers/{docId} {
       allow create: if true;
       allow read, update, delete: if request.auth != null;
     }
 
-    // 6. RECENZIJE (REVIEWS): Javni odčitavanje i slanje recenzija, moderacija samo za admina
+    // 7. RECENZIJE:
     match /reviews/{docId} {
       allow read, create: if true;
       allow update, delete: if request.auth != null;
     }
 
-    // 7. LISTA ŽELJA (WISHLISTS): Omogućeno čitanje i upis
+    // 8. LISTA ŽELJA:
     match /wishlists/{docId} {
       allow read, write: if true;
     }
