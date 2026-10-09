@@ -127,7 +127,7 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // UPLOAD IMAGE HANDLER (Cloudinary)
+  // UPLOAD IMAGE HANDLER
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -224,7 +224,7 @@ export const AdminDashboard: React.FC = () => {
             <button
               type="submit"
               disabled={loginLoading}
-              className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-[#0A0A0A] disabled:opacity-50"
+              className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-[#0A0A0A] disabled:opacity-50 cursor-pointer"
             >
               {loginLoading ? 'Prijavljivanje...' : 'Prijavi se'}
             </button>
@@ -257,7 +257,7 @@ export const AdminDashboard: React.FC = () => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  // SAVE PRODUCT
+  // SAVE PRODUCT (KOMPLETIRANA SA SVIM POLJIMA)
   const handleSaveProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct || !editingProduct.name || !editingProduct.price) return;
@@ -320,15 +320,6 @@ export const AdminDashboard: React.FC = () => {
       setTimeout(() => setSettingsSaved(false), 2500);
     } catch {
       alert('Greška pri spremanju postavki.');
-    }
-  };
-
-  const handleSyncAuthenticProducts = async () => {
-    try {
-      await loadData();
-      alert('Uspješno sinhronizovano!');
-    } catch {
-      alert('Greška pri sinhronizaciji artikala.');
     }
   };
 
@@ -737,6 +728,11 @@ export const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="p-3 font-['Poppins'] font-bold text-neutral-900">
                         {p.price.toFixed(2)} KM
+                        {p.originalPrice && (
+                          <span className="text-[10px] text-neutral-400 line-through block font-normal">
+                            {p.originalPrice.toFixed(2)} KM
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 font-mono">
                         <div className="flex flex-wrap gap-1 text-[10px]">
@@ -1131,11 +1127,11 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PRODUCT FORM MODAL */}
+      {/* PRODUCT FORM MODAL (POTPUNA FORMA SA SVIM POLJIMA) */}
       {isModalOpen && editingProduct && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white max-w-2xl w-full p-6 sm:p-8 space-y-6 border-2 border-[#F7E97F] shadow-2xl relative my-8">
-            <div className="flex justify-between items-center border-b-2 border-neutral-200 pb-4">
+          <div className="bg-white max-w-2xl w-full p-6 sm:p-8 space-y-6 border-2 border-[#F7E97F] shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b-2 border-neutral-200 pb-4 sticky top-0 bg-white z-10">
               <h3 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black">
                 {editingProduct.id ? 'Uredi artikal' : 'Dodaj novi artikal'}
               </h3>
@@ -1148,6 +1144,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveProductSubmit} className="space-y-4 text-xs font-['Inter']">
+              {/* NAZIV */}
               <div>
                 <label htmlFor="product-name-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                   Naziv artikla *
@@ -1164,6 +1161,7 @@ export const AdminDashboard: React.FC = () => {
                 />
               </div>
 
+              {/* CIJENE I KATEGORIJA */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label htmlFor="product-price-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
@@ -1178,6 +1176,22 @@ export const AdminDashboard: React.FC = () => {
                     value={editingProduct.price || 0}
                     onChange={(e) => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
                     className="w-full border-2 border-neutral-300 p-2.5 text-xs sm:text-sm font-mono font-bold focus:border-black focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="product-orig-price-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                    Stara cijena (KM) <span className="text-neutral-400 font-normal">(opciono)</span>
+                  </label>
+                  <input
+                    id="product-orig-price-input"
+                    name="originalPrice"
+                    type="number"
+                    step="0.5"
+                    value={editingProduct.originalPrice || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, originalPrice: e.target.value ? Number(e.target.value) : undefined })}
+                    placeholder="Za akciju"
+                    className="w-full border-2 border-neutral-300 p-2.5 text-xs sm:text-sm font-mono focus:border-black focus:outline-none"
                   />
                 </div>
 
@@ -1201,6 +1215,73 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* BOJA I MATERIJAL */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="product-color-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                    Boja artikla *
+                  </label>
+                  <input
+                    id="product-color-input"
+                    name="color"
+                    type="text"
+                    required
+                    value={editingProduct.color || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, color: e.target.value })}
+                    placeholder="npr. Crna, Bijela, Maslinasto zelena..."
+                    className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="product-material-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                    Materijal i gramatura *
+                  </label>
+                  <input
+                    id="product-material-input"
+                    name="material"
+                    type="text"
+                    required
+                    value={editingProduct.material || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, material: e.target.value })}
+                    placeholder="npr. 100% češljani pamuk 240 GSM"
+                    className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* OPIS I NJEGA */}
+              <div>
+                <label htmlFor="product-desc-textarea" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                  Opis artikla
+                </label>
+                <textarea
+                  id="product-desc-textarea"
+                  name="description"
+                  rows={3}
+                  value={editingProduct.description || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none font-['Inter']"
+                  placeholder="Urbani kroj, visoki kvalitet štampe..."
+                />
+              </div>
+
+              <div>
+                <label htmlFor="product-care-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
+                  Upute za njegu
+                </label>
+                <input
+                  id="product-care-input"
+                  name="careInstructions"
+                  type="text"
+                  value={editingProduct.careInstructions || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, careInstructions: e.target.value })}
+                  placeholder="npr. Prati na 30°C izvrnuto, ne peglati preko štampe"
+                  className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
+                />
+              </div>
+
+              {/* ZALIHE PO VELIČINAMA */}
               <div className="space-y-2 bg-[#F4F2EC] p-4 border-2 border-neutral-300">
                 <label className="block font-['Poppins'] font-black uppercase text-black">
                   Zalihe po veličinama (komada na stanju):
@@ -1227,6 +1308,127 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* UPLOAD SLIKA */}
+              <div className="space-y-2 border-2 border-neutral-300 p-4 bg-white">
+                <label className="block font-['Poppins'] font-bold uppercase text-neutral-800">
+                  Galerija slika (Prva slika je glavna):
+                </label>
+
+                <div className="mb-3">
+                  <label className="inline-block px-4 py-2 bg-[#F7E97F] text-[#0A0A0A] font-bold text-xs uppercase cursor-pointer border border-[#0A0A0A] shadow-sm hover:bg-yellow-300 transition-colors">
+                    {uploading ? 'Učitavanje...' : 'Učitaj slike sa uređaja'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleFiles}
+                      disabled={uploading}
+                    />
+                  </label>
+                </div>
+
+                {editingProduct.images && editingProduct.images.length > 0 && (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {editingProduct.images.map((img, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-[#F4F2EC] border border-neutral-300">
+                        <img src={img} alt="preview" className="w-10 h-10 object-cover border border-neutral-300 shrink-0" />
+                        <span className="text-[11px] truncate flex-1 font-mono">{img}</span>
+                        {idx === 0 && (
+                          <span className="bg-[#0A0A0A] text-[#F7E97F] text-[9px] font-['Poppins'] font-bold px-1.5 py-0.5">
+                            GLAVNA
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => moveImage(idx, 'up')}
+                            disabled={idx === 0}
+                            className="p-1 hover:bg-neutral-300 disabled:opacity-30 cursor-pointer"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveImage(idx, 'down')}
+                            disabled={idx === (editingProduct.images?.length || 1) - 1}
+                            className="p-1 hover:bg-neutral-300 disabled:opacity-30 cursor-pointer"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            className="p-1 text-red-600 hover:bg-red-50 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <input
+                    id="new-image-url-input"
+                    name="newImageUrl"
+                    type="url"
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    placeholder="Ili unesite URL slike ručno..."
+                    className="flex-1 border border-neutral-300 p-2 text-xs focus:border-black focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={addImage}
+                    className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase cursor-pointer"
+                  >
+                    Dodaj URL
+                  </button>
+                </div>
+              </div>
+
+              {/* STATUS OZNAKE (CHECKBOXES) */}
+              <div className="flex flex-wrap gap-6 pt-2 bg-[#F4F2EC] p-3 border border-neutral-300">
+                <label className="flex items-center gap-2 cursor-pointer font-['Poppins'] font-bold">
+                  <input
+                    id="product-is-new"
+                    name="isNew"
+                    type="checkbox"
+                    checked={editingProduct.isNew ?? true}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, isNew: e.target.checked })}
+                    className="accent-black cursor-pointer"
+                  />
+                  <span>Oznaka "NOVO"</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer font-['Poppins'] font-bold">
+                  <input
+                    id="product-is-featured"
+                    name="featured"
+                    type="checkbox"
+                    checked={editingProduct.featured ?? false}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, featured: e.target.checked })}
+                    className="accent-black cursor-pointer"
+                  />
+                  <span>Istaknuto</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer font-['Poppins'] font-bold text-red-700">
+                  <input
+                    id="product-is-hidden"
+                    name="isHidden"
+                    type="checkbox"
+                    checked={editingProduct.isHidden ?? false}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, isHidden: e.target.checked })}
+                    className="accent-red-600 cursor-pointer"
+                  />
+                  <span>Sakriven iz ponude</span>
+                </label>
+              </div>
+
+              {/* DUGMADI ZA SPREMANJE */}
               <div className="flex justify-end gap-3 pt-4 border-t-2 border-neutral-200">
                 <button
                   type="button"
