@@ -42,7 +42,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
     setContactSending(true);
 
-    // 1. Upis u Firestore bazu pod kolekcijom 'contact_messages'
     try {
       await addDoc(collection(db, 'contact_messages'), {
         name: contactData.name,
@@ -56,7 +55,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
       console.warn('Spremanje u bazu nije uspjelo, šaljem e-mail obavijest:', dbErr);
     }
 
-    // 2. Slanje e-maila preko EmailJS-a
     try {
       const userContactEmail = contactData.email.trim() || 'nepoznato@casualshop.ba';
 
@@ -65,7 +63,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          template_id: 'template_b7r6ees', // Usluga obavijesti
+          template_id: 'template_b7r6ees',
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
             order_number: 'UPIT SA KONTAKT FORME',
@@ -167,7 +165,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
               <li>Rok isporuke je <strong>48 do 72 sata</strong> od potvrde narudžbe.</li>
               <li>Moguće je <strong>otvaranje i pregled paketa prije preuzimanja</strong> od kurira.</li>
               <li>Kurir će kontaktirati kupca telefonom prije same isporuke paketa.</li>
-              <li>Cijena standardne dostave iznosi <strong>12 KM</strong>. Za sve narudžbe preko <strong>{settings.freeShippingThreshold || 100} KM</strong>, dostava je <strong>BESPLATNA</strong>.</li>
+              <li>Cijena standardne dostave iznosi <strong>12 KM</strong>. Za sve narudžbe preko <strong>{settings.freeShippingThreshold || 100} KM</strong>, dostava je <strong>BESPLATNA</strong>. Moguće je i lično preuzimanje u Sarajevu (0 KM).</li>
             </ul>
           </section>
 
@@ -177,7 +175,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
               <span>Plaćanje</span>
             </h2>
             <p className="text-neutral-700">
-              Plaćanje se vrši isključivo <strong>pouzećem, gotovinom prilikom preuzimanja pošiljke</strong> od kurira.
+              Plaćanje se vrši isključivo <strong>pouzećem, gotovinom prilikom preuzimanja pošiljke</strong> od kurira ili gotovinom pri ličnom preuzimanju u Sarajevu.
             </p>
           </section>
 
@@ -246,7 +244,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
           <section className="space-y-2">
             <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">4. Narudžba i dostava</h2>
             <p>
-              Narudžba se obavlja putem checkout forme. Dostava se vrši brzam poštom u roku 48 do 72 sata. Cijena dostave iznosi 12 KM. Kupac ima pravo otvaranja i pregleda paketa prije preuzimanja i plaćanja kuriru.
+              Narudžba se obavlja putem checkout forme. Dostava se vrši brzam poštom u roku 48 do 72 sata. Cijena dostave iznosi 12 KM. Kupac ima pravo otvaranja i pregleda paketa prije preuzimanja i plaćanja kuriru. Moguće je i lično preuzimanje u Sarajevu.
             </p>
           </section>
 
