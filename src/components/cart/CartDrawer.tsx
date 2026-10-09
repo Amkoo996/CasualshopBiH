@@ -6,6 +6,15 @@ interface CartDrawerProps {
   onCheckout: () => void;
 }
 
+// Helper funkcija za optimizaciju slika u korpi
+const optimizeCloudinaryUrl = (url: string, width: number = 200) => {
+  if (!url) return '';
+  if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+  }
+  return url;
+};
+
 export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
   const {
     items,
@@ -43,6 +52,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
               onClick={() => setIsCartOpen(false)}
               className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
               title="Zatvori korpu"
+              aria-label="Zatvori korpu"
             >
               <X className="w-6 h-6" />
             </button>
@@ -73,8 +83,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                 {items.map((item) => (
                   <div key={`${item.id}-${item.size}`} className="py-4 flex gap-3.5 first:pt-0">
                     <img
-                      src={item.image || '/images/sarajevo_geo_tee.jpg'}
-                      alt={item.name}
+                      src={optimizeCloudinaryUrl(item.image || '/images/sarajevo_geo_tee.jpg', 200)}
+                      alt={`${item.name} - Veličina ${item.size}`}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
                       }}
@@ -84,13 +94,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                     <div className="flex-1 flex flex-col justify-between text-xs">
                       <div>
                         <div className="flex justify-between items-start gap-2">
-                          <h4 className="font-['Poppins'] font-bold text-neutral-900 uppercase line-clamp-1">
+                          <h3 className="font-['Poppins'] font-bold text-neutral-900 uppercase line-clamp-1 text-xs">
                             {item.name}
-                          </h4>
+                          </h3>
                           <button
                             onClick={() => removeFromCart(item.id, item.size)}
                             className="text-neutral-400 hover:text-red-600 p-0.5 transition-colors cursor-pointer shrink-0"
                             title="Ukloni artikal"
+                            aria-label={`Ukloni ${item.name} iz korpe`}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -105,7 +116,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                         <div className="flex items-center border border-neutral-300 bg-white">
                           <button
                             onClick={() => updateQuantity(item.id, item.size, item.quantity - 1)}
-                            className="px-2 py-0.5 font-bold hover:bg-neutral-100 text-xs"
+                            className="px-2 py-0.5 font-bold hover:bg-neutral-100 text-xs cursor-pointer"
+                            aria-label="Smanji količinu"
                           >
                             -
                           </button>
@@ -115,7 +127,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                           <button
                             onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
                             disabled={item.quantity >= item.maxStock}
-                            className="px-2 py-0.5 font-bold hover:bg-neutral-100 text-xs disabled:opacity-30"
+                            className="px-2 py-0.5 font-bold hover:bg-neutral-100 text-xs disabled:opacity-30 cursor-pointer"
+                            aria-label="Povećaj količinu"
                           >
                             +
                           </button>
