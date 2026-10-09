@@ -1,14 +1,6 @@
-import React, { useState } from 'react';
-import { 
-  Package, 
-  Upload, 
-  Download, 
-  Save, 
-  Search, 
-  CheckCircle2, 
-  AlertCircle 
-} from 'lucide-react';
-import { Product, Size, CATEGORIES, Category } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Package, Upload, Download, Save, Search, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Product, Size, SizeStock, CATEGORIES, Category } from '../../types';
 import { saveProduct } from '../../lib/db';
 
 interface StockManagementTabProps {
@@ -24,9 +16,13 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('Sve');
-  const [stockChanges, setStockChanges] = useState<Record<string, Record<Size, number>>>({});
+  const [stockChanges, setStockChanges] = useState<Record<string, SizeStock>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; error: boolean } | null>(null);
+
+  useEffect(() => {
+    setStockChanges({});
+  }, [products]);
 
   const handleStockChange = (productId: string, size: Size, value: number) => {
     const validVal = Math.max(0, value || 0);
@@ -53,7 +49,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
       for (const prodId of updatedProductIds) {
         const prod = products.find((p) => p.id === prodId);
         if (prod) {
-          const updatedSizes = {
+          const updatedSizes: SizeStock = {
             ...prod.sizes,
             ...stockChanges[prodId],
           };
