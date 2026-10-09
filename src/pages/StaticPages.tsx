@@ -24,13 +24,11 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     e.preventDefault();
     setContactError('');
 
-    // Anti-spam zamka za botove
     if (honeypot) {
       setContactSubmitted(true);
       return;
     }
 
-    // Rate-limit: najviše jedna poruka u minuti
     const lastSent = Number(localStorage.getItem('cs_contact_last') || 0);
     if (Date.now() - lastSent < 60000) {
       setContactError('Poruka je upravo poslana. Pokušajte ponovo za minut.');
@@ -44,8 +42,8 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
     setContactSending(true);
 
+    // 1. Upis u bazu sa hvatanjem greške (da ne blokira slanje maila ako baza štuca)
     try {
-      // 1. Upis u Firestore kolekciju 'contact_messages'
       await addDoc(collection(db, 'contact_messages'), {
         name: contactData.name,
         email: contactData.email || 'Nije uneseno',
@@ -54,27 +52,39 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
         createdAt: new Date().toISOString(),
         read: false,
       });
+    } catch (dbErr) {
+      console.warn('Spremanje u bazu nije uspjelo, šaljem e-mail obavijest:', dbErr);
+    }
 
-      // 2. Slanje maila putem EmailJS-a
+    // 2. Slanje e-maila sa svim mogućim nazivima polja radi EmailJS kompatibilnosti
+    try {
+      const userContact = contactData.email.trim() || sellerEmailDisplay;
+
       const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          template_id: 'template_b7r6ees',
+          template_id: 'template_atnmhpk', // Ako koristite narudžbeni template stavite 'template_b7r6ees'
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
+            to_email: sellerEmailDisplay,
             from_name: contactData.name,
-            from_email: contactData.email || 'Nije uneseno',
+            from_email: userContact,
+            email: userContact,
             phone: contactData.phone || 'Nije uneseno',
             message: contactData.message,
-            reply_to: contactData.email || sellerEmailDisplay,
+            reply_to: userContact,
+            customer_name: contactData.name,
+            customer_email: userContact,
+            customer_note: `Telefon: ${contactData.phone || 'Nije unesen'}\nPoruka: ${contactData.message}`,
           },
         }),
       });
 
       if (!res.ok) {
-        throw new Error(await res.text());
+        const errorText = await res.text();
+        throw new Error(errorText || 'EmailJS rejected the request.');
       }
 
       localStorage.setItem('cs_contact_last', String(Date.now()));
@@ -90,7 +100,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     }
   };
 
-  // 1. O NAMA
   if (page === 'about') {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
@@ -135,7 +144,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     );
   }
 
-  // 2. DOSTAVA I POVRAT
   if (page === 'shipping') {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
@@ -199,7 +207,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     );
   }
 
-  // 3. USLOVI KORIŠTENJA
   if (page === 'terms') {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
@@ -268,7 +275,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     );
   }
 
-  // 4. POLITIKA PRIVATNOSTI
   if (page === 'privacy') {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
@@ -307,7 +313,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     );
   }
 
-  // 5. KONTAKT
   if (page === 'contact') {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
@@ -369,7 +374,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
             </div>
           </div>
 
-          {/* Forma za kontakt */}
           <div className="bg-white p-6 sm:p-8 border-2 border-neutral-300 space-y-4 shadow-sm">
             <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-black">
               Pošalji brzi upit
@@ -392,7 +396,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
               </div>
             ) : (
               <form onSubmit={handleContactSubmit} className="space-y-4 text-xs font-['Inter']">
-                {/* Honeypot zamka za botove */}
                 <input
                   type="text"
                   name="website"
@@ -427,15 +430,15 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                      E-mail ili telefon *
+                      E-mail adresa *
                     </label>
                     <input
-                      type="text"
+                      type="email"
                       required
                       value={contactData.email}
                       onChange={(e) => setContactData({ ...contactData, email: e.target.value })}
                       className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:bg-white focus:border-black focus:outline-none"
-                      placeholder="e-mail ili telefon"
+                      placeholder="npr. haris@gmail.com"
                     />
                   </div>
 
