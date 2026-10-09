@@ -32,7 +32,7 @@ export async function createPromoCode(
     discountPercent: 10,
     expiresAt,
     used: false,
-    active: true, // Odmah aktivan
+    active: true,
     type,
     createdForEmail: email.toLowerCase().trim(),
   };
@@ -87,8 +87,8 @@ export async function validateAndApplyPromoCode(
         message: 'Promotivni kod za prvih 100 narudžbi prihvaćen! (10% popusta)',
       };
     } catch (e) {
-      console.warn('FIRST100 provjera:', e);
-      return { valid: true, discountPercent: 10, message: 'Kod za 10% popusta prihvaćen!' };
+      console.warn('FIRST100 provjera neuspješna:', e);
+      return { valid: false, discountPercent: 0, message: 'Kod trenutno nije moguće provjeriti. Pokušajte ponovo.' };
     }
   }
 
