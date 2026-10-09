@@ -63,14 +63,14 @@ export async function deleteProduct(id: string): Promise<void> {
 }
 
 // ------------------------------------------------------------------
-// 2. NARUDŽBE (ORDERS - Transakcija iz P1.3)
+// 2. NARUDŽBE (ORDERS - Atomska Transakcija)
 // ------------------------------------------------------------------
 
 export async function createOrder(orderData: Omit<Order, 'id'>): Promise<string> {
   const orderRef = doc(collection(db, ORDERS_COLLECTION));
 
   await runTransaction(db, async (transaction) => {
-    // 1) Čitanja
+    // 1) Čitanja: Preuzmi trenutno stanje svih naručenih proizvoda
     const snaps = await Promise.all(
       orderData.items.map((item) =>
         transaction.get(doc(db, PRODUCTS_COLLECTION, item.id))
@@ -83,21 +83,21 @@ export async function createOrder(orderData: Omit<Order, 'id'>): Promise<string>
     orderData.items.forEach((item, i) => {
       const snap = snaps[i];
       if (!snap.exists()) {
-        throw new Error('Artikal "' + item.name + '" više nije dostupan.');
+        throw new Error('Artikal "' + item.name + '" više nije dostupan u bazi.');
       }
       const prod = snap.data() as Product;
       const sizes = updates.get(item.id) ?? ({ ...prod.sizes } as Record<string, number>);
       const stock = sizes[item.size] ?? 0;
 
       if (stock < item.quantity) {
-        throw new Error('Artikal "' + item.name + '" (' + item.size + ') nema dovoljno na stanju.');
+        throw new Error('Artikal "' + item.name + '" (Veličina ' + item.size + ') nema dovoljno komada na stanju.');
       }
 
       sizes[item.size] = stock - item.quantity;
       updates.set(item.id, sizes);
     });
 
-    // 3) Upisi: zaliha i narudžba
+    // 3) Upisi: Ažuriraj zalihe u proizvodima i snimi novu narudžbu
     updates.forEach((sizes, id) => {
       transaction.update(doc(db, PRODUCTS_COLLECTION, id), { sizes });
     });
@@ -175,11 +175,11 @@ export async function saveStoreSettings(settings: StoreSettings): Promise<void> 
 }
 
 // ------------------------------------------------------------------
-// 5. LISTA ŽELJA (WISHLIST - Osigurano od undefined userId)
+// 5. LISTA ŽELJA (WISHLIST)
 // ------------------------------------------------------------------
 
 export async function getUserWishlist(userId?: string): Promise<string[]> {
-  if (!userId) return []; // Sprečava Firestore da izbaci grešku 'fromString'
+  if (!userId) return [];
   try {
     const wishlistRef = doc(db, WISHLISTS_COLLECTION, userId);
     const snap = await getDoc(wishlistRef);
@@ -193,7 +193,7 @@ export async function getUserWishlist(userId?: string): Promise<string[]> {
 }
 
 export async function saveUserWishlist(userId: string | undefined, productIds: string[]): Promise<void> {
-  if (!userId) return; // Sprečava upis ako korisnik nije prijavljen
+  if (!userId) return;
   try {
     const wishlistRef = doc(db, WISHLISTS_COLLECTION, userId);
     await setDoc(wishlistRef, { productIds, updatedAt: new Date().toISOString() }, { merge: true });
