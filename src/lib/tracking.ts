@@ -29,7 +29,7 @@ export interface AnalyticsEvent {
   metadata?: Record<string, any>;
 }
 
-// Inicijalne čistije vrijednosti
+// Inicijalne čiste vrijednosti bez lažne analitike
 export const DEFAULT_METRICS: StoreFunnelMetrics = {
   totalVisits: 0,
   productViews: 0,
@@ -51,6 +51,11 @@ export async function recordAnalyticsEvent(
   eventType: AnalyticsEvent['eventType'],
   metadata?: Record<string, any>
 ) {
+  // Bilježi analitiku samo ako je korisnik prihvatio kolačiće
+  if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') {
+    return;
+  }
+
   try {
     const visitorId = getVisitorId();
     const now = new Date();
@@ -166,7 +171,8 @@ export async function getProductViewStats(): Promise<Record<string, number>> {
   }
 }
 
-export async function recordAddToCartEvent(productId?: string) {
+export async function recordAddToCartEvent(productOrId?: any) {
+  const productId = typeof productOrId === 'string' ? productOrId : productOrId?.id;
   await recordAnalyticsEvent('add_to_cart', productId ? { productId } : undefined);
 }
 
