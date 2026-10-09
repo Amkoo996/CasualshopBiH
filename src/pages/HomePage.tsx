@@ -112,34 +112,34 @@ export const HomePage: React.FC<HomePageProps> = ({
   const featuredProducts = activeProductsWithStock.filter((p) => p.featured).slice(0, 4);
 
   return (
-    <div className="space-y-12 sm:space-y-20 pb-12">
+    <div className="space-y-12 sm:space-y-16 pb-12">
       {/* BANER SA REAL-TIME BROJAČEM I COUNTDOWN TAJMEROM */}
-      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b-4 border-[#F7E97F] py-4 px-4 shadow-2xl relative overflow-hidden">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b-2 border-[#F7E97F] py-3 px-4 shadow-xl relative overflow-hidden z-20">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
           <div className="flex items-center gap-3">
-            <div className="bg-[#F7E97F] text-[#0A0A0A] p-2 font-black font-['Poppins'] text-xs tracking-wider uppercase shrink-0">
+            <div className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-1 font-black font-['Poppins'] text-[11px] tracking-wider uppercase shrink-0">
               EKSKLUZIVNO
             </div>
             <div>
-              <p className="font-['Poppins'] text-sm sm:text-base font-black text-white uppercase tracking-wide">
+              <p className="font-['Poppins'] text-xs sm:text-sm font-black text-white uppercase tracking-wide">
                 POPUST ZA PRVIH 100 NARUDŽBI: <span className="text-[#F7E97F] underline">10% POPUSTA</span>
               </p>
-              <p className="text-xs text-neutral-300 font-['Inter'] mt-0.5">
-                Unesite kod <strong className="bg-[#F7E97F] text-[#0A0A0A] px-1.5 py-0.5 font-mono text-xs">FIRST100</strong> na checkoutu. 
+              <p className="text-[11px] text-neutral-300 font-['Inter'] mt-0.5">
+                Unesite kod <strong className="bg-[#F7E97F] text-[#0A0A0A] px-1.5 py-0.5 font-mono text-[11px]">FIRST100</strong> na checkoutu. 
                 <span className="text-[#F7E97F] font-bold ml-2">Preostalo još: {Math.max(0, 100 - usedCodesCount)} / 100 kodova!</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-4 py-2 border-2 border-[#F7E97F] text-xs sm:text-sm text-white shadow-lg">
-            <Clock className="w-4 h-4 text-[#F7E97F] animate-pulse" />
+          <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1.5 border border-[#F7E97F] text-xs text-white shadow-md">
+            <Clock className="w-3.5 h-3.5 text-[#F7E97F] animate-pulse" />
             <span>OTVARANJE: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
           </div>
         </div>
       </section>
 
-      {/* HERO SECTION SA VIDEO POZADINOM NA LOOPU */}
-      <section className="relative bg-[#0A0A0A] text-white min-h-[75vh] sm:min-h-[82vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
+      {/* HERO SECTION SA VIDEO POZADINOM NA LOOPU - POMJERENO PREMA GORE */}
+      <section className="relative bg-[#0A0A0A] text-white min-h-[65vh] sm:min-h-[75vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F] -mt-12">
         <div className="absolute inset-0 z-0">
           <video
             autoPlay
@@ -153,14 +153,14 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-28 w-full">
-          <div className="max-w-2xl space-y-6">
-            <div className="space-y-3">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 w-full">
+          <div className="max-w-2xl space-y-5">
+            <div className="space-y-2">
               <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
                 CASUAL. <br />
                 <span className="text-[#F7E97F]">SVAKI DAN.</span>
               </h1>
-              <p className="font-['Poppins'] text-lg sm:text-xl font-bold uppercase tracking-wider text-neutral-300">
+              <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-wider text-neutral-300">
                 Udobna odjeća za svaki dan.
               </p>
             </div>
@@ -173,7 +173,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
               <button
                 onClick={() => onNavigateToShop('Sve')}
-                className="px-8 py-4 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] transition-all flex items-center justify-center gap-2 group shadow-xl active:scale-95 cursor-pointer"
+                className="px-8 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] transition-all flex items-center justify-center gap-2 group shadow-xl active:scale-95 cursor-pointer"
               >
                 <span>Pogledaj kolekciju</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -183,7 +183,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-4 bg-[#171717]/80 backdrop-blur-sm border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
+                className="px-6 py-3.5 bg-[#171717]/80 backdrop-blur-sm border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
               >
                 <Instagram className="w-4 h-4 text-[#F7E97F]" />
                 <span>Instagram @casualshop.bih</span>
@@ -193,7 +193,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* QUICK BENEFIT STRIP - PROMIJENJENI h3 U div KAKO NE BI REMETILI HIJERARHIJU NASLOVA */}
+      {/* QUICK BENEFIT STRIP */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
