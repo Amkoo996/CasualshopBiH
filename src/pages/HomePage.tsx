@@ -110,7 +110,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="space-y-12 sm:space-y-20 pb-12">
-      {/* UPEČATLJIV BANER SA REAL-TIME BROJAČEM I COUNTDOWN TAJMEROM */}
+      {/* BANER SA REAL-TIME BROJAČEM I COUNTDOWN TAJMEROM */}
       <section className="bg-[#0A0A0A] text-[#F7E97F] border-b-4 border-[#F7E97F] py-4 px-4 shadow-2xl relative overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
           <div className="flex items-center gap-3">
@@ -135,15 +135,19 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION SA VIDEO POZADINOM NA LOOPU */}
       <section className="relative bg-[#0A0A0A] text-white min-h-[75vh] sm:min-h-[82vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
-          <img
-            src="https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=2000&q=85"
-            alt="Casual Shop BiH Streetwear"
-            className="w-full h-full object-cover object-top opacity-30 filter grayscale contrast-125"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover opacity-50 filter contrast-125"
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-28 w-full">
@@ -176,7 +180,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-4 bg-[#171717] border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
+                className="px-6 py-4 bg-[#171717]/80 backdrop-blur-sm border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
               >
                 <Instagram className="w-4 h-4 text-[#F7E97F]" />
                 <span>Instagram @casualshop.bih</span>
