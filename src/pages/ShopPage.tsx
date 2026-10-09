@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Product, Size, CATEGORIES, Category } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { FilterBar } from '../components/shop/FilterBar';
@@ -21,6 +21,11 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [selectedSize, setSelectedSize] = useState<Size | ''>('');
   const [sortOption, setSortOption] = useState<string>('newest');
+
+  // KLJUČNA ISPRAVKA: Sinhronizacija kategorije pri kliku na meni/Navbar
+  useEffect(() => {
+    setSelectedCategory(initialCategory);
+  }, [initialCategory]);
 
   // Dinamička filtracija lista kategorija na osnovu postavki u Admin Panelu
   const hiddenCats = settings?.hiddenCategories || [];
@@ -57,7 +62,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
           // Za sve ostale kategorije (uključujući "Sve"), SAKRIJ rasprodane artikle
           if (isSoldOut) return false;
 
-          // Filtriranje po specifičnoj kategoriji (npr. Majice, Jakne...)
+          // Filtriranje po specifičnoj kategoriji (npr. Majice, Duksevi i hoodice...)
           if (selectedCategory !== 'Sve' && product.category !== selectedCategory) {
             return false;
           }
@@ -89,7 +94,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         if (sortOption === 'price-low') return a.price - b.price;
         if (sortOption === 'price-high') return b.price - a.price;
         if (sortOption === 'name') return a.name.localeCompare(b.name);
-        
+
         // Zadano: Najnovije
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
