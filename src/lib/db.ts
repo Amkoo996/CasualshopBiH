@@ -21,6 +21,24 @@ export const SETTINGS_COLLECTION = 'settings';
 export const WISHLISTS_COLLECTION = 'wishlists';
 export const REVIEWS_COLLECTION = 'reviews';
 
+// Pomoćna funkcija koja uklanja undefined polja radi sprečavanja FirebaseError-a
+function sanitizeFirestoreData<T extends Record<string, any>>(data: T): Record<string, any> {
+  const cleanData: Record<string, any> = {};
+
+  Object.keys(data).forEach((key) => {
+    const value = data[key];
+    if (value === undefined) {
+      if (key === 'originalPrice') {
+        cleanData[key] = null;
+      }
+      return;
+    }
+    cleanData[key] = value;
+  });
+
+  return cleanData;
+}
+
 // ------------------------------------------------------------------
 // 1. PROIZVODI (PRODUCTS)
 // ------------------------------------------------------------------
@@ -46,13 +64,15 @@ export async function getProducts(includeHidden = false): Promise<Product[]> {
 
 export async function saveProduct(productData: Omit<Product, 'id'> & { id?: string }): Promise<string> {
   const { id, ...data } = productData;
+  const sanitizedData = sanitizeFirestoreData(data);
+
   if (id) {
     const prodRef = doc(db, PRODUCTS_COLLECTION, id);
-    await setDoc(prodRef, data, { merge: true });
+    await setDoc(prodRef, sanitizedData, { merge: true });
     return id;
   } else {
     const prodRef = doc(collection(db, PRODUCTS_COLLECTION));
-    await setDoc(prodRef, data);
+    await setDoc(prodRef, sanitizedData);
     return prodRef.id;
   }
 }
@@ -68,6 +88,7 @@ export async function deleteProduct(id: string): Promise<void> {
 
 export async function createOrder(orderData: Omit<Order, 'id'>): Promise<string> {
   const orderRef = doc(collection(db, ORDERS_COLLECTION));
+  const sanitizedOrderData = sanitizeFirestoreData(orderData);
 
   await runTransaction(db, async (transaction) => {
     // 1) Čitanja: Preuzmi trenutno stanje svih naručenih proizvoda
@@ -102,7 +123,7 @@ export async function createOrder(orderData: Omit<Order, 'id'>): Promise<string>
       transaction.update(doc(db, PRODUCTS_COLLECTION, id), { sizes });
     });
 
-    transaction.set(orderRef, orderData);
+    transaction.set(orderRef, sanitizedOrderData);
   });
 
   return orderRef.id;
@@ -171,7 +192,8 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 
 export async function saveStoreSettings(settings: StoreSettings): Promise<void> {
   const settingsRef = doc(db, SETTINGS_COLLECTION, 'general');
-  await setDoc(settingsRef, settings, { merge: true });
+  const sanitizedSettings = sanitizeFirestoreData(settings);
+  await setDoc(settingsRef, sanitizedSettings, { merge: true });
 }
 
 // ------------------------------------------------------------------
@@ -223,8 +245,9 @@ export async function getProductReviews(productId: string): Promise<ProductRevie
 
 export async function submitProductReview(reviewData: Omit<ProductReview, 'id'>): Promise<string> {
   const reviewRef = doc(collection(db, REVIEWS_COLLECTION));
+  const sanitizedReview = sanitizeFirestoreData(reviewData);
   await setDoc(reviewRef, {
-    ...reviewData,
+    ...sanitizedReview,
     createdAt: new Date().toISOString(),
   });
   return reviewRef.id;
