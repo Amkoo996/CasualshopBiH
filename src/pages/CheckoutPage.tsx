@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, CreditCard, ShieldCheck, ArrowLeft, Tag, Check, Loader2 } from 'lucide-react';
+import { Truck, CreditCard, ShieldCheck, ArrowLeft, Loader2, MapPin, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { CustomerDetails, Order } from '../types';
 import { createOrder } from '../lib/db';
@@ -18,22 +18,25 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onOrderSuccess,
   onNavigateToPage,
 }) => {
-  const { items, subtotal, shippingFee, freeShippingThreshold, clearCart } = useCart();
+  const { items, subtotal, shippingFee, clearCart } = useCart();
+
+  const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'pickup'>('courier');
+  const [pickupTime, setPickupTime] = useState('');
 
   const [formData, setFormData] = useState<CustomerDetails>({
     firstName: '',
     lastName: '',
     phone: '',
     email: '',
-    city: '',
+    city: 'Sarajevo',
     address: '',
-    postalCode: '',
+    postalCode: '71000',
     note: '',
     termsAccepted: false,
   });
 
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof CustomerDetails | 'terms', string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof CustomerDetails | 'terms' | 'pickupTime', string>>>({});
 
   // Promo Code State
   const [promoInput, setPromoInput] = useState('');
@@ -42,10 +45,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [promoValidating, setPromoValidating] = useState(false);
   const [promoMessage, setPromoMessage] = useState<{ text: string; error: boolean } | null>(null);
 
-  // Izračun konačnog iznosa s popustom
+  // Izračun konačnih iznosa
+  const activeShippingFee = deliveryMethod === 'pickup' ? 0 : shippingFee;
   const discountAmount = (subtotal * promoDiscountPercent) / 100;
   const finalSubtotal = subtotal - discountAmount;
-  const calculatedTotal = finalSubtotal + shippingFee;
+  const calculatedTotal = finalSubtotal + activeShippingFee;
 
   useEffect(() => {
     if (items.length > 0) {
@@ -56,7 +60,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   }, []);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
@@ -78,7 +82,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
-  // Primjena Promo Koda
   const handleApplyPromo = async () => {
     if (!promoInput.trim()) return;
     setPromoValidating(true);
@@ -96,19 +99,27 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   };
 
   const validate = (): boolean => {
-    const newErrors: Partial<Record<keyof CustomerDetails | 'terms', string>> = {};
+    const newErrors: Partial<Record<keyof CustomerDetails | 'terms' | 'pickupTime', string>> = {};
     if (!formData.firstName.trim()) newErrors.firstName = 'Ime je obavezno';
     if (!formData.lastName.trim()) newErrors.lastName = 'Prezime je obavezno';
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Broj telefona je obavezan (potreban kurirskoj službi)';
+      newErrors.phone = 'Broj telefona je obavezan';
     } else if (formData.phone.trim().length < 6) {
       newErrors.phone = 'Unesite ispravan broj telefona';
     }
-    if (!formData.city.trim()) newErrors.city = 'Grad je obavezan';
-    if (!formData.address.trim()) newErrors.address = 'Ulica i kućni broj su obavezni';
-    if (!formData.postalCode.trim()) newErrors.postalCode = 'Poštanski broj je obavezan';
+
+    if (deliveryMethod === 'courier') {
+      if (!formData.city.trim()) newErrors.city = 'Grad je obavezan';
+      if (!formData.address.trim()) newErrors.address = 'Ulica i kućni broj su obavezni';
+      if (!formData.postalCode.trim()) newErrors.postalCode = 'Poštanski broj je obavezan';
+    } else {
+      if (!pickupTime.trim()) {
+        newErrors.pickupTime = 'Molimo navedite željeni dan i okvirno vrijeme preuzimanja';
+      }
+    }
+
     if (!formData.termsAccepted) {
-      newErrors.terms = 'Morate prihvatiti Uslove korištenja i Politiku privatnosti';
+      newErrors.terms = 'Morate prihvatiti uslove kupovine i proceduru povrata';
     }
 
     setErrors(newErrors);
@@ -124,46 +135,51 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
     try {
       const orderNumber = `CS-${Math.floor(100000 + Math.random() * 900000)}`;
+      const noteDetails = deliveryMethod === 'pickup'
+        ? `LIČNO PREUZIMANJE (Sarajevo, Alipašino polje). Željeno vrijeme: ${pickupTime}. ${formData.note || ''}`
+        : formData.note || '';
 
       const orderData: Omit<Order, 'id'> = {
         orderNumber,
         items,
-        customer: formData,
+        customer: {
+          ...formData,
+          address: deliveryMethod === 'pickup' ? 'Lično preuzimanje - Alipašino Polje' : formData.address,
+          city: deliveryMethod === 'pickup' ? 'Sarajevo' : formData.city,
+          postalCode: deliveryMethod === 'pickup' ? '71000' : formData.postalCode,
+          note: noteDetails,
+        },
         subtotal: finalSubtotal,
-        shippingFee,
+        shippingFee: activeShippingFee,
         total: calculatedTotal,
-        paymentMethod: 'cash_on_delivery',
+        paymentMethod: deliveryMethod === 'pickup' ? 'cash_on_delivery' : 'cash_on_delivery',
         status: 'Nova',
         createdAt: new Date().toISOString(),
       };
 
-      // 1. Spremanje narudžbe u bazu (Firestore)
       const docId = await createOrder(orderData);
       const finalizedOrder: Order = {
         ...orderData,
         id: docId,
       };
 
-      // 2. Ako je korišten promo kod, označi ga kao iskorištenog
       if (appliedPromoCode) {
         await markPromoCodeAsUsed(appliedPromoCode);
       }
 
-      // 3. Generisanje NOVOG promo koda od 10% za NAREDNU kupovinu (trajanje 30 dana)
       let nextPromoCode = '';
       if (formData.email) {
         try {
           const nextPromo = await createPromoCode(formData.email, 'post_purchase', 30 * 24);
           nextPromoCode = nextPromo.code;
         } catch (err) {
-          console.warn('Greška pri kreiranju koda za narednu kupovinu:', err);
+          console.warn('Greška pri kreiranju koda:', err);
         }
       }
 
-      // 4. Trajno spremanje u localStorage
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
 
-      // 5. Automatsko slanje e-maila preko EmailJS
+      // Slanje e-mail obavijesti preko EmailJS
       try {
         const itemsSummary = items
           .map((i) => `- ${i.quantity}x ${i.name} (Vel: ${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
@@ -173,10 +189,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ? `\n\nHVALA NA KUPOVINI! Tvoj promo kod od 10% za narednu narudžbu (važi 30 dana): ${nextPromoCode}`
           : '';
 
-        // Provjera e-mail adrese da EmailJS ne bi vratio 400 Bad Request
-        const recipientEmail = formData.email && formData.email.includes('@') 
-          ? formData.email 
-          : 'redemption19@gmail.com'; // Fallback na vasu e-mail adresu ako kupac nije unio mail
+        const recipientEmail = formData.email && formData.email.includes('@')
+          ? formData.email
+          : 'redemption19@gmail.com';
 
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
@@ -192,11 +207,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               customer_name: `${formData.firstName} ${formData.lastName}`,
               customer_phone: formData.phone,
               customer_email: recipientEmail,
-              customer_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
-              customer_note: (formData.note || 'Nema napomene') + promoNote,
+              customer_address: finalizedOrder.customer.address,
+              customer_note: (noteDetails || 'Nema napomene') + promoNote,
               items_summary: itemsSummary,
               total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
-              shipping_fee: shippingFee === 0 ? 'BESPLATNO' : `${shippingFee.toFixed(2)} KM`,
+              shipping_fee: activeShippingFee === 0 ? 'BESPLATNO (Lično preuzimanje / Prag)' : `${activeShippingFee.toFixed(2)} KM`,
               reply_to: formData.email || 'redemption19@gmail.com',
             },
           }),
@@ -205,11 +220,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         console.warn('E-mail obavijest nije poslana:', err);
       }
 
-      // Analytics
       trackPurchase(finalizedOrder);
       recordCompletedPurchase(finalizedOrder.orderNumber, finalizedOrder.total);
 
-      // Clear cart & Navigate
       clearCart();
       onOrderSuccess(finalizedOrder);
     } catch (error: any) {
@@ -254,17 +267,68 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ZAVRŠETAK NARUDŽBE (CHECKOUT)
         </h1>
         <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-['Inter']">
-          Popunite podatke za dostavu brzom poštom na vašu adresu u Bosni i Hercegovini.
+          Izaberite način preuzimanja i unesite podatke za narudžbu.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-7 space-y-8">
+          
+          {/* ODABIR DOSTAVE */}
+          <div className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
+            <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A] border-b-2 border-neutral-200 pb-3">
+              1. Način dostave i preuzimanja
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label
+                onClick={() => setDeliveryMethod('courier')}
+                className={`p-4 border-2 flex items-start gap-3 cursor-pointer transition-all ${
+                  deliveryMethod === 'courier'
+                    ? 'border-[#0A0A0A] bg-[#0A0A0A] text-white'
+                    : 'border-neutral-300 bg-white text-black hover:border-neutral-400'
+                }`}
+              >
+                <Truck className="w-5 h-5 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-['Poppins'] text-xs font-bold uppercase block">
+                    Brza pošta (BiH)
+                  </span>
+                  <span className="text-[11px] opacity-80 block">Dostava na vašu adresu (12.00 KM)</span>
+                </div>
+              </label>
+
+              <label
+                onClick={() => setDeliveryMethod('pickup')}
+                className={`p-4 border-2 flex items-start gap-3 cursor-pointer transition-all ${
+                  deliveryMethod === 'pickup'
+                    ? 'border-[#0A0A0A] bg-[#0A0A0A] text-white'
+                    : 'border-neutral-300 bg-white text-black hover:border-neutral-400'
+                }`}
+              >
+                <MapPin className="w-5 h-5 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-['Poppins'] text-xs font-bold uppercase block">
+                    Lično preuzimanje
+                  </span>
+                  <span className="text-[11px] opacity-80 block">Sarajevo (Alipašino polje) - 0.00 KM</span>
+                </div>
+              </label>
+            </div>
+
+            {deliveryMethod === 'pickup' && (
+              <div className="p-3 bg-[#F7E97F] border border-black text-black text-xs font-['Inter'] space-y-2">
+                <p className="font-bold font-['Poppins'] uppercase">📍 Lokacija za lično preuzimanje:</p>
+                <p>Alipašino polje, Sarajevo. Tačnu lokaciju i kontakt dobijate nakon potvrde narudžbe.</p>
+              </div>
+            )}
+          </div>
+
+          {/* FORMULAR PODATAKA */}
           <div className="bg-white p-6 border-2 border-neutral-300 space-y-6 shadow-sm">
             <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-3">
-              <Truck className="w-4 h-4 text-[#0A0A0A]" />
               <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A]">
-                1. Podaci za dostavu u BiH
+                2. Podaci o kupcu
               </h2>
             </div>
 
@@ -343,85 +407,108 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                  Grad / Mjesto u BiH *
-                </label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="npr. Sarajevo, Tuzla..."
-                  className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
-                    errors.city ? 'border-red-500' : 'border-neutral-300 focus:border-black'
-                  }`}
-                />
-                {errors.city && (
-                  <p className="text-[11px] text-red-600 mt-1">{errors.city}</p>
-                )}
-              </div>
+            {deliveryMethod === 'courier' ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                      Grad / Mjesto u BiH *
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      placeholder="npr. Sarajevo, Tuzla..."
+                      className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                        errors.city ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                      }`}
+                    />
+                    {errors.city && (
+                      <p className="text-[11px] text-red-600 mt-1">{errors.city}</p>
+                    )}
+                  </div>
 
+                  <div>
+                    <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                      Poštanski broj *
+                    </label>
+                    <input
+                      type="text"
+                      name="postalCode"
+                      value={formData.postalCode}
+                      onChange={handleChange}
+                      placeholder="npr. 71000"
+                      className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                        errors.postalCode ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                      }`}
+                    />
+                    {errors.postalCode && (
+                      <p className="text-[11px] text-red-600 mt-1">{errors.postalCode}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                    Adresa stanovanja (Ulica i kućni broj) *
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="npr. Maršala Tita 15"
+                    className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                      errors.address ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                    }`}
+                  />
+                  {errors.address && (
+                    <p className="text-[11px] text-red-600 mt-1">{errors.address}</p>
+                  )}
+                </div>
+              </>
+            ) : (
               <div>
                 <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                  Poštanski broj *
+                  Željeni dan i vrijeme preuzimanja *
                 </label>
                 <input
                   type="text"
-                  name="postalCode"
-                  value={formData.postalCode}
-                  onChange={handleChange}
-                  placeholder="npr. 71000"
+                  value={pickupTime}
+                  onChange={(e) => setPickupTime(e.target.value)}
+                  placeholder="npr. Sutra u 17:00h / Subota u toku dana"
                   className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
-                    errors.postalCode ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                    errors.pickupTime ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                   }`}
                 />
-                {errors.postalCode && (
-                  <p className="text-[11px] text-red-600 mt-1">{errors.postalCode}</p>
+                {errors.pickupTime && (
+                  <p className="text-[11px] text-red-600 mt-1">{errors.pickupTime}</p>
                 )}
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                Adresa stanovanja (Ulica i kućni broj) *
-              </label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="npr. Maršala Tita 15"
-                className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
-                  errors.address ? 'border-red-500' : 'border-neutral-300 focus:border-black'
-                }`}
-              />
-              {errors.address && (
-                <p className="text-[11px] text-red-600 mt-1">{errors.address}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                Napomena za kurira <span className="text-neutral-400 font-normal">(opciono)</span>
+                Napomena za narudžbu <span className="text-neutral-400 font-normal">(opciono)</span>
               </label>
               <textarea
                 name="note"
                 rows={2}
                 value={formData.note}
                 onChange={handleChange}
-                placeholder="npr. Zvati na interfon broj 6..."
+                placeholder="Dodatne napomene..."
                 className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs sm:text-sm focus:bg-white focus:border-black focus:outline-none"
               />
             </div>
           </div>
 
+          {/* NAČIN PLAĆANJA */}
           <div className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
             <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-3">
               <CreditCard className="w-4 h-4 text-[#0A0A0A]" />
               <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A]">
-                2. Način plaćanja
+                3. Način plaćanja
               </h2>
             </div>
 
@@ -436,18 +523,41 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 />
                 <div className="space-y-1">
                   <span className="font-['Poppins'] text-xs sm:text-sm font-black uppercase tracking-wider text-[#F7E97F]">
-                    Plaćanje pouzećem (Gotovinom kuriru pri preuzimanju)
+                    {deliveryMethod === 'pickup' ? 'Plaćanje gotovinom pri preuzimanju' : 'Plaćanje pouzećem (Gotovinom kuriru)'}
                   </span>
                   <p className="text-xs text-neutral-300 font-['Inter']">
-                    Plaćaš gotovinom kuriru brze pošte tek kada paket stigne na tvoju adresu. Moguće otvaranje paketa prije preuzimanja.
+                    {deliveryMethod === 'pickup'
+                      ? 'Plaćate u gotovini na licu mjesta prilikom preuzimanja paketa.'
+                      : 'Plaćate gotovinom kuriru brze pošte. Moguće otvaranje i pregled paketa prije preuzimanja.'}
                   </p>
                 </div>
               </label>
             </div>
           </div>
 
-          <div className="bg-white p-5 border-2 border-neutral-300 space-y-2">
-            <label className="flex items-start gap-3 cursor-pointer select-none text-xs text-neutral-800 font-['Inter']">
+          {/* TEKST I USLOVI POVRATA */}
+          <div className="bg-white p-5 border-2 border-neutral-300 space-y-4 font-['Inter']">
+            <div className="p-3 bg-[#F4F2EC] border border-neutral-300 space-y-2 text-xs text-neutral-700">
+              <p className="font-bold text-black font-['Poppins'] uppercase flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-black" />
+                <span>Procedura za povrat pošiljke i reklamacije:</span>
+              </p>
+              <p>
+                Pri primitku robe provjera ispravnosti narudžbe ovisi o kupcu. Molimo Vas da uporedite primljene artikle s računom, te ukoliko nešto nedostaje odmah to napomenite Vašem dostavljaču ili se odmah obratite direktno nama, jer naknadne reklamacije ne uvažavamo.
+              </p>
+              <p>
+                U slučaju povrata robe kupac je dužan uputiti opravdanu reklamaciju putem e-maila. Kupac ima pravo na povrat robe u sljedećim slučajevima:
+              </p>
+              <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
+                <li>isporuka robe koja nije naručena</li>
+                <li>isporuka robe koja ima grešku ili oštećenja koja nisu nastala u transportu</li>
+              </ul>
+              <p className="text-[11px] font-semibold text-black">
+                Naručilac snosi troškove povrata robe i obavezan je uz robu dostaviti fiskalni račun.
+              </p>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer select-none text-xs text-neutral-800">
               <input
                 type="checkbox"
                 name="termsAccepted"
@@ -456,23 +566,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 className="mt-0.5 w-4 h-4 accent-[#0A0A0A] cursor-pointer"
               />
               <span>
-                Slažem se s{' '}
-                <button
-                  type="button"
-                  onClick={() => onNavigateToPage('terms')}
-                  className="font-bold underline text-black cursor-pointer"
-                >
-                  Uslovima korištenja
-                </button>{' '}
-                i{' '}
-                <button
-                  type="button"
-                  onClick={() => onNavigateToPage('privacy')}
-                  className="font-bold underline text-black cursor-pointer"
-                >
-                  Politikom privatnosti
-                </button>
-                .*
+                Slažem se i prihvatam uslove kupovine, otvaranje paketa pri dostavi i navedenu proceduru za povrat robe.*
               </span>
             </label>
             {errors.terms && (
@@ -481,6 +575,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           </div>
         </div>
 
+        {/* REGIONALNI PREGLED PROIZVODA I PREDRAČUNA */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white p-6 border-2 border-[#F7E97F] sticky top-28 space-y-6 shadow-md">
             <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-black border-b-2 border-neutral-200 pb-3">
@@ -497,7 +592,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   type="text"
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                  placeholder="npr. WELCOME10"
+                  placeholder="npr. FIRST100"
                   disabled={Boolean(appliedPromoCode)}
                   className="w-full bg-white border border-neutral-300 px-3 py-1.5 text-xs font-mono font-bold focus:border-black focus:outline-none uppercase"
                 />
@@ -560,12 +655,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               )}
 
               <div className="flex justify-between text-neutral-700">
-                <span>Dostava (Brza pošta BiH):</span>
+                <span>Dostava:</span>
                 <span className="font-['Poppins'] font-bold">
-                  {shippingFee === 0 ? (
+                  {deliveryMethod === 'pickup' ? (
+                    <span className="text-emerald-700 font-black">LIČNO PREUZIMANJE (0 KM)</span>
+                  ) : activeShippingFee === 0 ? (
                     <span className="text-emerald-700 font-black">BESPLATNO</span>
                   ) : (
-                    `${shippingFee.toFixed(2)} KM`
+                    `${activeShippingFee.toFixed(2)} KM`
                   )}
                 </span>
               </div>
@@ -583,7 +680,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             >
               <ShieldCheck className="w-4 h-4" />
               <span>
-                {submitting ? 'KREIRANJE NARUDŽBE...' : 'POTVRDI NARUDŽBU (PLAĆANJE POUZEĆEM)'}
+                {submitting ? 'KREIRANJE NARUDŽBE...' : 'POTVRDI NARUDŽBU'}
               </span>
             </button>
           </div>
