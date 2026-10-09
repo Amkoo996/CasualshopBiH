@@ -24,3 +24,6 @@ export function suggestEmail(v: string): string | null {
 }
 
 export const isValidName = (v: string) => /^[\p{L}][\p{L} .'-]{1,49}$/u.test(v.trim());
+
+// Validacija poštanskog broja - tačno 5 cifara (BiH standard)
+export const isValidPostalCode = (v: string) => /^\d{5}$/.test(v.trim());
