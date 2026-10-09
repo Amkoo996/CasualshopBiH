@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface PromoCode {
@@ -6,17 +6,18 @@ export interface PromoCode {
   discountPercent: number; // npr. 10 za 10%
   expiresAt: string; // ISO Datum
   used: boolean;
-  type: 'abandoned_cart' | 'post_purchase';
+  active: boolean;
+  type: 'abandoned_cart' | 'post_purchase' | 'first_100';
   createdForEmail?: string;
+  usageCount?: number;
+  maxUsage?: number;
 }
 
-// Pomoćna funkcija za generisanje jedinstvenog koda (npr. WELCOME10-8X2A ili THANKS10-9B1C)
 export function generateUniqueCode(prefix = 'CASUAL10'): string {
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `${prefix}-${random}`;
 }
 
-// Generisanje i spremanje promo koda u Firestore bazu
 export async function createPromoCode(
   email: string,
   type: 'abandoned_cart' | 'post_purchase',
@@ -31,6 +32,7 @@ export async function createPromoCode(
     discountPercent: 10,
     expiresAt,
     used: false,
+    active: true, // Odmah aktivan
     type,
     createdForEmail: email.toLowerCase().trim(),
   };
@@ -45,7 +47,6 @@ export async function createPromoCode(
   return promoData;
 }
 
-// Provjera i primjena promo koda na checkoutu
 export async function validateAndApplyPromoCode(
   code: string
 ): Promise<{ valid: boolean; discountPercent: number; message: string }> {
@@ -54,6 +55,42 @@ export async function validateAndApplyPromoCode(
   }
 
   const cleanCode = code.trim().toUpperCase();
+
+  // Posebno pravilo za promotivni kod od prvih 100 narudžbi
+  if (cleanCode === 'FIRST100') {
+    try {
+      const promoRef = doc(db, 'promo_codes', 'FIRST100');
+      const snap = await getDoc(promoRef);
+
+      if (snap.exists()) {
+        const data = snap.data() as PromoCode;
+        if (data.usageCount && data.maxUsage && data.usageCount >= data.maxUsage) {
+          return { valid: false, discountPercent: 0, message: 'Iskorišten je maksimalan broj upotreba (100/100).' };
+        }
+      } else {
+        // Inicijalizacija koda ako ne postoji u bazi
+        await setDoc(promoRef, {
+          code: 'FIRST100',
+          discountPercent: 10,
+          expiresAt: '2027-01-01T00:00:00.000Z',
+          used: false,
+          active: true,
+          type: 'first_100',
+          usageCount: 0,
+          maxUsage: 100,
+        });
+      }
+
+      return {
+        valid: true,
+        discountPercent: 10,
+        message: 'Promotivni kod za prvih 100 narudžbi prihvaćen! (10% popusta)',
+      };
+    } catch (e) {
+      console.warn('FIRST100 provjera:', e);
+      return { valid: true, discountPercent: 10, message: 'Kod za 10% popusta prihvaćen!' };
+    }
+  }
 
   try {
     const promoRef = doc(db, 'promo_codes', cleanCode);
@@ -64,6 +101,10 @@ export async function validateAndApplyPromoCode(
     }
 
     const promo = snap.data() as PromoCode;
+
+    if (promo.active === false) {
+      return { valid: false, discountPercent: 0, message: 'Ovaj promo kod trenutno nije aktivan.' };
+    }
 
     if (promo.used) {
       return { valid: false, discountPercent: 0, message: 'Ovaj promo kod je već iskorišten.' };
@@ -84,13 +125,18 @@ export async function validateAndApplyPromoCode(
   }
 }
 
-// Označavanje koda kao iskorištenog nakon uspješne kupovine
 export async function markPromoCodeAsUsed(code: string): Promise<void> {
   if (!code) return;
+  const cleanCode = code.trim().toUpperCase();
+
   try {
-    const promoRef = doc(db, 'promo_codes', code.trim().toUpperCase());
-    await updateDoc(promoRef, { used: true, usedAt: new Date().toISOString() });
+    const promoRef = doc(db, 'promo_codes', cleanCode);
+    if (cleanCode === 'FIRST100') {
+      await updateDoc(promoRef, { usageCount: increment(1) });
+    } else {
+      await updateDoc(promoRef, { used: true, usedAt: new Date().toISOString() });
+    }
   } catch (error) {
-    console.warn('Greška pri označavanju promo koda kao iskorištenog:', error);
+    console.warn('Greška pri označavanju promo koda:', error);
   }
 }
