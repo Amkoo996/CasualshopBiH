@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, Clock, Tag } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { Product, CATEGORIES, Category } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { NewsletterSection } from '../components/common/NewsletterSection';
@@ -31,6 +33,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   // COUNTDOWN TIMEOUT DO 01.11.2026 U 12:00
   const targetDate = new Date('2026-11-01T12:00:00+02:00').getTime();
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [usedCodesCount, setUsedCodesCount] = useState<number>(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -50,6 +53,16 @@ export const HomePage: React.FC<HomePageProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const promoRef = doc(db, 'promo_codes', 'FIRST100');
+    const unsub = onSnapshot(promoRef, (snap) => {
+      if (snap.exists()) {
+        setUsedCodesCount(snap.data()?.usageCount || 0);
+      }
+    });
+    return () => unsub();
   }, []);
 
   const hiddenCats = settings?.hiddenCategories || [];
@@ -83,7 +96,6 @@ export const HomePage: React.FC<HomePageProps> = ({
     return 'grid-cols-2 md:grid-cols-4';
   };
 
-  // Prikaz samo proizvoda koji imaju zaliha (stock > 0)
   const activeProductsWithStock = products.filter((p) => {
     const totalStock = Object.values(p.sizes || {}).reduce((s, v) => s + (v || 0), 0);
     return !p.isHidden && totalStock > 0;
@@ -98,20 +110,27 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="space-y-12 sm:space-y-20 pb-12">
-      
-      {/* COUNTDOWN I BANER ZA PRVIH 100 NARUDŽBI */}
-      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b-2 border-[#F7E97F] py-3 px-4 text-xs font-['Poppins']">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
-          <div className="flex items-center gap-2">
-            <Tag className="w-4 h-4 text-[#F7E97F] shrink-0" />
-            <span>
-              EKSKLUZIVNA PONUDI ZA PRVIH 100 NARUDŽBI: Iskoristite kod <strong className="bg-[#F7E97F] text-[#0A0A0A] px-1.5 py-0.5 rounded font-mono font-black">FIRST100</strong> za 10% POPUSTA!
-            </span>
+      {/* UPEČATLJIV BANER SA REAL-TIME BROJAČEM I COUNTDOWN TAJMEROM */}
+      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b-4 border-[#F7E97F] py-4 px-4 shadow-2xl relative overflow-hidden">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#F7E97F] text-[#0A0A0A] p-2 font-black font-['Poppins'] text-xs tracking-wider uppercase shrink-0">
+              EKSKLUZIVNO
+            </div>
+            <div>
+              <p className="font-['Poppins'] text-sm sm:text-base font-black text-white uppercase tracking-wide">
+                POPUST ZA PRVIH 100 NARUDŽBI: <span className="text-[#F7E97F] underline">10% POPUSTA</span>
+              </p>
+              <p className="text-xs text-neutral-300 font-['Inter'] mt-0.5">
+                Unesite kod <strong className="bg-[#F7E97F] text-[#0A0A0A] px-1.5 py-0.5 font-mono text-xs">FIRST100</strong> na checkoutu. 
+                <span className="text-[#F7E97F] font-bold ml-2">Preostalo još: {Math.max(0, 100 - usedCodesCount)} / 100 kodova!</span>
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1 border border-neutral-700">
-            <Clock className="w-3.5 h-3.5 text-[#F7E97F]" />
-            <span>Zvanično otvaranje za: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
+          <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-4 py-2 border-2 border-[#F7E97F] text-xs sm:text-sm text-white shadow-lg">
+            <Clock className="w-4 h-4 text-[#F7E97F] animate-pulse" />
+            <span>OTVARANJE: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
           </div>
         </div>
       </section>
@@ -168,33 +187,33 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* QUICK BENEFIT STRIP */}
-<section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-  <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
-      <div className="flex flex-col items-center p-2">
-        <Truck className="w-6 h-6 text-[#0A0A0A] mb-2" />
-        <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
-          Dostava {settings.shippingFee || 12} KM • Besplatna preko {settings.freeShippingThreshold || 100} KM
-        </h3>
-        <p className="text-[11px] text-neutral-500 mt-1">Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)</p>
-      </div>
-      <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
-        <ShieldCheck className="w-6 h-6 text-[#0A0A0A] mb-2" />
-        <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
-          100% Plaćanje pouzećem
-        </h3>
-        <p className="text-[11px] text-neutral-500 mt-1">Plaćanje gotovinom kuriru pri preuzimanju paketa.</p>
-      </div>
-      <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
-        <RefreshCw className="w-6 h-6 text-[#0A0A0A] mb-2" />
-        <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
-          Pregled paketa pri dostavi
-        </h3>
-        <p className="text-[11px] text-neutral-500 mt-1">Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.</p>
-      </div>
-    </div>
-  </div>
-</section>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
+            <div className="flex flex-col items-center p-2">
+              <Truck className="w-6 h-6 text-[#0A0A0A] mb-2" />
+              <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                Dostava {settings.shippingFee || 12} KM • Besplatna preko {settings.freeShippingThreshold || 100} KM
+              </h3>
+              <p className="text-[11px] text-neutral-500 mt-1">Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)</p>
+            </div>
+            <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
+              <ShieldCheck className="w-6 h-6 text-[#0A0A0A] mb-2" />
+              <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                100% Plaćanje pouzećem
+              </h3>
+              <p className="text-[11px] text-neutral-500 mt-1">Plaćanje gotovinom kuriru pri preuzimanju paketa.</p>
+            </div>
+            <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
+              <RefreshCw className="w-6 h-6 text-[#0A0A0A] mb-2" />
+              <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                Pregled paketa pri dostavi
+              </h3>
+              <p className="text-[11px] text-neutral-500 mt-1">Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* KATEGORIJE HIGHLIGHT */}
       {displayCategories.length > 0 && (
