@@ -42,7 +42,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
     setContactSending(true);
 
-    // 1. Upis u bazu sa hvatanjem greške (da ne blokira slanje maila ako baza štuca)
+    // 1. Upis u Firestore bazu pod kolekcijom 'contact_messages'
     try {
       await addDoc(collection(db, 'contact_messages'), {
         name: contactData.name,
@@ -56,35 +56,35 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
       console.warn('Spremanje u bazu nije uspjelo, šaljem e-mail obavijest:', dbErr);
     }
 
-    // 2. Slanje e-maila sa svim mogućim nazivima polja radi EmailJS kompatibilnosti
+    // 2. Slanje e-maila preko EmailJS-a
     try {
-      const userContact = contactData.email.trim() || sellerEmailDisplay;
+      const userContactEmail = contactData.email.trim() || 'nepoznato@casualshop.ba';
 
       const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          template_id: 'template_atnmhpk', // Ako koristite narudžbeni template stavite 'template_b7r6ees'
+          template_id: 'template_b7r6ees', // Usluga obavijesti
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
-            to_email: sellerEmailDisplay,
-            from_name: contactData.name,
-            from_email: userContact,
-            email: userContact,
-            phone: contactData.phone || 'Nije uneseno',
-            message: contactData.message,
-            reply_to: userContact,
+            order_number: 'UPIT SA KONTAKT FORME',
             customer_name: contactData.name,
-            customer_email: userContact,
-            customer_note: `Telefon: ${contactData.phone || 'Nije unesen'}\nPoruka: ${contactData.message}`,
+            customer_phone: contactData.phone || 'Nije uneseno',
+            customer_email: userContactEmail,
+            customer_address: 'Kontakt Forma na Sajtu',
+            customer_note: contactData.message,
+            items_summary: `Upit od kupca (${contactData.name}):\n\n${contactData.message}`,
+            total_amount: '0.00 KM',
+            shipping_fee: '0.00 KM',
+            reply_to: userContactEmail,
           },
         }),
       });
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(errorText || 'EmailJS rejected the request.');
+        throw new Error(errorText || 'EmailJS je odbio zahtjev.');
       }
 
       localStorage.setItem('cs_contact_last', String(Date.now()));
