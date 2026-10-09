@@ -9,7 +9,6 @@ import {
   Phone,
   Clock,
   Sparkles,
-  MessageCircle,
   X,
   Tag,
   AlertCircle,
@@ -29,68 +28,13 @@ export const AbandonedCartsPromo: React.FC = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSentSuccess, setEmailSentSuccess] = useState(false);
 
-  // Initial sample data if no recorded sessions yet
-  const sampleSessions: AbandonedCartSession[] = [
-    {
-      id: 'demo-cart-01',
-      customerName: 'Tarik Hadžić',
-      email: 'tarik.hadzic@gmail.com',
-      phone: '+387 61 455 210',
-      subtotal: 75.0,
-      lastUpdated: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(), // Prije 3 dana
-      items: [
-        {
-          id: 'cs-tee-sarajevo-geo-01',
-          name: 'Majica "SARAJEVO geographic" Box Logo',
-          price: 35.0,
-          image: '/images/sarajevo_geo_tee.jpg',
-          size: 'L',
-          quantity: 1,
-          maxStock: 6,
-        },
-        {
-          id: 'cs-tee-away-days-02',
-          name: 'Majica "BEST DAYS ? AWAY DAYS" Ultras Van',
-          price: 40.0,
-          image: '/images/away_days_tee.jpg',
-          size: 'L',
-          quantity: 1,
-          maxStock: 5,
-        },
-      ],
-    },
-    {
-      id: 'demo-cart-02',
-      customerName: 'Amar Begić',
-      email: 'amar.begic98@hotmail.com',
-      phone: '+387 62 119 844',
-      subtotal: 40.0,
-      lastUpdated: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(), // Prije 5 dni
-      items: [
-        {
-          id: 'cs-tee-standing-not-running-05',
-          name: 'Majica "MADE FOR STANDING NOT RUNNING" Sneakers',
-          price: 40.0,
-          image: '/images/standing_tee.jpg',
-          size: 'M',
-          quantity: 1,
-          maxStock: 9,
-        },
-      ],
-    },
-  ];
-
   const loadCarts = async () => {
     setLoading(true);
     try {
       const real = await getAbandonedCarts();
-      if (real.length > 0) {
-        setCarts(real);
-      } else {
-        setCarts(sampleSessions);
-      }
+      setCarts(real || []);
     } catch {
-      setCarts(sampleSessions);
+      setCarts([]);
     } finally {
       setLoading(false);
     }
@@ -100,13 +44,11 @@ export const AbandonedCartsPromo: React.FC = () => {
     loadCarts();
   }, []);
 
-  // Generisanje jedinstvenog promo koda pri otvaranju modala
   const handleOpenPromoModal = async (session: AbandonedCartSession) => {
     setSelectedSession(session);
     setEmailSentSuccess(false);
 
     try {
-      // Generiši ili preuzmi promo kod za ovog kupca (trajanje 48 sati)
       const generated = await createPromoCode(
         session.email || 'gost@casualshop.ba',
         'abandoned_cart',
@@ -118,7 +60,6 @@ export const AbandonedCartsPromo: React.FC = () => {
     }
   };
 
-  // Poruka za kupca sa uračunatim promo kodom
   const generateEmailBody = (session: AbandonedCartSession) => {
     const name = session.customerName || 'prijatelju';
     const itemsList = session.items
@@ -155,7 +96,6 @@ Casual Shop BiH`;
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Izravno slanje e-maila kupcu iz Admina preko EmailJS Template template_atnmhpk
   const handleSendDirectEmail = async () => {
     if (!selectedSession?.email) {
       alert('Kupac nema unesen e-mail.');
@@ -176,7 +116,7 @@ Casual Shop BiH`;
         },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          template_id: 'template_atnmhpk', // TAČAN TEMPLATE ID SA EMAILJS DASHBOARDA
+          template_id: 'template_atnmhpk',
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
             customer_name: selectedSession.customerName || 'Kupac',
@@ -184,7 +124,7 @@ Casual Shop BiH`;
             promo_code: promoCode,
             discount_percent: promoDiscount,
             items_summary: itemsSummary,
-            email_body: fullEmailContent, // Šalje kompletan tekst koji se vidi u Admin panelu
+            email_body: fullEmailContent,
             reply_to: 'redemption19@gmail.com',
           },
         }),
@@ -225,7 +165,6 @@ Casual Shop BiH`;
 
   return (
     <div className="bg-white border-2 border-neutral-200 p-5 sm:p-7 space-y-6 shadow-sm">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-200">
         <div>
           <div className="flex items-center gap-2">
@@ -245,14 +184,13 @@ Casual Shop BiH`;
 
         <button
           onClick={handleExportLeadsCSV}
-          className="px-3.5 py-2 bg-white border-2 border-neutral-300 text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-2 text-neutral-800 hover:bg-neutral-100 transition-colors"
+          className="px-3.5 py-2 bg-white border-2 border-neutral-300 text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-2 text-neutral-800 hover:bg-neutral-100 transition-colors cursor-pointer"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Izvezi kontakte (CSV)</span>
         </button>
       </div>
 
-      {/* Info notification */}
       <div className="bg-[#F4F2EC] border border-neutral-300 p-4 flex items-start gap-3 text-xs text-neutral-700 font-['Inter']">
         <Sparkles className="w-5 h-5 text-[#0A0A0A] shrink-0 mt-0.5" />
         <div className="space-y-1">
@@ -260,13 +198,12 @@ Casual Shop BiH`;
             Logika slanja promo kodova od 10%:
           </p>
           <p>
-            • Kupci u napuštenim korpama dobijaju kod s trajanjem od <strong>48 sati</strong>. Ako ne naruče nakon 7 dni, sistem omogućava ponovno slanje novog koda.<br />
-            • Nakon uspješno završene kupovine, kupac u mailu dobija <strong>jednokratni (1-time use) kod od 10% za narednu kupovinu koji važi 30 dana</strong>.
+            • Kupci u napuštenim korpama dobijaju kod s trajanjem od <strong>48 sati</strong>.<br />
+            • Nakon uspješno završene kupovine, kupac u mailu dobija <strong>jednokratni kod od 10% za narednu kupovinu koji važi 30 dana</strong>.
           </p>
         </div>
       </div>
 
-      {/* Leads Table */}
       <div className="overflow-x-auto border border-neutral-200">
         <table className="w-full text-xs text-left">
           <thead className="bg-[#0A0A0A] text-white font-['Poppins'] font-bold uppercase text-[11px]">
@@ -279,96 +216,102 @@ Casual Shop BiH`;
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 font-['Inter']">
-            {carts.map((c) => {
-              const daysDiff = Math.floor((Date.now() - new Date(c.lastUpdated).getTime()) / (1000 * 3600 * 24));
-              const is2to5Days = daysDiff >= 2 && daysDiff <= 5;
-              const isMoreThan7Days = daysDiff >= 7;
+            {carts.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-neutral-500 font-['Inter']">
+                  Trenutno nema napuštenih korpi u bazi.
+                </td>
+              </tr>
+            ) : (
+              carts.map((c) => {
+                const daysDiff = Math.floor((Date.now() - new Date(c.lastUpdated).getTime()) / (1000 * 3600 * 24));
+                const is2to5Days = daysDiff >= 2 && daysDiff <= 5;
+                const isMoreThan7Days = daysDiff >= 7;
 
-              return (
-                <tr key={c.id || c.email} className="hover:bg-neutral-50">
-                  <td className="p-3">
-                    <div className="font-bold text-neutral-900 font-['Poppins']">
-                      {c.customerName || 'Nepoznat kupac'}
-                    </div>
-                    {c.email && (
-                      <div className="text-neutral-600 flex items-center gap-1.5 mt-0.5 text-[11px]">
-                        <Mail className="w-3 h-3 text-neutral-400" />
-                        <a href={`mailto:${c.email}`} className="hover:underline">
-                          {c.email}
-                        </a>
+                return (
+                  <tr key={c.id || c.email} className="hover:bg-neutral-50">
+                    <td className="p-3">
+                      <div className="font-bold text-neutral-900 font-['Poppins']">
+                        {c.customerName || 'Nepoznat kupac'}
                       </div>
-                    )}
-                    {c.phone && (
-                      <div className="text-neutral-500 flex items-center gap-1.5 text-[11px]">
-                        <Phone className="w-3 h-3 text-neutral-400" />
-                        <span>{c.phone}</span>
-                      </div>
-                    )}
-                  </td>
-
-                  <td className="p-3">
-                    <div className="space-y-1">
-                      {c.items.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-[11px]">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-6 h-7 object-cover bg-neutral-100 border border-neutral-200 shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
-                            }}
-                          />
-                          <span className="font-medium text-neutral-800 line-clamp-1">
-                            {item.name} ({item.size})
-                          </span>
-                          <span className="text-neutral-400 font-mono">x{item.quantity}</span>
+                      {c.email && (
+                        <div className="text-neutral-600 flex items-center gap-1.5 mt-0.5 text-[11px]">
+                          <Mail className="w-3 h-3 text-neutral-400" />
+                          <a href={`mailto:${c.email}`} className="hover:underline">
+                            {c.email}
+                          </a>
                         </div>
-                      ))}
-                    </div>
-                  </td>
+                      )}
+                      {c.phone && (
+                        <div className="text-neutral-500 flex items-center gap-1.5 text-[11px]">
+                          <Phone className="w-3 h-3 text-neutral-400" />
+                          <span>{c.phone}</span>
+                        </div>
+                      )}
+                    </td>
 
-                  <td className="p-3 font-['Poppins'] font-black text-black whitespace-nowrap">
-                    {c.subtotal.toFixed(2)} KM
-                  </td>
+                    <td className="p-3">
+                      <div className="space-y-1">
+                        {c.items.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-[11px]">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-6 h-7 object-cover bg-neutral-100 border border-neutral-200 shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
+                              }}
+                            />
+                            <span className="font-medium text-neutral-800 line-clamp-1">
+                              {item.name} ({item.size})
+                            </span>
+                            <span className="text-neutral-400 font-mono">x{item.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
 
-                  <td className="p-3 text-neutral-500 whitespace-nowrap text-[11px]">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-neutral-400" />
-                      <span>{new Date(c.lastUpdated).toLocaleDateString('bs-BA')}</span>
-                    </div>
-                    {is2to5Days && (
-                      <span className="text-[10px] font-['Poppins'] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 mt-1 inline-block">
-                        Za podsjetnik (2-5 dana)
-                      </span>
-                    )}
-                    {isMoreThan7Days && (
-                      <span className="text-[10px] font-['Poppins'] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200 mt-1 inline-block">
-                        Ponovno slanje (&gt;7 dana)
-                      </span>
-                    )}
-                  </td>
+                    <td className="p-3 font-['Poppins'] font-black text-black whitespace-nowrap">
+                      {c.subtotal.toFixed(2)} KM
+                    </td>
 
-                  <td className="p-3 text-right">
-                    <button
-                      onClick={() => handleOpenPromoModal(c)}
-                      className="px-3.5 py-2 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 border border-[#0A0A0A] transition-colors cursor-pointer"
-                    >
-                      <Tag className="w-3.5 h-3.5" />
-                      <span>Pošalji Promo (10%)</span>
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                    <td className="p-3 text-neutral-500 whitespace-nowrap text-[11px]">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-neutral-400" />
+                        <span>{new Date(c.lastUpdated).toLocaleDateString('bs-BA')}</span>
+                      </div>
+                      {is2to5Days && (
+                        <span className="text-[10px] font-['Poppins'] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 mt-1 inline-block">
+                          Za podsjetnik (2-5 dana)
+                        </span>
+                      )}
+                      {isMoreThan7Days && (
+                        <span className="text-[10px] font-['Poppins'] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200 mt-1 inline-block">
+                          Ponovno slanje (&gt;7 dana)
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => handleOpenPromoModal(c)}
+                        className="px-3.5 py-2 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 border border-[#0A0A0A] transition-colors cursor-pointer"
+                      >
+                        <Tag className="w-3.5 h-3.5" />
+                        <span>Pošalji Promo (10%)</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Promo Email Modal */}
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white max-w-2xl w-full border-2 border-[#F7E97F] shadow-2xl p-6 space-y-5 animate-scaleUp max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-200">
               <div className="flex items-center gap-2">
                 <Tag className="w-5 h-5 text-[#0A0A0A]" />
@@ -384,7 +327,6 @@ Casual Shop BiH`;
               </button>
             </div>
 
-            {/* Status obavijest */}
             {emailSentSuccess && (
               <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-['Poppins'] font-bold flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-600" />
@@ -392,7 +334,6 @@ Casual Shop BiH`;
               </div>
             )}
 
-            {/* Customer Details Summary */}
             <div className="bg-[#F4F2EC] p-3 text-xs flex flex-wrap justify-between gap-3 font-['Inter']">
               <div>
                 <span className="text-neutral-500 block text-[10px] uppercase font-bold">Kupac</span>
@@ -408,7 +349,6 @@ Casual Shop BiH`;
               </div>
             </div>
 
-            {/* Promo Code Configurator */}
             <div className="grid grid-cols-2 gap-3 text-xs font-['Inter']">
               <div>
                 <label className="font-bold text-neutral-700 block mb-1">Generisani 1-time Promo Kod:</label>
@@ -430,7 +370,6 @@ Casual Shop BiH`;
               </div>
             </div>
 
-            {/* Subject preview */}
             <div className="space-y-1">
               <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
                 Naslov e-maila (Subject):
@@ -440,10 +379,9 @@ Casual Shop BiH`;
               </div>
             </div>
 
-            {/* Body textarea preview */}
             <div className="space-y-1">
               <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
-                Tijelo e-mail / WhatsApp poruke:
+                Tijelo e-mail poruke:
               </label>
               <textarea
                 readOnly
@@ -453,7 +391,6 @@ Casual Shop BiH`;
               />
             </div>
 
-            {/* Action buttons */}
             <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2">
               <button
                 onClick={() => handleCopyText(generateEmailBody(selectedSession))}
@@ -464,18 +401,6 @@ Casual Shop BiH`;
               </button>
 
               <div className="flex items-center gap-2">
-                {selectedSession.phone && (
-                  <a
-                    href={`https://wa.me/${selectedSession.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(generateEmailBody(selectedSession))}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    <span>WhatsApp</span>
-                  </a>
-                )}
-
                 {selectedSession.email && (
                   <button
                     onClick={handleSendDirectEmail}
