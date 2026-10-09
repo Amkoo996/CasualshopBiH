@@ -22,6 +22,15 @@ interface ProductDetailPageProps {
 
 const SIZE_ORDER: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 
+// Dodajemo helper funkciju za optimizaciju slika
+const optimizeCloudinaryUrl = (url: string, width: number = 1000) => {
+  if (!url) return '';
+  if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+  }
+  return url;
+};
+
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   product,
   onBack,
@@ -86,9 +95,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         {/* GALERIJA SLIKA */}
         <div className="space-y-4">
           <div className="relative aspect-[3/4] bg-white overflow-hidden border-2 border-neutral-300">
+            {/* Primijenjena optimizacija na glavnu sliku */}
             <img
-              src={product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg'}
+              src={optimizeCloudinaryUrl(product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg', 1000)}
               alt={product.name}
+              // Uklonjen loading="lazy" za LCP (Largest Contentful Paint)
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
               }}
@@ -134,8 +145,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
                 >
+                  {/* Primijenjena optimizacija na thumbnail slike, koristimo širinu od 150px */}
                   <img
-                    src={img}
+                    src={optimizeCloudinaryUrl(img, 150)}
                     alt={`${product.name} ${idx + 1}`}
                     loading="lazy"
                     onError={(e) => {
