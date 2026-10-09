@@ -98,7 +98,7 @@ export async function createOrder(orderData: Omit<Order, 'id'>): Promise<string>
       )
     );
 
-    // 2) Provjera zalihe
+    // 2) Provjera zalihe i cijene
     const updates = new Map<string, Record<string, number>>();
 
     orderData.items.forEach((item, i) => {
@@ -107,6 +107,12 @@ export async function createOrder(orderData: Omit<Order, 'id'>): Promise<string>
         throw new Error('Artikal "' + item.name + '" više nije dostupan u bazi.');
       }
       const prod = snap.data() as Product;
+
+      // PROVJERA CIJENE: Da li se cijena u korpi slaže s onom u bazi?
+      if (Math.abs(prod.price - item.price) > 0.001) {
+        throw new Error(`Cijena artikla "${item.name}" se promijenila. Osvježite korpu i pokušajte ponovo.`);
+      }
+
       const sizes = updates.get(item.id) ?? ({ ...prod.sizes } as Record<string, number>);
       const stock = sizes[item.size] ?? 0;
 
