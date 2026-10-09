@@ -9,6 +9,7 @@ export const ContactPage: React.FC = () => {
     email: '',
     phone: '',
     message: '',
+    bot_field: '', // Honeypot polje
   });
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -20,6 +21,13 @@ export const ContactPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // HONEYPOT PROVJERA: Ako je bot popunio skriveno polje, odbaci slanje
+    if (formData.bot_field) {
+      setStatus('success');
+      return;
+    }
+
     setStatus('submitting');
     setErrorMessage('');
 
@@ -46,7 +54,7 @@ export const ContactPage: React.FC = () => {
 
       if (res.ok) {
         setStatus('success');
-        setFormData({ name: '', email: '', phone: '', message: '' });
+        setFormData({ name: '', email: '', phone: '', message: '', bot_field: '' });
       } else {
         setStatus('error');
         setErrorMessage('Greška pri slanju poruke. Molimo pokušajte ponovo.');
@@ -92,6 +100,18 @@ export const ContactPage: React.FC = () => {
                   <span>{errorMessage}</span>
                 </div>
               )}
+
+              {/* HONEYPOT NEVIDLJIVO POLJE */}
+              <div className="hidden" aria-hidden="true">
+                <input
+                  type="text"
+                  name="bot_field"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={formData.bot_field}
+                  onChange={handleChange}
+                />
+              </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase mb-1">Ime i prezime *</label>
@@ -143,7 +163,7 @@ export const ContactPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={status === 'submitting'}
-                className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-bold text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-bold text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Send className="w-4 h-4" />
                 <span>{status === 'submitting' ? 'SLANJE...' : 'POŠALJI PORUKU'}</span>
