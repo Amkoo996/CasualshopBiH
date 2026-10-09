@@ -6,7 +6,7 @@ import { createOrder } from '../lib/db';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics';
 import { recordCheckoutStart, recordCompletedPurchase, saveCartSession } from '../lib/tracking';
 import { validateAndApplyPromoCode, markPromoCodeAsUsed, createPromoCode } from '../lib/promo';
-import { normalizePhone, isValidEmail, isValidName } from '../lib/validation';
+import { normalizePhone, isValidEmail, isValidName, isValidPostalCode } from '../lib/validation';
 
 interface CheckoutPageProps {
   onBack: () => void;
@@ -122,8 +122,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     if (deliveryMethod === 'courier') {
       if (formData.city.trim().length < 2) newErrors.city = 'Grad je obavezan';
       if (formData.address.trim().length < 5) newErrors.address = 'Unesite ulicu i kućni broj';
-      if (formData.postalCode.trim() && !/^[0-9]{5}\$/.test(formData.postalCode.trim())) {
-        newErrors.postalCode = 'Poštanski broj mora imati 5 cifara';
+      
+      // POPRAVLJENA VALIDACIJA POŠTANSKOG BROJA
+      if (formData.postalCode.trim() && !isValidPostalCode(formData.postalCode)) {
+        newErrors.postalCode = 'Poštanski broj mora imati tačno 5 cifara (npr. 71000)';
       }
     } else {
       if (!pickupTime.trim()) {
@@ -153,11 +155,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (submitting) return; // Sprečava dvostruki submit na brzi enter
+    if (submitting) return;
     if (!validate()) return;
     if (items.length === 0) return;
 
-    // Zaštita od spama botova (30 sekundi između narudžbi)
     const lastOrderTime = localStorage.getItem('casualshop_last_order_time');
     if (lastOrderTime && Date.now() - parseInt(lastOrderTime) < 30000) {
       setSubmitError('Molimo sačekajte 30 sekundi prije nove narudžbe.');
@@ -168,14 +169,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setSubmitError(null);
 
     try {
-      // Novi sigurniji i pregledniji ID narudžbe: CS-MMDD-XXXX (npr. CS-1009-A4F2)
       const date = new Date();
       const mm = String(date.getMonth() + 1).padStart(2, '0');
       const dd = String(date.getDate()).padStart(2, '0');
       const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
       const orderNumber = `CS-${mm}${dd}-${randomStr}`;
 
-      // Čišćenje i formatiranje podataka prije slanja
       const cleanPhone = normalizePhone(formData.phone) || formData.phone.trim();
       const cleanEmail = formData.email.trim().toLowerCase();
 
@@ -195,7 +194,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           address: deliveryMethod === 'pickup' ? 'Lično preuzimanje - Sarajevo' : formData.address.trim(),
           city: deliveryMethod === 'pickup' ? 'Sarajevo' : formData.city.trim(),
           postalCode: deliveryMethod === 'pickup' ? '71000' : formData.postalCode.trim(),
-          note: noteDetails.substring(0, 300), // Ograničenje dužine napomene
+          note: noteDetails.substring(0, 300),
         },
         subtotal: finalSubtotal,
         shippingFee: activeShippingFee,
@@ -233,7 +232,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
-      // Slanje e-mail obavijesti preko EmailJS
+      // Slanje e-mail obavijesti kupcu i prodavcu preko EmailJS
       const fallbackSellerEmail = settings?.email || 'info@casualshop.ba';
       try {
         const itemsSummary = items
@@ -255,7 +254,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           },
           body: JSON.stringify({
             service_id: 'service_h4rxrv2',
-            template_id: 'template_b7r6ees',
+            template_id: 'template_b7r6ees', // TEMPLATE 1: Za transakcije i narudžbe
             user_id: 'mPKyquhWRcGkRq4gS',
             template_params: {
               order_number: finalizedOrder.orderNumber,
