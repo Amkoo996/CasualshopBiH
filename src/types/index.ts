@@ -28,7 +28,7 @@ export type SizeStock = {
 export interface Product {
   id: string;
   name: string;
-  price: number; // in KM
+  price: number;
   originalPrice?: number;
   category: Category;
   color: string;
@@ -102,9 +102,7 @@ export interface StoreSettings {
   sellerName?: string;
   sellerAddress?: string;
   sellerIdNumber?: string;
-
   hiddenCategories?: Category[];
-
   bgColor?: string;
   textColor?: string;
   yellowBrand?: string;
@@ -127,14 +125,12 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   sellerName: '',
   sellerAddress: '',
   sellerIdNumber: '',
-
   hiddenCategories: [
     'Duksevi i hoodice',
     'Pantalone i trenerke',
     'Šorcevi',
     'Kape i šeširi',
   ],
-
   bgColor: '#F4F2EC',
   textColor: '#111111',
   yellowBrand: '#F7E97F',
@@ -189,7 +185,7 @@ export interface AnalyticsStats {
   totalVisitsCount: number;
   addToCartCount: number;
   uniqueAddToCartUsersCount: number;
-  addToCartRate: number;
+  addToCartRate?: number;
   dailyTrends: {
     date: string;
     fullDate: string;
@@ -197,7 +193,7 @@ export interface AnalyticsStats {
     visits: number;
     addToCart: number;
   }[];
-  recentEvents: AnalyticsEvent[];
+  recentEvents?: AnalyticsEvent[];
 }
 
 export interface ProductReview {
