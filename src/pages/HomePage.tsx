@@ -114,7 +114,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="space-y-12 sm:space-y-16 pb-12">
       {/* BANER SA REAL-TIME BROJAČEM I COUNTDOWN TAJMEROM */}
-      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b-2 border-[#F7E97F] py-3 px-4 shadow-xl relative overflow-hidden z-20">
+      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b-2 border-[#F7E97F] py-3 px-4 shadow-xl">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
           <div className="flex items-center gap-3">
             <div className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-1 font-black font-['Poppins'] text-[11px] tracking-wider uppercase shrink-0">
@@ -138,8 +138,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* HERO SECTION SA VIDEO POZADINOM NA LOOPU - POMJERENO PREMA GORE */}
-      <section className="relative bg-[#0A0A0A] text-white min-h-[65vh] sm:min-h-[75vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F] -mt-12">
+      {/* HERO SECTION - Uklonjena negativna margina (-mt-12) radi izbjegavanja preklapanja */}
+      <section className="relative bg-[#0A0A0A] text-white min-h-[60vh] sm:min-h-[70vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
           <video
             autoPlay
@@ -153,7 +153,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 w-full">
           <div className="max-w-2xl space-y-5">
             <div className="space-y-2">
               <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
