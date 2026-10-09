@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Product, Size } from '../types';
+import { Product, Size, CATEGORIES, Category } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { FilterBar } from '../components/shop/FilterBar';
+import { useCart } from '../context/CartContext';
 
 interface ShopPageProps {
   products: Product[];
@@ -16,40 +17,64 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   initialCategory = 'Sve',
   searchTerm = '',
 }) => {
+  const { settings } = useCart();
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [selectedSize, setSelectedSize] = useState<Size | ''>('');
   const [sortOption, setSortOption] = useState<string>('newest');
 
-  // Find max price dynamically
+  // Dinamička filtracija lista kategorija na osnovu postavki u Admin Panelu
+  const hiddenCats = settings?.hiddenCategories || [];
+  const categories = useMemo(() => {
+    const visibleFromGlobal = CATEGORIES.filter(
+      (cat) => !hiddenCats.includes(cat as Category)
+    );
+    return ['Sve', ...visibleFromGlobal];
+  }, [hiddenCats]);
+
+  // Izračun maksimalne cijene za slider
   const maxProductPrice = useMemo(() => {
+    if (products.length === 0) return 150;
     return Math.ceil(Math.max(...products.map((p) => p.price), 150));
   }, [products]);
 
   const [priceRange, setPriceRange] = useState<number>(maxProductPrice);
 
-  const categories = ['Sve', 'Duksevi', 'Majice', 'Trenerke', 'Jakne', 'Kape & Aksesoari'];
-
-  // Filtering & Sorting logic
+  // Logika filtriranja i sortiranja artikala
   const filteredProducts = useMemo(() => {
     return products
       .filter((product) => {
-        // Category filter
-        if (selectedCategory !== 'Sve' && product.category !== selectedCategory) {
-          return false;
+        // Ukupna zaliha po svim veličinama
+        const totalStock = Object.values(product.sizes || {}).reduce(
+          (sum, val) => sum + (val || 0),
+          0
+        );
+        const isSoldOut = totalStock <= 0;
+
+        // Ako je odabrana kategorija "Rasprodano", prikaži SAMO rasprodane artikle
+        if (selectedCategory === 'Rasprodano') {
+          if (!isSoldOut) return false;
+        } else {
+          // Za sve ostale kategorije (uključujući "Sve"), SAKRIJ rasprodane artikle
+          if (isSoldOut) return false;
+
+          // Filtriranje po specifičnoj kategoriji (npr. Majice, Jakne...)
+          if (selectedCategory !== 'Sve' && product.category !== selectedCategory) {
+            return false;
+          }
         }
 
-        // Size filter
+        // Filtriranje po veličini
         if (selectedSize !== '') {
           const sizeStock = product.sizes[selectedSize] ?? 0;
           if (sizeStock <= 0) return false;
         }
 
-        // Price filter
+        // Filtriranje po cijeni
         if (product.price > priceRange) {
           return false;
         }
 
-        // Search term
+        // Pretraga po nazivu, opisu ili kategoriji
         if (searchTerm.trim() !== '') {
           const term = searchTerm.toLowerCase();
           const matchName = product.name.toLowerCase().includes(term);
@@ -64,7 +89,8 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         if (sortOption === 'price-low') return a.price - b.price;
         if (sortOption === 'price-high') return b.price - a.price;
         if (sortOption === 'name') return a.name.localeCompare(b.name);
-        // Default: newest
+        
+        // Zadano: Najnovije
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return timeB - timeA;
@@ -80,12 +106,12 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-      {/* Page Title */}
+      {/* Naslov stranice */}
       <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-neutral-900">
+        <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-neutral-900 font-['Poppins']">
           STREETWEAR KOLEKCIJA
         </h1>
-        <p className="text-sm text-neutral-500 mt-1 max-w-xl">
+        <p className="text-sm text-neutral-500 mt-1 max-w-xl font-['Inter']">
           Kompletna ponuda muške i uniseks ulične odjeće. Pronađite savršenu veličinu i kroj uz brzu dostavu u BiH.
         </p>
         {searchTerm && (
@@ -95,7 +121,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         )}
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Traka */}
       <FilterBar
         categories={categories}
         selectedCategory={selectedCategory}
@@ -111,18 +137,18 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         totalProductsCount={filteredProducts.length}
       />
 
-      {/* Product Grid */}
+      {/* Prikaz Mreže Proizvoda */}
       {filteredProducts.length === 0 ? (
         <div className="text-center py-20 bg-neutral-50 border border-neutral-200">
-          <p className="text-sm font-bold uppercase tracking-wider text-neutral-700">
+          <p className="text-sm font-bold uppercase tracking-wider text-neutral-700 font-['Poppins']">
             Nema artikala koji odgovaraju odabranim filterima.
           </p>
-          <p className="text-xs text-neutral-500 mt-1">
-            Pokušajte promijeniti raspon cijene ili odabrati drugu veličinu.
+          <p className="text-xs text-neutral-500 mt-1 font-['Inter']">
+            Pokušajte promijeniti raspon cijene ili odabrati drugu kategoriju/veličinu.
           </p>
           <button
             onClick={handleReset}
-            className="mt-4 px-6 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-wider hover:bg-neutral-800 transition-colors"
+            className="mt-4 px-6 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-wider hover:bg-neutral-800 transition-colors font-['Poppins'] cursor-pointer"
           >
             Resetuj sve filtere
           </button>
