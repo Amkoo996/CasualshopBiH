@@ -7,6 +7,7 @@ import {
   Ruler,
   X,
   Heart,
+  ZoomIn,
 } from 'lucide-react';
 import { Product, Size } from '../types';
 import { useCart } from '../context/CartContext';
@@ -22,7 +23,7 @@ interface ProductDetailPageProps {
 
 const SIZE_ORDER: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 
-// Dodajemo helper funkciju za optimizaciju slika
+// Helper funkcija za optimizaciju slika
 const optimizeCloudinaryUrl = (url: string, width: number = 1000) => {
   if (!url) return '';
   if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
@@ -45,6 +46,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
 
+  // Stanje za uvećavanje slike (Lightbox)
+  const [isZoomed, setIsZoomed] = useState(false);
+
   // Filtriramo isključivo veličine koje postoje u objektu 'product.sizes' i koje imaju zalihu
   const availableSizes = SIZE_ORDER.filter(
     (size) => product.sizes && (product.sizes[size] ?? 0) > 0
@@ -61,6 +65,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       setSelectedSize(null);
     }
   }, [product]);
+
+  // Zatvaranje modala na tipku ESC
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsZoomed(false);
+        setSizeChartOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const totalStock = Object.values(product.sizes || {}).reduce(
     (acc, val) => acc + (val || 0),
@@ -81,6 +97,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const hasDiscount = Boolean(product.originalPrice && product.originalPrice > product.price);
 
+  const currentImageUrl = product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg';
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <button
@@ -94,19 +112,27 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
         {/* GALERIJA SLIKA */}
         <div className="space-y-4">
-          <div className="relative aspect-[3/4] bg-white overflow-hidden border-2 border-neutral-300">
+          <div 
+            onClick={() => setIsZoomed(true)}
+            className="relative aspect-[3/4] bg-white overflow-hidden border-2 border-neutral-300 group cursor-zoom-in"
+            title="Kliknite za uvećanje"
+          >
             {/* Primijenjena optimizacija na glavnu sliku */}
             <img
-              src={optimizeCloudinaryUrl(product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg', 1000)}
+              src={optimizeCloudinaryUrl(currentImageUrl, 1000)}
               alt={product.name}
-              // Uklonjen loading="lazy" za LCP (Largest Contentful Paint)
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
               }}
-              className="w-full h-full object-cover object-center transition-all duration-300"
+              className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
             />
 
-            <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+            {/* Ikona za uvećavanje na hover */}
+            <div className="absolute bottom-3 right-3 bg-black/70 text-white p-2 rounded-full opacity-80 group-hover:opacity-100 transition-opacity backdrop-blur-xs">
+              <ZoomIn className="w-4 h-4" />
+            </div>
+
+            <div className="absolute top-4 left-4 flex flex-col gap-2 z-10 pointer-events-none">
               {isSoldOut ? (
                 <span className="bg-[#9A9A9A] text-white text-[11px] font-['Poppins'] font-black uppercase tracking-[0.2em] px-3 py-1">
                   RASPRODANO
@@ -145,7 +171,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
                 >
-                  {/* Primijenjena optimizacija na thumbnail slike, koristimo širinu od 150px */}
                   <img
                     src={optimizeCloudinaryUrl(img, 150)}
                     alt={`${product.name} ${idx + 1}`}
@@ -358,6 +383,35 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
       <ProductReviews productId={product.id} productName={product.name} />
 
+      {/* MODAL ZA UVEĆANJE SLIKE (LIGHTBOX) */}
+      {isZoomed && (
+        <div 
+          onClick={() => setIsZoomed(false)}
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-fadeIn"
+        >
+          <button
+            type="button"
+            onClick={() => setIsZoomed(false)}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white hover:text-[#F7E97F] p-2 rounded-full bg-black/50 border border-neutral-700 transition-colors z-50 cursor-pointer"
+            title="Zatvori (Esc)"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center"
+          >
+            <img
+              src={optimizeCloudinaryUrl(currentImageUrl, 2000)}
+              alt={product.name}
+              className="max-w-full max-h-full object-contain rounded-sm border border-neutral-800 shadow-2xl select-none"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* TABELA VELIČINA MODAL */}
       {sizeChartOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white max-w-lg w-full p-6 sm:p-8 space-y-5 border-2 border-[#F7E97F] shadow-2xl relative">
