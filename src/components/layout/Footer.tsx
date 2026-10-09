@@ -88,11 +88,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Brzi Linkovi */}
+          {/* Brzi Linkovi - ZAMIJENJENO h4 U h3 */}
           <div>
-            <h4 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
+            <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
               Stranice
-            </h4>
+            </h3>
             <ul className="space-y-2.5 text-xs text-neutral-300 font-['Inter']">
               <li>
                 <button
@@ -145,11 +145,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Kontakt */}
+          {/* Kontakt - ZAMIJENJENO h4 U h3 */}
           <div>
-            <h4 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
+            <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
               Kontakt
-            </h4>
+            </h3>
             <ul className="space-y-3 text-xs text-neutral-300 font-['Inter']">
               <li className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-[#F7E97F] shrink-0" />
@@ -162,11 +162,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Newsletter u footeru */}
+          {/* Newsletter u footeru - ZAMIJENJENO h4 U h3 */}
           <div>
-            <h4 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-3">
+            <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-3">
               Newsletter
-            </h4>
+            </h3>
             <p className="text-[11px] text-neutral-400 mb-3">
               Budi prvi koji sazna. Prijavi se za obavijesti o novoj odjeći.
             </p>
