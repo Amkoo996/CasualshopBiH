@@ -53,6 +53,8 @@ service cloud.firestore {
         && request.resource.data.total >= 0
         && request.resource.data.total < 10000
         && request.resource.data.shippingFee >= 0 && request.resource.data.shippingFee <= 50
+        && request.resource.data.total >= (request.resource.data.subtotal + request.resource.data.shippingFee - request.resource.data.get('discountAmount', 0)) - 0.01
+        && request.resource.data.total <= (request.resource.data.subtotal + request.resource.data.shippingFee - request.resource.data.get('discountAmount', 0)) + 0.01
         && request.resource.data.customer.phone is string
         && request.resource.data.customer.phone.size() >= 6
         && request.resource.data.customer.phone.size() <= 20
@@ -64,8 +66,8 @@ service cloud.firestore {
     }
 
     match /promo_codes/{code} {
-      allow get: if true;
-      allow list, delete: if isAdmin();
+      allow read: if true;
+      allow delete: if isAdmin();
       allow create: if isAdmin() || (
         request.resource.data.discountPercent == 10
         && request.resource.data.used == false
@@ -84,7 +86,8 @@ service cloud.firestore {
     }
 
     match /contact_messages/{id} {
-      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'phone', 'message', 'createdAt'])
+      // E-mail i telefon su uklonjeni iz hasAll, pa će forma proći i ako ih kupac ne unese
+      allow create: if request.resource.data.keys().hasAll(['name', 'message', 'createdAt'])
         && request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'message', 'createdAt', 'read'])
         && request.resource.data.name is string && request.resource.data.name.size() <= 100
         && request.resource.data.message is string && request.resource.data.message.size() <= 2000;
