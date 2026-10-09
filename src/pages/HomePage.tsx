@@ -109,7 +109,10 @@ export const HomePage: React.FC<HomePageProps> = ({
     (p) => p.isNew || (p.createdAt && new Date(p.createdAt).getTime() >= thirtyDaysAgo)
   ).slice(0, 4);
 
-  const featuredProducts = activeProductsWithStock.filter((p) => p.featured).slice(0, 4);
+  // POPRAVLJENO: Provjera za boolean i string "true"
+  const featuredProducts = activeProductsWithStock.filter(
+    (p) => p.featured === true || String(p.featured) === 'true'
+  ).slice(0, 4);
 
   return (
     <div className="space-y-12 sm:space-y-16 pb-12">
@@ -138,7 +141,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* HERO SECTION - Uklonjena negativna margina (-mt-12) radi izbjegavanja preklapanja */}
+      {/* HERO SECTION */}
       <section className="relative bg-[#0A0A0A] text-white min-h-[60vh] sm:min-h-[70vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
           <video
