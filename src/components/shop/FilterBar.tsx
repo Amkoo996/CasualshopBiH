@@ -1,5 +1,5 @@
 import React from 'react';
-import { Size, CATEGORIES } from '../../types';
+import { Size } from '../../types';
 import { SlidersHorizontal, RotateCcw } from 'lucide-react';
 
 interface FilterBarProps {
@@ -31,7 +31,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onReset,
   totalProductsCount,
 }) => {
-  const sizes: Size[] = ['S', 'M', 'L', 'XL', 'One size'];
+  const sizes: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 
   const hasActiveFilters =
     selectedCategory !== 'Sve' || selectedSize !== '' || priceRange < maxPrice;
@@ -54,7 +54,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           {hasActiveFilters && (
             <button
               onClick={onReset}
-              className="inline-flex items-center gap-1.5 text-xs font-['Poppins'] font-bold text-neutral-600 hover:text-black transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-['Poppins'] font-bold text-neutral-600 hover:text-black transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Poništi filtere</span>
@@ -70,7 +70,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               id="sort-select"
               value={sortOption}
               onChange={(e) => onSelectSort(e.target.value)}
-              className="bg-white border-2 border-neutral-300 text-xs font-['Poppins'] font-semibold px-3 py-1.5 text-neutral-900 focus:border-[#0A0A0A] focus:outline-none"
+              className="bg-white border-2 border-neutral-300 text-xs font-['Poppins'] font-semibold px-3 py-1.5 text-neutral-900 focus:border-[#0A0A0A] focus:outline-none cursor-pointer"
             >
               <option value="newest">Najnovije</option>
               <option value="price-low">Cijena: Niža prema višoj</option>
@@ -81,17 +81,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
       </div>
 
-      {/* Categories */}
+      {/* Categories - KORISTI PROČIŠĆENI NIZ iz PROPSA */}
       <div className="space-y-2">
         <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-[0.15em] text-neutral-500 block">
           Kategorija
         </span>
         <div className="flex flex-wrap gap-2">
-          {['Sve', ...CATEGORIES].map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => onSelectCategory(cat)}
-              className={`px-3.5 py-1.5 text-xs font-['Poppins'] font-bold uppercase tracking-wider transition-all border-2 ${
+              className={`px-3.5 py-1.5 text-xs font-['Poppins'] font-bold uppercase tracking-wider transition-all border-2 cursor-pointer ${
                 selectedCategory === cat
                   ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A]'
                   : 'bg-white text-neutral-700 border-neutral-200 hover:border-[#0A0A0A]'
@@ -113,7 +113,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => onSelectSize('')}
-              className={`h-9 px-3 text-xs font-['Poppins'] font-bold transition-all border-2 ${
+              className={`h-9 px-3 text-xs font-['Poppins'] font-bold transition-all border-2 cursor-pointer ${
                 selectedSize === ''
                   ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A]'
                   : 'bg-white text-neutral-700 border-neutral-200 hover:border-[#0A0A0A]'
@@ -125,7 +125,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               <button
                 key={sz}
                 onClick={() => onSelectSize(selectedSize === sz ? '' : sz)}
-                className={`h-9 px-3 text-xs font-['Poppins'] font-bold transition-all border-2 ${
+                className={`h-9 px-3 text-xs font-['Poppins'] font-bold transition-all border-2 cursor-pointer ${
                   selectedSize === sz
                     ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A]'
                     : 'bg-white text-neutral-700 border-neutral-200 hover:border-[#0A0A0A]'
