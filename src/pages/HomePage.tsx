@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, Clock, Tag } from 'lucide-react';
+import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, Clock } from 'lucide-react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product, CATEGORIES, Category } from '../types';
@@ -13,8 +13,11 @@ interface HomePageProps {
   onNavigateToShop: (category?: string) => void;
 }
 
+// Optimizovani Cloudinary URL umjesto teške lokalne slike
+const OPTIMIZED_FALLBACK_IMAGE = 'https://res.cloudinary.com/rvlsak2u/image/upload/f_auto,q_auto,w_600/v1791551969/xpzi3atps6zrnkflak3c.jpg';
+
 const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
-  'Majice': '/images/sarajevo_geo_tee.jpg',
+  'Majice': OPTIMIZED_FALLBACK_IMAGE,
   'Duksevi i hoodice': 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
   'Jakne': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80',
   'Pantalone i trenerke': 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=600&q=80',
@@ -77,7 +80,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     });
 
     const firstProduct = activeProducts.find((p) => p.images?.[0]);
-    const image = firstProduct?.images[0] || FALLBACK_CATEGORY_IMAGES[cat] || '/images/sarajevo_geo_tee.jpg';
+    const image = firstProduct?.images[0] || FALLBACK_CATEGORY_IMAGES[cat] || OPTIMIZED_FALLBACK_IMAGE;
 
     return { title: cat, category: cat, count: activeProducts.length, image };
   });
@@ -190,29 +193,29 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* QUICK BENEFIT STRIP */}
+      {/* QUICK BENEFIT STRIP - PROMIJENJENI h3 U div KAKO NE BI REMETILI HIJERARHIJU NASLOVA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
             <div className="flex flex-col items-center p-2">
               <Truck className="w-6 h-6 text-[#0A0A0A] mb-2" />
-              <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+              <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
                 Dostava {settings.shippingFee || 12} KM • Besplatna preko {settings.freeShippingThreshold || 100} KM
-              </h3>
+              </div>
               <p className="text-[11px] text-neutral-500 mt-1">Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)</p>
             </div>
             <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
               <ShieldCheck className="w-6 h-6 text-[#0A0A0A] mb-2" />
-              <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+              <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
                 100% Plaćanje pouzećem
-              </h3>
+              </div>
               <p className="text-[11px] text-neutral-500 mt-1">Plaćanje gotovinom kuriru pri preuzimanju paketa.</p>
             </div>
             <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
               <RefreshCw className="w-6 h-6 text-[#0A0A0A] mb-2" />
-              <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+              <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
                 Pregled paketa pri dostavi
-              </h3>
+              </div>
               <p className="text-[11px] text-neutral-500 mt-1">Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.</p>
             </div>
           </div>
@@ -254,7 +257,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   alt={cat.title}
                   loading="lazy"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
+                    (e.target as HTMLImageElement).src = OPTIMIZED_FALLBACK_IMAGE;
                   }}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 opacity-75 group-hover:opacity-100"
                 />
