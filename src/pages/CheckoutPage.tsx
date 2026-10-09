@@ -24,7 +24,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'pickup'>('courier');
   const [pickupTime, setPickupTime] = useState('');
 
-  const [formData, setFormData] = useState<CustomerDetails>({
+  const [formData, setFormData] = useState<CustomerDetails & { bot_field?: string }>({
     firstName: '',
     lastName: '',
     phone: '',
@@ -34,6 +34,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     postalCode: '71000',
     note: '',
     termsAccepted: false,
+    bot_field: '',
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -123,7 +124,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       if (formData.city.trim().length < 2) newErrors.city = 'Grad je obavezan';
       if (formData.address.trim().length < 5) newErrors.address = 'Unesite ulicu i kućni broj';
       
-      // POPRAVLJENA VALIDACIJA POŠTANSKOG BROJA
       if (formData.postalCode.trim() && !isValidPostalCode(formData.postalCode)) {
         newErrors.postalCode = 'Poštanski broj mora imati tačno 5 cifara (npr. 71000)';
       }
@@ -139,7 +139,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
     setErrors(newErrors);
 
-    // Skrolaj do prve greške
     const firstKey = Object.keys(newErrors)[0];
     if (firstKey) {
       requestAnimationFrame(() => {
@@ -154,6 +153,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // HONEYPOT PROVJERA: Ako je bot popunio skriveno polje
+    if (formData.bot_field) {
+      return;
+    }
     
     if (submitting) return;
     if (!validate()) return;
@@ -186,7 +190,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         orderNumber,
         items,
         customer: {
-          ...formData,
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
           phone: cleanPhone,
@@ -195,6 +198,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           city: deliveryMethod === 'pickup' ? 'Sarajevo' : formData.city.trim(),
           postalCode: deliveryMethod === 'pickup' ? '71000' : formData.postalCode.trim(),
           note: noteDetails.substring(0, 300),
+          termsAccepted: formData.termsAccepted,
         },
         subtotal: finalSubtotal,
         shippingFee: activeShippingFee,
@@ -232,7 +236,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
-      // Slanje e-mail obavijesti kupcu i prodavcu preko EmailJS
+      // Slanje e-mail obavijesti preko EmailJS
       const fallbackSellerEmail = settings?.email || 'info@casualshop.ba';
       try {
         const itemsSummary = items
@@ -395,6 +399,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A]">
                 2. Podaci o kupcu
               </h2>
+            </div>
+
+            {/* HONEYPOT NEVIDLJIVO POLJE */}
+            <div className="hidden" aria-hidden="true">
+              <input
+                type="text"
+                name="bot_field"
+                tabIndex={-1}
+                autoComplete="off"
+                value={formData.bot_field || ''}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
