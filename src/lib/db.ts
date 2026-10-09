@@ -46,16 +46,18 @@ function sanitizeFirestoreData<T extends Record<string, any>>(data: T): Record<s
 export async function getProducts(includeHidden = false): Promise<Product[]> {
   try {
     const productsRef = collection(db, PRODUCTS_COLLECTION);
-    const snap = await getDocs(productsRef);
-    const products = snap.docs.map((d) => ({
+    
+    // Ako ne tražimo sakrivene, filtriramo direktno u Firebase upitu
+    const q = includeHidden 
+      ? productsRef 
+      : query(productsRef, where('isHidden', '!=', true));
+
+    const snap = await getDocs(q);
+    
+    return snap.docs.map((d) => ({
       id: d.id,
       ...d.data(),
     })) as Product[];
-
-    if (!includeHidden) {
-      return products.filter((p) => !p.isHidden);
-    }
-    return products;
   } catch (error) {
     console.error('Greška pri dohvatanju proizvoda:', error);
     return [];
