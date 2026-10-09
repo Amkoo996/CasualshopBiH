@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Mail, MapPin, Instagram, ShieldCheck, Truck, RefreshCw, Send, CheckCircle2, PackageCheck } from 'lucide-react';
+import { Mail, MapPin, Instagram, ShieldCheck, Truck, RefreshCw, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useCart } from '../context/CartContext';
 
 interface StaticPageProps {
@@ -9,19 +11,84 @@ interface StaticPageProps {
 export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
   const { settings } = useCart();
   const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [contactSending, setContactSending] = useState(false);
+  const [contactError, setContactError] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [contactData, setContactData] = useState({ name: '', email: '', phone: '', message: '' });
-
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setContactSubmitted(true);
-    setTimeout(() => {
-      setContactData({ name: '', email: '', phone: '', message: '' });
-    }, 1000);
-  };
 
   const sellerNameDisplay = settings.sellerName?.trim() || 'Casual Shop BiH';
   const sellerAddressDisplay = settings.sellerAddress?.trim() || 'Bosna i Hercegovina';
   const sellerEmailDisplay = settings.email?.trim() || 'info@casualshop.ba';
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactError('');
+
+    // Anti-spam zamka za botove
+    if (honeypot) {
+      setContactSubmitted(true);
+      return;
+    }
+
+    // Rate-limit: najviše jedna poruka u minuti
+    const lastSent = Number(localStorage.getItem('cs_contact_last') || 0);
+    if (Date.now() - lastSent < 60000) {
+      setContactError('Poruka je upravo poslana. Pokušajte ponovo za minut.');
+      return;
+    }
+
+    if (!contactData.name.trim() || !contactData.message.trim()) {
+      setContactError('Molimo popunite vaša obavezna polja (Ime i Poruku).');
+      return;
+    }
+
+    setContactSending(true);
+
+    try {
+      // 1. Upis u Firestore kolekciju 'contact_messages'
+      await addDoc(collection(db, 'contact_messages'), {
+        name: contactData.name,
+        email: contactData.email || 'Nije uneseno',
+        phone: contactData.phone || 'Nije uneseno',
+        message: contactData.message,
+        createdAt: new Date().toISOString(),
+        read: false,
+      });
+
+      // 2. Slanje maila putem EmailJS-a
+      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: 'service_h4rxrv2',
+          template_id: 'template_b7r6ees',
+          user_id: 'mPKyquhWRcGkRq4gS',
+          template_params: {
+            from_name: contactData.name,
+            from_email: contactData.email || 'Nije uneseno',
+            phone: contactData.phone || 'Nije uneseno',
+            message: contactData.message,
+            reply_to: contactData.email || sellerEmailDisplay,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      localStorage.setItem('cs_contact_last', String(Date.now()));
+      setContactSubmitted(true);
+      setContactData({ name: '', email: '', phone: '', message: '' });
+    } catch (err: any) {
+      console.error('Kontakt forma nije poslana:', err);
+      setContactError(
+        `Poruka nije poslana. Pokušajte ponovo ili nam pišite na Instagram @casualshop.bih ili na e-mail ${sellerEmailDisplay}.`
+      );
+    } finally {
+      setContactSending(false);
+    }
+  };
 
   // 1. O NAMA
   if (page === 'about') {
@@ -82,7 +149,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
         </div>
 
         <div className="bg-white border-2 border-neutral-200 p-6 sm:p-10 shadow-sm space-y-8 font-['Inter'] text-xs sm:text-sm text-neutral-800 leading-relaxed">
-          {/* Dostava */}
           <section className="space-y-2.5">
             <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black flex items-center gap-2 border-b pb-2 border-neutral-200">
               <Truck className="w-5 h-5 text-[#0A0A0A]" />
@@ -97,32 +163,29 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
             </ul>
           </section>
 
-          {/* Plaćanje */}
           <section className="space-y-2.5">
             <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black flex items-center gap-2 border-b pb-2 border-neutral-200">
               <ShieldCheck className="w-5 h-5 text-[#0A0A0A]" />
               <span>Plaćanje</span>
             </h2>
             <p className="text-neutral-700">
-              Plaćanje se vrši isključivo <strong>pouzećem, gotovinom prilikom preuzimanja pošiljke</strong> od kurira. Kartično plaćanje je uskoro u ponudi.
+              Plaćanje se vrši isključivo <strong>pouzećem, gotovinom prilikom preuzimanja pošiljke</strong> od kurira.
             </p>
           </section>
 
-          {/* Povrat robe */}
           <section className="space-y-2.5">
             <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black flex items-center gap-2 border-b pb-2 border-neutral-200">
               <RefreshCw className="w-5 h-5 text-[#0A0A0A]" />
               <span>Povrat robe</span>
             </h2>
             <ul className="list-disc list-inside space-y-1.5 text-neutral-700 pl-2">
-              <li>Rok za povrat robe je <strong>7 dni</strong> od dana prijema pošiljke.</li>
+              <li>Rok za povrat robe je <strong>7 dana</strong> od dana prijema pošiljke.</li>
               <li>Artikal mora biti u potpunosti nenošen, neopran i u originalnom stanju s neoštećenom etiketom.</li>
               <li>Zahtjev za povrat podnosi se putem e-maila (<strong>{sellerEmailDisplay}</strong>) ili našeg Instagram profila <strong>@casualshop.bih</strong> uz navođenje broja narudžbe.</li>
               <li>Povrat novca ili zamjena vrši se nakon prijema i pregleda vraćene robe.</li>
             </ul>
           </section>
 
-          {/* Zamjena veličine */}
           <section className="space-y-2.5">
             <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black border-b pb-2 border-neutral-200">
               <span>Zamjena veličine</span>
@@ -136,7 +199,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     );
   }
 
-  // 3. USLOVI KORIŠTENJA (Bez JIB-a, sa tokom povrata 7 dana)
+  // 3. USLOVI KORIŠTENJA
   if (page === 'terms') {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
@@ -151,7 +214,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
         </div>
 
         <div className="bg-white border-2 border-neutral-200 p-6 sm:p-10 shadow-sm space-y-8 font-['Inter'] text-xs sm:text-sm text-neutral-800 leading-relaxed">
-          {/* Podaci o prodavcu - Sklonjen JIB */}
           <section className="space-y-2 bg-[#F4F2EC] p-4 border border-neutral-300">
             <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">1. Podaci o prodavcu</h2>
             <p><strong>Naziv brenda:</strong> {sellerNameDisplay}</p>
@@ -184,14 +246,14 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
           <section className="space-y-2">
             <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">5. Plaćanje</h2>
             <p>
-              Plaćanje se vrši pouzećem gotovinom kuriru brze pošte pri preuzimanju paketa.
+              Plaćanje se vrši pouzećem gotovinom kuriru brze pošte pri preuzimanju paketa ili gotovinom pri ličnom preuzimanju u Sarajevu.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">6. Povrat i zamjene</h2>
             <p>
-              Kupac ima pravo na povrat ili zamjenu robe u roku od 7 dni od dneva prijema pošiljke, pod uslovom da artikal nije nošen, opran ili oštećen i posjeduje originalne etikete.
+              Kupac ima pravo na povrat ili zamjenu robe u roku od 7 dana od dana prijema pošiljke, pod uslovom da artikal nije nošen, opran ili oštećen i posjeduje originalne etikete.
             </p>
           </section>
 
@@ -199,13 +261,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
             <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">7. Intelektualno vlasništvo</h2>
             <p>
               Svi dizajni, logotip Casual Shop BiH i grafike zaštićeni su autorskim pravima. Zabranjeno je neovlašteno kopiranje bez izričitog odobrenja.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">8. Izmjene uslova</h2>
-            <p>
-              Zadržavamo pravo ažuriranja i izmjene ovih uslova. Posljednje ažuriranje: {new Date().toLocaleDateString('bs-BA')}.
             </p>
           </section>
         </div>
@@ -247,19 +302,12 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
               Podaci o kupcu dijele se isključivo sa ugovorenom kurirskom službom radi fizičke dostave narudžbe. Vaši lični podaci se <strong>nikada ne prodaju</strong> niti ustupaju trećim licima.
             </p>
           </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">4. Prava korisnika</h2>
-            <p>
-              Korisnik ima pravo u svakom trenutku zatražiti uvid, ispravku ili brisanje svojih podataka slanjem zahtjeva na <strong>{sellerEmailDisplay}</strong>.
-            </p>
-          </section>
         </div>
       </div>
     );
   }
 
-  // 5. KONTAKT (Sklonjen WhatsApp)
+  // 5. KONTAKT
   if (page === 'contact') {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
@@ -307,8 +355,8 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 <div className="flex items-center gap-3 p-3.5 bg-[#F4F2EC] border border-neutral-300">
                   <MapPin className="w-5 h-5 text-neutral-800 shrink-0" />
                   <div>
-                    <span className="font-['Poppins'] font-bold uppercase block text-black">Isporuka</span>
-                    <span className="text-neutral-500">Brza pošta u sve gradove BiH (48-72h)</span>
+                    <span className="font-['Poppins'] font-bold uppercase block text-black">Isporuka / Preuzimanje</span>
+                    <span className="text-neutral-500">Brza pošta u sve gradove BiH ili lično preuzimanje u Sarajevu</span>
                   </div>
                 </div>
               </div>
@@ -334,9 +382,34 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 <p className="text-xs text-neutral-600 font-['Inter']">
                   Hvala na javljanju. Odgovorit ćemo u najkraćem mogućem roku.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setContactSubmitted(false)}
+                  className="px-4 py-2 bg-[#0A0A0A] text-white font-['Poppins'] text-xs uppercase tracking-wider cursor-pointer mt-2"
+                >
+                  Pošalji novu poruku
+                </button>
               </div>
             ) : (
               <form onSubmit={handleContactSubmit} className="space-y-4 text-xs font-['Inter']">
+                {/* Honeypot zamka za botove */}
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  className="hidden"
+                  aria-hidden="true"
+                />
+
+                {contactError && (
+                  <p className="text-[11px] text-red-600 font-bold border border-red-300 bg-red-50 p-2.5">
+                    {contactError}
+                  </p>
+                )}
+
                 <div>
                   <label className="block font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     Vaše ime i prezime *
@@ -354,21 +427,21 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                      E-mail *
+                      E-mail ili telefon *
                     </label>
                     <input
-                      type="email"
+                      type="text"
                       required
                       value={contactData.email}
                       onChange={(e) => setContactData({ ...contactData, email: e.target.value })}
                       className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:bg-white focus:border-black focus:outline-none"
-                      placeholder="npr. haris@gmail.com"
+                      placeholder="e-mail ili telefon"
                     />
                   </div>
 
                   <div>
                     <label className="block font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                      Telefon
+                      Telefon (opciono)
                     </label>
                     <input
                       type="tel"
@@ -396,10 +469,20 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 border-2 border-[#0A0A0A]"
+                  disabled={contactSending}
+                  className="w-full py-3.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 border-2 border-[#0A0A0A] disabled:opacity-50 cursor-pointer"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Pošalji poruku</span>
+                  {contactSending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>SLANJE PORUKE...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Pošalji poruku</span>
+                    </>
+                  )}
                 </button>
               </form>
             )}
