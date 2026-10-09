@@ -17,8 +17,12 @@ import {
 import { AbandonedCartSession } from '../../types';
 import { getAbandonedCarts } from '../../lib/tracking';
 import { createPromoCode } from '../../lib/promo';
+import { useCart } from '../../context/CartContext';
 
 export const AbandonedCartsPromo: React.FC = () => {
+  const { settings } = useCart();
+  const sellerEmail = settings?.email || 'info@casualshop.ba';
+
   const [carts, setCarts] = useState<AbandonedCartSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState<AbandonedCartSession | null>(null);
@@ -125,7 +129,7 @@ Casual Shop BiH`;
             discount_percent: promoDiscount,
             items_summary: itemsSummary,
             email_body: fullEmailContent,
-            reply_to: 'redemption19@gmail.com',
+            reply_to: sellerEmail,
           },
         }),
       });
