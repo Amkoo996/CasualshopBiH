@@ -8,6 +8,17 @@ interface ProductCardProps {
   onSelect: (product: Product) => void;
 }
 
+// Nova helper funkcija za optimizaciju Cloudinary slika
+const optimizeCloudinaryUrl = (url: string, width: number = 500) => {
+  if (!url) return '';
+  // Provjeravamo da li je Cloudinary link
+  if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    // Ubacujemo f_auto,q_auto,w_X parametre za format, kvalitet i rezoluciju
+    return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+  }
+  return url;
+};
+
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isSaved = isInWishlist(product.id);
@@ -59,8 +70,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
         </button>
 
+        {/* PRVA SLIKA - Ovdje smo ubacili optimizeCloudinaryUrl */}
         <img
-          src={product.images[0]}
+          src={optimizeCloudinaryUrl(product.images[0])}
           alt={product.name}
           loading="lazy"
           onError={(e) => {
@@ -69,10 +81,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
         />
 
-        {/* Druga slika na hover ako postoji */}
+        {/* DRUGA SLIKA (Hover) - Ovdje smo ubacili optimizeCloudinaryUrl */}
         {product.images[1] && (
           <img
-            src={product.images[1]}
+            src={optimizeCloudinaryUrl(product.images[1])}
             alt={`${product.name} alternate view`}
             loading="lazy"
             onError={(e) => {
@@ -109,7 +121,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           )}
         </div>
 
-        {/* Dostupne veličine na hover (bez otkrivanja tačnog broja na zalihi) */}
+        {/* Dostupne veličine na hover */}
         <div className="absolute bottom-0 inset-x-0 bg-[#0A0A0A]/90 text-white py-1.5 px-2 text-[10px] font-['Inter'] font-semibold tracking-wider flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           {sortedSizes.map(([size, stock]) => (
             <span
