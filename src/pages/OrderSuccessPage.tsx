@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, MessageCircle, Package, Phone, MapPin } from 'lucide-react';
+import { CheckCircle2, MessageCircle, Package, Phone, MapPin, FileText } from 'lucide-react';
 import { Order } from '../types';
+import { useCart } from '../context/CartContext';
+import { generateOrderInvoicePDF } from '../lib/pdfInvoice';
 
 interface OrderSuccessPageProps {
   order: Order;
@@ -12,6 +14,8 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
   order,
   onContinueShopping,
 }) => {
+  const { settings } = useCart();
+
   useEffect(() => {
     try {
       confetti({
@@ -26,8 +30,11 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  const rawWa = settings?.whatsappNumber || settings?.phone || '';
+  const cleanWaNumber = rawWa.replace(/[^0-9]/g, '');
+
   const whatsappMessage = encodeURIComponent(
-    `Pozdrav Casual Shop BiH timu! Upravo sam kreirao narudžbu broj: ${order.orderNumber}. Ime: ${order.customer.firstName} ${order.customer.lastName}. Iznos za plaćanje pouzećem: ${order.total.toFixed(2)} KM.`
+    `Pozdrav Casual Shop BiH timu! Upravo sam kreirao narudžbu broj: #${order.orderNumber}.\nIme: ${order.customer.firstName} ${order.customer.lastName}\nIznos za plaćanje pouzećem: ${order.total.toFixed(2)} KM.`
   );
 
   return (
@@ -43,7 +50,6 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
             HVALA NA NARUDŽBI!
           </h1>
 
-          {/* Exact required confirmation text */}
           <div className="p-4 bg-[#F4F2EC] border-2 border-neutral-300 max-w-lg mx-auto">
             <p className="font-['Poppins'] text-sm sm:text-base font-bold text-[#0A0A0A]">
               "Hvala na narudžbi! Kontaktirat ćemo te telefonom radi potvrde. Plaćaš kuriru pri preuzimanju."
@@ -57,7 +63,7 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
             BROJ NARUDŽBE:
           </span>
           <div className="text-2xl sm:text-3xl font-['Poppins'] font-black tracking-wider text-white select-all">
-            {order.orderNumber}
+            #{order.orderNumber}
           </div>
           <span className="text-[10px] text-neutral-400 block">
             Sačuvaj ovaj broj za kontakt s podrškom ili zamjenu veličine
@@ -130,19 +136,29 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
 
         {/* Action Buttons */}
         <div className="pt-6 border-t-2 border-neutral-200 flex flex-col sm:flex-row gap-4 justify-center">
-          <a
-            href={`https://wa.me/38761000000?text=${whatsappMessage}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-6 py-3.5 bg-[#0A0A0A] hover:bg-[#F7E97F] text-white hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#0A0A0A]"
+          {cleanWaNumber && (
+            <a
+              href={`https://wa.me/${cleanWaNumber}?text=${whatsappMessage}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3.5 bg-[#0A0A0A] hover:bg-[#F7E97F] text-white hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#0A0A0A]"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Pošalji potvrdu na WhatsApp</span>
+            </a>
+          )}
+
+          <button
+            onClick={() => generateOrderInvoicePDF(order, settings)}
+            className="px-6 py-3.5 bg-white hover:bg-neutral-100 text-black font-['Poppins'] text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-neutral-300 cursor-pointer"
           >
-            <MessageCircle className="w-4 h-4" />
-            <span>Pošalji potvrdu na WhatsApp</span>
-          </a>
+            <FileText className="w-4 h-4" />
+            <span>Preuzmi PDF Fakturu</span>
+          </button>
 
           <button
             onClick={onContinueShopping}
-            className="px-6 py-3.5 bg-[#F7E97F] hover:bg-[#ebd965] text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#F7E97F]"
+            className="px-6 py-3.5 bg-[#F7E97F] hover:bg-[#ebd965] text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#F7E97F] cursor-pointer"
           >
             <Package className="w-4 h-4" />
             <span>Nastavi kupovinu</span>
