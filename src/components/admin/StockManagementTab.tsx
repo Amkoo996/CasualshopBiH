@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Upload, Download, Save, Search, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  Package, 
+  Upload, 
+  Download, 
+  Save, 
+  Search, 
+  CheckCircle2, 
+  AlertCircle 
+} from 'lucide-react';
 import { Product, Size, SizeStock, CATEGORIES, Category } from '../../types';
 import { saveProduct } from '../../lib/db';
 
@@ -19,10 +27,6 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
   const [stockChanges, setStockChanges] = useState<Record<string, SizeStock>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; error: boolean } | null>(null);
-
-  useEffect(() => {
-    setStockChanges({});
-  }, [products]);
 
   const handleStockChange = (productId: string, size: Size, value: number) => {
     const validVal = Math.max(0, value || 0);
