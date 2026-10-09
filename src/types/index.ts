@@ -5,7 +5,7 @@ export type Category =
   | 'Pantalone i trenerke'
   | 'Šorcevi'
   | 'Kape i šeširi'
-  | 'Dodaci'
+  | 'Dodaci (Accessories)'
   | 'Rasprodano';
 
 export const CATEGORIES: Category[] = [
@@ -15,7 +15,7 @@ export const CATEGORIES: Category[] = [
   'Pantalone i trenerke',
   'Šorcevi',
   'Kape i šeširi',
-  'Dodaci',
+  'Dodaci (Accessories)',
   'Rasprodano',
 ];
 
@@ -29,23 +29,23 @@ export interface Product {
   id: string;
   name: string;
   price: number; // in KM
-  originalPrice?: number; // stara cijena za akciju
+  originalPrice?: number;
   category: Category;
-  color: string; // boja
-  material: string; // materijal
+  color: string;
+  material: string;
   description: string;
-  careInstructions?: string; // upute za njegu
+  careInstructions?: string;
   details?: string[];
-  sizes: SizeStock; // veličine sa zalihom
-  images: string[]; // prva je glavna
-  isNew?: boolean; // automatski se računa i/ili ručno označeno
-  featured?: boolean; // Istaknuto
-  isHidden?: boolean; // Sakriven iz javnog kataloga
-  createdAt?: string; // datum dodavanja
+  sizes: SizeStock;
+  images: string[];
+  isNew?: boolean;
+  featured?: boolean;
+  isHidden?: boolean;
+  createdAt?: string;
 }
 
 export interface CartItem {
-  id: string; // product id
+  id: string;
   name: string;
   price: number;
   image: string;
@@ -89,8 +89,8 @@ export interface NewsletterSubscriber {
 }
 
 export interface StoreSettings {
-  shippingFee: number; // Cijena dostave
-  freeShippingThreshold: number; // Prag besplatne dostave
+  shippingFee: number;
+  freeShippingThreshold: number;
   phone: string;
   email: string;
   instagramUrl: string;
@@ -101,10 +101,8 @@ export interface StoreSettings {
   sellerAddress?: string;
   sellerIdNumber?: string;
 
-  // 🙈 Sakrivene kategorije u trgovini (Uredivo iz Admin Panela)
   hiddenCategories?: Category[];
 
-  // 🎨 Postavke Teme (Dev Settings)
   bgColor?: string;
   textColor?: string;
   yellowBrand?: string;
@@ -128,16 +126,13 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   sellerAddress: '',
   sellerIdNumber: '',
 
-  // Po defaultu sakrivamo neaktivne kategorije osim 'Majice', 'Jakne' i 'Rasprodano'
   hiddenCategories: [
     'Duksevi i hoodice',
     'Pantalone i trenerke',
     'Šorcevi',
     'Kape i šeširi',
-    'Dodaci',
   ],
 
-  // 🎨 Defaultne vrijednosti vizuelne teme
   bgColor: '#F4F2EC',
   textColor: '#111111',
   yellowBrand: '#F7E97F',
@@ -208,7 +203,7 @@ export interface ProductReview {
   productId: string;
   userName: string;
   userEmail?: string;
-  rating: number; // 1 to 5
+  rating: number;
   comment: string;
   createdAt: string;
   verifiedPurchase?: boolean;
