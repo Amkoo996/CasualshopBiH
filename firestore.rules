@@ -1,31 +1,46 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Proizvode i postavke svi mogu čitati, samo admini mijenjati
-    match /products/{docId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
+
+    // 1. POSTAVKE SKLEPA (SETTINGS): Javni odčitavanje neophodno za rad sajta i verifikaciju admina
     match /settings/{docId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
-    // Narudžbe i recenzije - posjetioci mogu kreirati, admini čitati/mijenjati
+
+    // 2. PROIZVODI (PRODUCTS): Svi mogu gledati proizvode, samo prijavljeni admin može dodavati/uređivati/brisati
+    match /products/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // 3. PROMO KODOWI (PROMO_CODES): Javni odčitavanje za provjeru popusta, izmjene samo za admina
+    match /promo_codes/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // 4. NARUDŽBE (ORDERS): Kupci mogu kreirati narudžbu, ali samo prijavljeni admin može čitati i brisati
     match /orders/{docId} {
       allow create: if true;
       allow read, update, delete: if request.auth != null;
     }
+
+    // 5. NEWSLETTER pretplatnici (SUBSCRIBERS): Svi se mogu prijaviti, odčitavanje samo za admina
     match /subscribers/{docId} {
       allow create: if true;
       allow read, update, delete: if request.auth != null;
     }
+
+    // 6. RECENZIJE (REVIEWS): Javni odčitavanje i slanje recenzija, moderacija samo za admina
     match /reviews/{docId} {
       allow read, create: if true;
       allow update, delete: if request.auth != null;
     }
-    match /promo_codes/{docId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+
+    // 7. LISTA ŽELJA (WISHLISTS): Omogućeno čitanje i upis
+    match /wishlists/{docId} {
+      allow read, write: if true;
     }
   }
 }
