@@ -78,6 +78,8 @@ export interface Order {
   total: number;
   paymentMethod: 'cash_on_delivery';
   status: OrderStatus;
+  promoCode?: string;
+  discountAmount?: number;
   createdAt: string;
 }
 
