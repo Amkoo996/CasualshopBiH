@@ -1,8 +1,7 @@
 import React from 'react';
-import { Heart, ArrowLeft, ShoppingBag, Trash2, LogIn } from 'lucide-react';
+import { Heart, ArrowLeft, ShoppingBag, Trash2 } from 'lucide-react';
 import { Product } from '../types';
 import { useWishlist } from '../context/WishlistContext';
-import { useAuth } from '../context/AuthContext';
 import { ProductCard } from '../components/shop/ProductCard';
 
 interface WishlistPageProps {
@@ -17,9 +16,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
   onExploreProducts,
 }) => {
   const { wishlistIds = [], clearWishlist } = useWishlist();
-  const { user, signInWithGoogle } = useAuth();
 
-  // 1. Ekstrakcija i normalizacija ID-jeva iz wishlista (i ako je string i ako je objekat)
   const normalizedWishlistIds = (wishlistIds || []).map((item: any) => {
     if (typeof item === 'object' && item !== null) {
       return String(item.id || item._id || '').trim();
@@ -27,7 +24,6 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
     return String(item || '').trim();
   }).filter(Boolean);
 
-  // 2. Filtracija proizvoda uz cjelokupnu provjeru ID-jeva
   const wishlistProducts = (products || []).filter((p) => {
     if (!p) return false;
     const prodId = String(p.id || (p as any)._id || '').trim();
@@ -36,7 +32,6 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 space-y-8 animate-fadeIn">
-      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-neutral-200">
         <div>
           <button
@@ -76,7 +71,6 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
         )}
       </div>
 
-      {/* Grid or Empty State */}
       {wishlistProducts.length === 0 ? (
         <div className="bg-white border-2 border-neutral-200 p-12 text-center space-y-4 max-w-xl mx-auto shadow-sm">
           <div className="w-16 h-16 bg-[#F4F2EC] text-[#0A0A0A] rounded-full flex items-center justify-center mx-auto border-2 border-neutral-300">
