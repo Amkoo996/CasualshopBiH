@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, MessageCircle, Package, Phone, MapPin, FileText } from 'lucide-react';
+import { CheckCircle2, Package, Phone, MapPin, FileText } from 'lucide-react';
 import { Order } from '../types';
 import { useCart } from '../context/CartContext';
 import { generateOrderInvoicePDF } from '../lib/pdfInvoice';
@@ -29,13 +29,6 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
-
-  const rawWa = settings?.whatsappNumber || settings?.phone || '';
-  const cleanWaNumber = rawWa.replace(/[^0-9]/g, '');
-
-  const whatsappMessage = encodeURIComponent(
-    `Pozdrav Casual Shop BiH timu! Upravo sam kreirao narudžbu broj: #${order.orderNumber}.\nIme: ${order.customer.firstName} ${order.customer.lastName}\nIznos za plaćanje pouzećem: ${order.total.toFixed(2)} KM.`
-  );
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
@@ -136,18 +129,6 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
 
         {/* Action Buttons */}
         <div className="pt-6 border-t-2 border-neutral-200 flex flex-col sm:flex-row gap-4 justify-center">
-          {cleanWaNumber && (
-            <a
-              href={`https://wa.me/${cleanWaNumber}?text=${whatsappMessage}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-6 py-3.5 bg-[#0A0A0A] hover:bg-[#F7E97F] text-white hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#0A0A0A]"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Pošalji potvrdu na WhatsApp</span>
-            </a>
-          )}
-
           <button
             onClick={() => generateOrderInvoicePDF(order, settings)}
             className="px-6 py-3.5 bg-white hover:bg-neutral-100 text-black font-['Poppins'] text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-neutral-300 cursor-pointer"
