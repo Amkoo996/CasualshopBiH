@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Truck, CreditCard, ShieldCheck, ArrowLeft, Loader2, MapPin, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { CustomerDetails, Order } from '../types';
-import { createOrder } from '../lib/db';
+import { createOrder, getProducts } from '../lib/db';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics';
 import { recordCheckoutStart, recordCompletedPurchase, saveCartSession } from '../lib/tracking';
 import { validateAndApplyPromoCode, markPromoCodeAsUsed, createPromoCode } from '../lib/promo';
@@ -154,7 +154,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // HONEYPOT PROVJERA: Ako je bot popunio skriveno polje
+    // HONEYPOT PROVJERA
     if (formData.bot_field) {
       return;
     }
@@ -173,6 +173,20 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setSubmitError(null);
 
     try {
+      // 1. INTEGRITET ZALIHA (STOCK LOCKING): Provjera stanja u bazi prije potvrde
+      const freshProducts = await getProducts(true);
+      for (const item of items) {
+        const freshProd = freshProducts.find((p) => p.id === item.id);
+        if (freshProd) {
+          const stockForSize = freshProd.sizes?.[item.size] ?? 0;
+          if (stockForSize < item.quantity) {
+            setSubmitError(`Nažalost, artikal "${item.name}" u veličini ${item.size} više nema dovoljno komada na stanju (preostalo: ${stockForSize}).`);
+            setSubmitting(false);
+            return;
+          }
+        }
+      }
+
       const date = new Date();
       const mm = String(date.getMonth() + 1).padStart(2, '0');
       const dd = String(date.getDate()).padStart(2, '0');
@@ -236,7 +250,43 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
-      // Slanje e-mail obavijesti preko EmailJS
+      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOT ADMINU
+      const TELEGRAM_BOT_TOKEN = '8572264255:AAGOOomuba8xozD90V5_sYV2SR2ECdG0hJI';
+      const TELEGRAM_CHAT_ID = settings?.telegramChatId || ''; // Ovdje unesite vaš chat_id ili ga povucite iz settingsa
+
+      if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+        const itemsListMsg = items
+          .map((i) => `• ${i.quantity}x ${i.name} (${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
+          .join('\n');
+
+        const telegramText = `
+🛒 *NOVA NARUDŽBA #${finalizedOrder.orderNumber}*
+
+👤 *Kupac:* ${formData.firstName} ${formData.lastName}
+📞 *Telefon:* ${cleanPhone}
+📧 *Email:* ${cleanEmail || 'Nije navedeno'}
+📍 *Adresa:* ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
+📝 *Napomena:* ${noteDetails || 'Nema napomene'}
+
+📦 *Artikli:*
+${itemsListMsg}
+
+💳 *Dostava:* ${activeShippingFee === 0 ? '0.00 KM (Lično / Gratis)' : `\${activeShippingFee.toFixed(2)} KM`}
+💰 *UKUPNO ZA NAPLATU:* ${finalizedOrder.total.toFixed(2)} KM
+        `.trim();
+
+        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: telegramText,
+            parse_mode: 'Markdown',
+          }),
+        }).catch((err) => console.warn('Telegram notifikacija nije uspješno poslata:', err));
+      }
+
+      // 3. Slanje e-mail obavijesti preko EmailJS
       const fallbackSellerEmail = settings?.email || 'info@casualshop.ba';
       try {
         const itemsSummary = items
@@ -258,7 +308,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           },
           body: JSON.stringify({
             service_id: 'service_h4rxrv2',
-            template_id: 'template_b7r6ees', // TEMPLATE 1: Za transakcije i narudžbe
+            template_id: 'template_b7r6ees',
             user_id: 'mPKyquhWRcGkRq4gS',
             template_params: {
               order_number: finalizedOrder.orderNumber,
