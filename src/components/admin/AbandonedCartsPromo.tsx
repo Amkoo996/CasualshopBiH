@@ -86,7 +86,7 @@ export const AbandonedCartsPromo: React.FC = () => {
   const generateEmailBody = (session: AbandonedCartSession) => {
     const name = session.customerName || 'prijatelju';
     const itemsList = session.items
-      .map((i) => `• ${i.name} (Veličina: ${i.size})`)
+      .map((i) => `• ${i.name} (Veličina: ${i.size}) - ${i.quantity}x`)
       .join('\n');
 
     if (emailMode === '3days_no_code') {
@@ -105,7 +105,8 @@ https://casualshopbih.pages.dev
 
 Ako imaš pitanja oko veličine ili dostave, samo odgovori na ovu poruku ili nam se javi na Instagram @casualshop.bih.
 
-Casual Shop BiH`;
+Srdačan pozdrav,
+Casual Shop BiH Tim`;
     }
 
     return `Pozdrav ${name},
@@ -123,7 +124,8 @@ Plaćanje je sigurno pouzećem prilikom preuzimanja od kurira, a dostava stiže 
 Klikni na link i dovrši narudžbu dok su zalihe u tvojoj veličini još dostupne:
 https://casualshopbih.pages.dev
 
-Casual Shop BiH`;
+Srdačan pozdrav,
+Casual Shop BiH Tim`;
   };
 
   const generateEmailSubject = () => {
@@ -139,7 +141,7 @@ Casual Shop BiH`;
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ISPRAVLJEN TEMPLATE ID ZA NAPUŠTENU KORPU
+  // SLANJE PREKO EMAILJS SA KORIŠTENJEM DANAŠNJEG TEMPLATE_B7R6EES
   const handleSendDirectEmail = async () => {
     if (!selectedSession?.email) {
       alert('Kupac nema unesen e-mail.');
@@ -149,7 +151,10 @@ Casual Shop BiH`;
     setSendingEmail(true);
     try {
       const fullEmailContent = generateEmailBody(selectedSession);
-      const subject = generateEmailSubject();
+      const subjectText = generateEmailSubject();
+      const itemsSummary = selectedSession.items
+        .map((i) => `• ${i.name} (Veličina: ${i.size}) - ${i.quantity}x`)
+        .join('\n');
 
       const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST',
@@ -158,18 +163,24 @@ Casual Shop BiH`;
         },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          // OVDJE JE PROMIJENJEN TEMPLATE_ID NA ZASEBAN ZA PODSJETNIKE KORPE
-          template_id: 'template_abandoned_cart', // ili tvoj tačan ID šablona za napuštenu korpu
+          template_id: 'template_b7r6ees', // ZAJEDNIČKI ŠABLON ZA SVE NOTIFIKACIJE
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
-            to_email: selectedSession.email,
+            // Standardna i prilagođena polja za template_b7r6ees
+            from_name: 'Casual Shop BiH',
+            from_email: sellerEmail,
             to_name: selectedSession.customerName || 'Kupac',
-            customer_email: selectedSession.email,
+            to_email: selectedSession.email,
             customer_name: selectedSession.customerName || 'Kupac',
-            subject: subject,
+            customer_email: selectedSession.email,
+            customer_phone: selectedSession.phone || '/',
+            subject: subjectText,
+            email_subject: subjectText,
             message: fullEmailContent,
             email_body: fullEmailContent,
-            promo_code: emailMode === '5days_with_code' ? promoCode : 'N/A',
+            items_summary: itemsSummary,
+            total_amount: `${selectedSession.subtotal.toFixed(2)} KM`,
+            promo_code: emailMode === '5days_with_code' ? promoCode : 'Nema',
             discount_percent: emailMode === '5days_with_code' ? promoDiscount : '0%',
             reply_to: sellerEmail,
           },
