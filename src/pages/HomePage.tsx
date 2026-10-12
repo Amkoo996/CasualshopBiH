@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, ArrowUpRight, Copy, Check } from 'lucide-react';
 import { Product, CATEGORIES, Category, HomeCMSContent, DEFAULT_CMS_CONTENT } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { NewsletterSection } from '../components/common/NewsletterSection';
@@ -31,6 +31,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const { settings } = useCart();
   const [cms, setCms] = useState<HomeCMSContent>(DEFAULT_CMS_CONTENT);
+  const [bannerCopied, setBannerCopied] = useState(false);
 
   useEffect(() => {
     const loadCMS = async () => {
@@ -68,6 +69,17 @@ export const HomePage: React.FC<HomePageProps> = ({
 
     return () => clearInterval(timer);
   }, [cms.topBar.targetDate, cms.topBar.showTimer]);
+
+  const handleBannerCopy = () => {
+    const match = cms.topBar.promoText.match(/Kod:\s*([A-Z0-9]+)/i) || cms.topBar.promoText.match(/([A-Z0-9]{4,15})/);
+    const codeToCopy = match ? match[1] : 'FIRST100';
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(codeToCopy);
+    }
+    setBannerCopied(true);
+    setTimeout(() => setBannerCopied(false), 3000);
+  };
 
   const hiddenCats = settings?.hiddenCategories || [];
   const visibleCategoryNames = CATEGORIES.filter(
@@ -116,15 +128,30 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="pb-0 bg-[#0A0A0A] w-full font-['Inter']">
-      {/* 1. TOP BANER SA SJAJNOM TRAKOM */}
+      {/* 1. TOP BANER SA SJAJNOM TRAKOM & AUTO-COPY PROMO KODA */}
       {cms.topBar.enabled && (
-        <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/20 py-2.5 px-4 shadow-lg w-full relative z-20">
+        <section 
+          onClick={handleBannerCopy}
+          className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/20 py-2.5 px-4 shadow-lg w-full relative z-20 cursor-pointer hover:bg-[#121212] transition-colors group"
+          title="Klikni da kopiraš promo kod"
+        >
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 text-center md:text-left">
             <div className="flex items-center gap-2.5 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
-              <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px] tracking-widest rounded-xs shadow-xs">
+              <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px] tracking-widest rounded-xs shadow-xs group-hover:scale-105 transition-transform">
                 {cms.topBar.tagText}
               </span>
-              <span className="text-neutral-200">{cms.topBar.promoText}</span>
+              <span className="text-neutral-200 group-hover:text-[#F7E97F] transition-colors flex items-center gap-1.5">
+                {cms.topBar.promoText}
+                {bannerCopied ? (
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold flex items-center gap-1 bg-emerald-950/80 px-2 py-0.5 border border-emerald-500/30 rounded-xs">
+                    <Check className="w-3 h-3" /> KOD KOPIRAN!
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-[#F7E97F] underline ml-1 font-mono flex items-center gap-1">
+                    <Copy className="w-3 h-3" /> (Klikni za kopiranje)
+                  </span>
+                )}
+              </span>
             </div>
 
             {cms.topBar.showTimer && (
