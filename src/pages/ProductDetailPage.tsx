@@ -9,7 +9,6 @@ import {
   Heart,
   ZoomIn,
   Instagram,
-  Copy,
 } from 'lucide-react';
 import { Product, Size } from '../types';
 import { useCart } from '../context/CartContext';
@@ -25,7 +24,6 @@ interface ProductDetailPageProps {
 
 const SIZE_ORDER: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 
-// Helper funkcija za optimizaciju slika
 const optimizeCloudinaryUrl = (url: string, width: number = 1000) => {
   if (!url) return '';
   if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
@@ -48,11 +46,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
   const [instaCopied, setInstaCopied] = useState(false);
-
-  // Stanje za uvećavanje slike (Lightbox)
   const [isZoomed, setIsZoomed] = useState(false);
 
-  // Filtriramo isključivo veličine koje postoje u objektu 'product.sizes' i koje imaju zalihu
   const availableSizes = SIZE_ORDER.filter(
     (size) => product.sizes && (product.sizes[size] ?? 0) > 0
   );
@@ -69,7 +64,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }
   }, [product]);
 
-  // Zatvaranje modala na tipku ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -87,7 +81,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   );
   const isSoldOut = totalStock <= 0;
   const isLowStock = totalStock > 0 && totalStock < 5;
-
   const currentSizeStock = selectedSize ? product.sizes?.[selectedSize] ?? 0 : 0;
 
   const handleAddToCart = () => {
@@ -100,7 +93,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const handleInstagramOrder = () => {
     const sizeText = selectedSize ? selectedSize : 'Nije odabrano';
-    const message = `Pozdrav! Želim naručiti artikal: ${product.name} (Veličina: ${sizeText}, Cijena: ${product.price.toFixed(2)} KM). Molim vas detalje za dostavu.`;
+    const message = `Pozdrav! Želim naručiti artikal:
+----------------------------------
+📦 Artikal: ${product.name}
+📏 Veličina: ${sizeText}
+🔢 Količina: ${quantity} kom
+💰 Cijena: ${(product.price * quantity).toFixed(2)} KM
+
+Podaci za dostavu:
+👤 Ime i Prezime: 
+📞 Telefon: 
+📍 Adresa i Grad: `;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(message);
@@ -113,11 +116,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   };
 
   const hasDiscount = Boolean(product.originalPrice && product.originalPrice > product.price);
-
   const currentImageUrl = product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 font-['Inter']">
       <button
         onClick={onBack}
         className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-8 transition-colors cursor-pointer"
@@ -408,7 +410,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </h4>
             <ul className="space-y-1.5 text-xs text-neutral-600 font-['Inter']">
               <li>• <strong>Brza pošta BiH:</strong> Rok 48–72h. Cijena {settings.shippingFee || 12} KM (besplatno preko {settings.freeShippingThreshold || 100} KM). Obavezno otvaranje paketa prije preuzimanja.</li>
-              <li>• <strong>Lično preuzimanje:</strong> Sarajevo (Alipašino polje) - 0.00 KM.</li>
+              <li>• <strong>Lično preuzimanje:</strong> Sarajevo - 0.00 KM.</li>
               <li>• <strong>Plaćanje:</strong> Pouzećem gotovinom kuriru ili pri ličnom preuzimanju.</li>
             </ul>
           </div>
@@ -417,7 +419,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
       <ProductReviews productId={product.id} productName={product.name} />
 
-      {/* MODAL ZA UVEĆANJE SLIKE (LIGHTBOX) */}
+      {/* MODAL ZA UVEĆANJE SLIKE */}
       {isZoomed && (
         <div 
           onClick={() => setIsZoomed(false)}
