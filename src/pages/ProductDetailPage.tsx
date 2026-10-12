@@ -362,7 +362,7 @@ Podaci za dostavu:
             )}
           </div>
 
-          {/* QUANTITY & ADD TO CART (OPTIMIZOVANA VELIČINA ZA MOBITEL) */}
+          {/* QUANTITY & ADD TO CART */}
           <div className="space-y-3 pt-1">
             <div className="flex items-center gap-3">
               <div className="flex items-center border-2 border-neutral-300 bg-white shrink-0">
@@ -490,11 +490,12 @@ Podaci za dostavu:
 
       <ProductReviews productId={product.id} productName={product.name} />
 
-      {/* MODAL ZA UVEĆANJE SLIKE */}
+      {/* MODAL ZA UVEĆANJE SLIKE - ODZUMIRANJE KLIKOM NA BILO KOJI DIO (SLIKU ILI POZADINU) */}
       {isZoomed && (
         <div 
           onClick={() => setIsZoomed(false)}
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-fadeIn"
+          title="Kliknite za odzumiranje"
         >
           <button
             type="button"
@@ -505,14 +506,13 @@ Podaci za dostavu:
             <X className="w-6 h-6" />
           </button>
 
-          <div 
-            onClick={(e) => e.stopPropagation()} 
-            className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center"
-          >
+          <div className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center cursor-zoom-out">
             <img
-              src={optimizeCloudinaryUrl(currentImageUrl, 1000)}
+              src={optimizeCloudinaryUrl(currentImageUrl, 1200)}
               alt={product.name}
-              className="max-w-full max-h-full object-contain rounded-sm border border-neutral-800 shadow-2xl select-none"
+              onClick={() => setIsZoomed(false)}
+              className="max-w-full max-h-full object-contain rounded-sm border border-neutral-800 shadow-2xl select-none cursor-zoom-out"
+              title="Kliknite za odzumiranje"
             />
           </div>
         </div>
