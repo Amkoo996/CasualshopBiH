@@ -257,7 +257,7 @@ export const AdminDashboard: React.FC = () => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  // SAVE PRODUCT (KOMPLETIRANA SA SVIM POLJIMA)
+  // SAVE PRODUCT (KOMPLETIRANA SA SVIM POLJIMA I TAČNIM BOOLEAN TIPOVIMA)
   const handleSaveProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct || !editingProduct.name || !editingProduct.price) return;
@@ -282,9 +282,9 @@ export const AdminDashboard: React.FC = () => {
           ? editingProduct.images
           : ['/images/sarajevo_geo_tee.jpg'],
         sizes: editingProduct.sizes || { S: 5, M: 8, L: 6, XL: 3, XXL: 0, '3XL': 0 },
-        isNew: editingProduct.isNew ?? true,
-        featured: editingProduct.featured ?? false,
-        isHidden: editingProduct.isHidden ?? false,
+        isNew: Boolean(editingProduct.isNew),
+        featured: Boolean(editingProduct.featured),
+        isHidden: Boolean(editingProduct.isHidden),
         createdAt: editingProduct.createdAt || new Date().toISOString(),
       };
 
@@ -323,7 +323,7 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // UPDATE ORDER STATUS (SA AUTOMATSKIM VRAĆANJEM NA STOCK AKO JE OTKAZANA)
+  // UPDATE ORDER STATUS
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
     try {
       const targetOrder = orders.find((o) => o.id === orderId);
@@ -765,6 +765,11 @@ export const AdminDashboard: React.FC = () => {
                               NOVO
                             </span>
                           )}
+                          {p.featured && (
+                            <span className="bg-amber-500 text-white text-[9px] font-['Poppins'] font-bold px-1.5 py-0.5">
+                              ISTAKNUTO
+                            </span>
+                          )}
                           {p.isHidden && (
                             <span className="bg-red-100 text-red-800 text-[9px] font-['Poppins'] font-bold px-1.5 py-0.5">
                               SAKRIVEN
@@ -1127,7 +1132,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PRODUCT FORM MODAL (POTPUNA FORMA SA SVIM POLJIMA) */}
+      {/* PRODUCT FORM MODAL (SADRŽI PORAVNANA POLJA I PROVJERNU LOGIKU) */}
       {isModalOpen && editingProduct && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white max-w-2xl w-full p-6 sm:p-8 space-y-6 border-2 border-[#F7E97F] shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
@@ -1161,8 +1166,8 @@ export const AdminDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* CIJENE I KATEGORIJA */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* CIJENE I KATEGORIJA - POPRAVLJENO VODORAVNO PORAVNANJE (items-end) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                 <div>
                   <label htmlFor="product-price-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                     Cijena (KM) *
@@ -1181,7 +1186,7 @@ export const AdminDashboard: React.FC = () => {
 
                 <div>
                   <label htmlFor="product-orig-price-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
-                    Stara cijena (KM) <span className="text-neutral-400 font-normal">(opciono)</span>
+                    Stara cijena <span className="text-[10px] text-neutral-500 font-normal">(opciono)</span>
                   </label>
                   <input
                     id="product-orig-price-input"
@@ -1382,7 +1387,7 @@ export const AdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={addImage}
-                    className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase cursor-pointer"
+                    className="px-4 py-2 bg-[#0A0A0A] text-[#ffffff] hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase cursor-pointer"
                   >
                     Dodaj URL
                   </button>
