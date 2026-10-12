@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
@@ -15,11 +15,17 @@ import { WishlistPage } from './pages/WishlistPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderSuccessPage } from './pages/OrderSuccessPage';
 import { StaticPages } from './pages/StaticPages';
-import { AdminDashboard } from './pages/AdminDashboard';
 import { Product, Order } from './types';
 import { getProducts, getStoreSettings } from './lib/db';
 import { trackVisit } from './lib/tracking';
 import { applyTheme } from './utils/theme';
+
+// LAZY LOADING: Admin Panel se učitava na zahtjev (Code Splitting za brže učitavanje sajta)
+const AdminDashboard = lazy(() =>
+  import('./pages/AdminDashboard').then((module) => ({
+    default: module.AdminDashboard,
+  }))
+);
 
 export function AppContent() {
   const [currentTab, setCurrentTab] = useState<string>('home');
@@ -78,7 +84,6 @@ export function AppContent() {
 
   // NAUČENA NAVIGACIJA SA BROWSER HISTORY STACK-om (BACK BUTTON PODRŠKA)
   useEffect(() => {
-    // Postavi početno stanje historije za prvu posjetu
     if (!window.history.state) {
       window.history.replaceState({ tab: 'home' }, '');
     }
@@ -96,7 +101,6 @@ export function AppContent() {
           setShopCategory(event.state.category);
         }
       } else {
-        // Generički fallback ako se ide skroz nazad
         const hash = window.location.hash.replace('#/', '').replace('#', '');
         if (hash) {
           setCurrentTab(hash);
@@ -138,7 +142,7 @@ export function AppContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Univerzalna funkcija za gumb "Nazad" (vraca se na stvarni prethodni ekran)
+  // Univerzalna funkcija za gumb "Nazad"
   const handleBack = () => {
     if (window.history.length > 1) {
       window.history.back();
@@ -227,12 +231,14 @@ export function AppContent() {
           <StaticPages page={currentTab as any} />
         )}
 
-        {currentTab === 'admin' && <AdminDashboard />}
+        {currentTab === 'admin' && (
+          <Suspense fallback={<div className="p-12 text-center font-mono text-xs">Učitavanje Admin Panela...</div>}>
+            <AdminDashboard />
+          </Suspense>
+        )}
       </main>
 
-      <Footer
-        onNavigate={(tab) => navigateTo(tab)}
-      />
+      <Footer onNavigate={(tab) => navigateTo(tab)} />
 
       <CartDrawer onCheckout={() => navigateTo('checkout')} />
       <FloatingActions />
