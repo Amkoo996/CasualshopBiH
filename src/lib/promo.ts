@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, increment, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, increment, collection, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface PromoCode {
@@ -34,6 +34,32 @@ export async function getPromoCodes(): Promise<PromoCode[]> {
 }
 
 export const getAllPromoCodes = getPromoCodes;
+
+// Promjena statusa (Aktivacija / Deaktivacija koda)
+export async function togglePromoCodeStatus(code: string, currentActiveState: boolean): Promise<void> {
+  if (!code) return;
+  const cleanCode = code.trim().toUpperCase();
+
+  try {
+    const promoRef = doc(db, 'promo_codes', cleanCode);
+    await updateDoc(promoRef, { active: !currentActiveState });
+  } catch (error) {
+    console.error('Greška pri promjeni statusa promo koda:', error);
+  }
+}
+
+// Potpuno brisanje promo koda
+export async function deletePromoCode(code: string): Promise<void> {
+  if (!code) return;
+  const cleanCode = code.trim().toUpperCase();
+
+  try {
+    const promoRef = doc(db, 'promo_codes', cleanCode);
+    await deleteDoc(promoRef);
+  } catch (error) {
+    console.error('Greška pri brisanju promo koda:', error);
+  }
+}
 
 export async function createPromoCode(
   emailOrCode: string,
@@ -93,6 +119,9 @@ export async function validateAndApplyPromoCode(
 
       if (snap.exists()) {
         const data = snap.data() as PromoCode;
+        if (data.active === false) {
+          return { valid: false, discountPercent: 0, message: 'Promo kod FIRST100 je trenutno onemogućen.' };
+        }
         if (data.usageCount && data.maxUsage && data.usageCount >= data.maxUsage) {
           return { valid: false, discountPercent: 0, message: 'Iskorišten je maksimalan broj upotreba (100/100).' };
         }
