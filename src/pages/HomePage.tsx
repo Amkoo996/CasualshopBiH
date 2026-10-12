@@ -167,16 +167,6 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-80" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
-          <div className="max-w-2xl space-y-6">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#171717]/80 backdrop-blur-md border border-neutral-700/80 rounded-full">
-                <Sparkles className="w-3.5 h-3.5 text-[#F7E97F]" />
-                <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-widest text-neutral-300">
-                  Niti i kroj bez kompromisa
-                </span>
-              </div>
-
               <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.92] text-white">
                 {cms.hero.titleLine1} <br />
                 <span className="text-[#F7E97F] drop-shadow-[0_2px_10px_rgba(247,233,127,0.15)]">
