@@ -109,247 +109,253 @@ export const HomePage: React.FC<HomePageProps> = ({
     (p) => p.isNew || (p.createdAt && new Date(p.createdAt).getTime() >= thirtyDaysAgo)
   ).slice(0, 4);
 
-  // POPRAVLJENO: Provjera za boolean i string "true"
+  // Provjera za boolean i string "true"
   const featuredProducts = activeProductsWithStock.filter(
     (p) => p.featured === true || String(p.featured) === 'true'
   ).slice(0, 4);
 
   return (
-    <div className="space-y-12 sm:space-y-16 pb-12">
-      {/* BANER SA REAL-TIME BROJAČEM I COUNTDOWN TAJMEROM */}
-      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b-2 border-[#F7E97F] py-3 px-4 shadow-xl">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-1 font-black font-['Poppins'] text-[11px] tracking-wider uppercase shrink-0">
-              EKSKLUZIVNO
+    <div className="pb-12">
+      {/* CRNI SKLOP - POTPUNO SPREČAVA POJAVU BIJELE LINIJE IZMEĐU BANERA I HERO SEKCIJE */}
+      <div className="bg-[#0A0A0A]">
+        {/* BANER SA REAL-TIME BROJAČEM I COUNTDOWN TAJMEROM */}
+        <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/30 py-3 px-4 shadow-xl">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+            <div className="flex items-center gap-3">
+              <div className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-1 font-black font-['Poppins'] text-[11px] tracking-wider uppercase shrink-0">
+                EKSKLUZIVNO
+              </div>
+              <div>
+                <p className="font-['Poppins'] text-xs sm:text-sm font-black text-white uppercase tracking-wide">
+                  POPUST ZA PRVIH 100 NARUDŽBI: <span className="text-[#F7E97F] underline">10% POPUSTA</span>
+                </p>
+                <p className="text-[11px] text-neutral-300 font-['Inter'] mt-0.5">
+                  Unesite kod <strong className="bg-[#F7E97F] text-[#0A0A0A] px-1.5 py-0.5 font-mono text-[11px]">FIRST100</strong> na checkoutu. 
+                  <span className="text-[#F7E97F] font-bold ml-2">Preostalo još: {Math.max(0, 100 - usedCodesCount)} / 100 kodova!</span>
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-['Poppins'] text-xs sm:text-sm font-black text-white uppercase tracking-wide">
-                POPUST ZA PRVIH 100 NARUDŽBI: <span className="text-[#F7E97F] underline">10% POPUSTA</span>
-              </p>
-              <p className="text-[11px] text-neutral-300 font-['Inter'] mt-0.5">
-                Unesite kod <strong className="bg-[#F7E97F] text-[#0A0A0A] px-1.5 py-0.5 font-mono text-[11px]">FIRST100</strong> na checkoutu. 
-                <span className="text-[#F7E97F] font-bold ml-2">Preostalo još: {Math.max(0, 100 - usedCodesCount)} / 100 kodova!</span>
-              </p>
+
+            <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1.5 border border-[#F7E97F] text-xs text-white shadow-md">
+              <Clock className="w-3.5 h-3.5 text-[#F7E97F] animate-pulse" />
+              <span>OTVARANJE: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
             </div>
           </div>
+        </section>
 
-          <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1.5 border border-[#F7E97F] text-xs text-white shadow-md">
-            <Clock className="w-3.5 h-3.5 text-[#F7E97F] animate-pulse" />
-            <span>OTVARANJE: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
+        {/* HERO SECTION */}
+        <section className="relative bg-[#0A0A0A] text-white min-h-[60vh] sm:min-h-[70vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
+          <div className="absolute inset-0 z-0">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover opacity-50 filter contrast-125"
+            >
+              <source src="/hero-video.mp4" type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
           </div>
-        </div>
-      </section>
 
-      {/* HERO SECTION */}
-      <section className="relative bg-[#0A0A0A] text-white min-h-[60vh] sm:min-h-[70vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
-        <div className="absolute inset-0 z-0">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover opacity-50 filter contrast-125"
-          >
-            <source src="/hero-video.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
-        </div>
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 w-full">
+            <div className="max-w-2xl space-y-5">
+              <div className="space-y-2">
+                <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
+                  CASUAL. <br />
+                  <span className="text-[#F7E97F]">SVAKI DAN.</span>
+                </h1>
+                <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-wider text-neutral-300">
+                  Udobna odjeća za svaki dan.
+                </p>
+              </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 w-full">
-          <div className="max-w-2xl space-y-5">
-            <div className="space-y-2">
-              <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
-                CASUAL. <br />
-                <span className="text-[#F7E97F]">SVAKI DAN.</span>
-              </h1>
-              <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-wider text-neutral-300">
-                Udobna odjeća za svaki dan.
+              <p className="text-xs sm:text-sm text-neutral-300 max-w-lg leading-relaxed font-['Inter']">
+                Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom.
+                Plaćanje pouzećem gotovinom prilikom preuzimanja ili lično u Sarajevu.
               </p>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <button
+                  onClick={() => onNavigateToShop('Sve')}
+                  className="px-8 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] transition-all flex items-center justify-center gap-2 group shadow-xl active:scale-95 cursor-pointer"
+                >
+                  <span>Pogledaj kolekciju</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </button>
+
+                <a
+                  href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-3.5 bg-[#171717]/80 backdrop-blur-sm border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
+                >
+                  <Instagram className="w-4 h-4 text-[#F7E97F]" />
+                  <span>Instagram @casualshop.bih</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* OSTALE SEKCIJE SA STANDARDNIM MARGINAMA */}
+      <div className="space-y-12 sm:space-y-16 mt-12 sm:mt-16">
+        {/* QUICK BENEFIT STRIP */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
+              <div className="flex flex-col items-center p-2">
+                <Truck className="w-6 h-6 text-[#0A0A0A] mb-2" />
+                <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                  Dostava {settings.shippingFee || 12} KM • Besplatna preko {settings.freeShippingThreshold || 100} KM
+                </div>
+                <p className="text-[11px] text-neutral-500 mt-1">Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)</p>
+              </div>
+              <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
+                <ShieldCheck className="w-6 h-6 text-[#0A0A0A] mb-2" />
+                <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                  100% Plaćanje pouzećem
+                </div>
+                <p className="text-[11px] text-neutral-500 mt-1">Plaćanje gotovinom kuriru pri preuzimanju paketa.</p>
+              </div>
+              <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
+                <RefreshCw className="w-6 h-6 text-[#0A0A0A] mb-2" />
+                <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                  Pregled paketa pri dostavi
+                </div>
+                <p className="text-[11px] text-neutral-500 mt-1">Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* KATEGORIJE HIGHLIGHT */}
+        {displayCategories.length > 0 && (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+            <div className="flex justify-between items-end border-b-2 border-neutral-300 pb-3">
+              <div>
+                <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 block mb-1">
+                  Katalog
+                </span>
+                <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
+                  Odaberite kategoriju
+                </h2>
+              </div>
+              {visibleCategoryNames.length > displayCategories.length && (
+                <button
+                  onClick={() => onNavigateToShop('Sve')}
+                  className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Vidi sve kategorije</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
-            <p className="text-xs sm:text-sm text-neutral-300 max-w-lg leading-relaxed font-['Inter']">
-              Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom.
-              Plaćanje pouzećem gotovinom prilikom preuzimanja ili lično u Sarajevu.
-            </p>
+            <div className={`grid gap-4 ${getGridClass(displayCategories.length)}`}>
+              {displayCategories.map((cat) => (
+                <div
+                  key={cat.title}
+                  onClick={() => onNavigateToShop(cat.category)}
+                  className="group relative h-48 sm:h-64 overflow-hidden bg-[#0A0A0A] cursor-pointer border-2 border-neutral-200 hover:border-[#F7E97F] transition-all"
+                >
+                  <img
+                    src={cat.image}
+                    alt={cat.title}
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = OPTIMIZED_FALLBACK_IMAGE;
+                    }}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 opacity-75 group-hover:opacity-100"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-4">
+                    <span className="font-['Poppins'] text-white text-xs sm:text-sm font-black uppercase tracking-wider group-hover:text-[#F7E97F] transition-colors">
+                      {cat.title}
+                    </span>
+                    <span className="text-[#F7E97F] text-[10px] font-['Poppins'] font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1 group-hover:underline">
+                      Pogledaj ({cat.count}) <ArrowRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        {/* NOVO U PONUDI */}
+        {newProducts.length > 0 && (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b-2 border-neutral-300 gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-[#0A0A0A]" />
+                  <span>Najnoviji dropovi</span>
+                </div>
+                <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
+                  Novo u ponudi
+                </h2>
+              </div>
+
               <button
                 onClick={() => onNavigateToShop('Sve')}
-                className="px-8 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] transition-all flex items-center justify-center gap-2 group shadow-xl active:scale-95 cursor-pointer"
+                className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
               >
-                <span>Pogledaj kolekciju</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </button>
-
-              <a
-                href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3.5 bg-[#171717]/80 backdrop-blur-sm border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
-              >
-                <Instagram className="w-4 h-4 text-[#F7E97F]" />
-                <span>Instagram @casualshop.bih</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* QUICK BENEFIT STRIP */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
-            <div className="flex flex-col items-center p-2">
-              <Truck className="w-6 h-6 text-[#0A0A0A] mb-2" />
-              <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
-                Dostava {settings.shippingFee || 12} KM • Besplatna preko {settings.freeShippingThreshold || 100} KM
-              </div>
-              <p className="text-[11px] text-neutral-500 mt-1">Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)</p>
-            </div>
-            <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
-              <ShieldCheck className="w-6 h-6 text-[#0A0A0A] mb-2" />
-              <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
-                100% Plaćanje pouzećem
-              </div>
-              <p className="text-[11px] text-neutral-500 mt-1">Plaćanje gotovinom kuriru pri preuzimanju paketa.</p>
-            </div>
-            <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
-              <RefreshCw className="w-6 h-6 text-[#0A0A0A] mb-2" />
-              <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
-                Pregled paketa pri dostavi
-              </div>
-              <p className="text-[11px] text-neutral-500 mt-1">Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* KATEGORIJE HIGHLIGHT */}
-      {displayCategories.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
-          <div className="flex justify-between items-end border-b-2 border-neutral-300 pb-3">
-            <div>
-              <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 block mb-1">
-                Katalog
-              </span>
-              <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
-                Odaberite kategoriju
-              </h2>
-            </div>
-            {visibleCategoryNames.length > displayCategories.length && (
-              <button
-                onClick={() => onNavigateToShop('Sve')}
-                className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Vidi sve kategorije</span>
+                <span>Pogledaj sve novitete</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-            )}
-          </div>
+            </div>
 
-          <div className={`grid gap-4 ${getGridClass(displayCategories.length)}`}>
-            {displayCategories.map((cat) => (
-              <div
-                key={cat.title}
-                onClick={() => onNavigateToShop(cat.category)}
-                className="group relative h-48 sm:h-64 overflow-hidden bg-[#0A0A0A] cursor-pointer border-2 border-neutral-200 hover:border-[#F7E97F] transition-all"
-              >
-                <img
-                  src={cat.image}
-                  alt={cat.title}
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = OPTIMIZED_FALLBACK_IMAGE;
-                  }}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 opacity-75 group-hover:opacity-100"
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+              {newProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onSelect={onSelectProduct}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-4">
-                  <span className="font-['Poppins'] text-white text-xs sm:text-sm font-black uppercase tracking-wider group-hover:text-[#F7E97F] transition-colors">
-                    {cat.title}
-                  </span>
-                  <span className="text-[#F7E97F] text-[10px] font-['Poppins'] font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1 group-hover:underline">
-                    Pogledaj ({cat.count}) <ArrowRight className="w-3 h-3" />
-                  </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ISTAKNUTI ARTIKLI */}
+        {featuredProducts.length > 0 && (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b-2 border-neutral-300 gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 mb-1">
+                  <TrendingUp className="w-3.5 h-3.5 text-[#0A0A0A]" />
+                  <span>Preporučujemo</span>
                 </div>
+                <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
+                  Istaknuti proizvodi
+                </h2>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
 
-      {/* NOVO U PONUDI */}
-      {newProducts.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b-2 border-neutral-300 gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 mb-1">
-                <Sparkles className="w-3.5 h-3.5 text-[#0A0A0A]" />
-                <span>Najnoviji dropovi</span>
-              </div>
-              <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
-                Novo u ponudi
-              </h2>
+              <button
+                onClick={() => onNavigateToShop('Sve')}
+                className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+              >
+                <span>Pregledaj sve</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
 
-            <button
-              onClick={() => onNavigateToShop('Sve')}
-              className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-            >
-              <span>Pogledaj sve novitete</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-            {newProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onSelect={onSelectProduct}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ISTAKNUTI ARTIKLI */}
-      {featuredProducts.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b-2 border-neutral-300 gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 mb-1">
-                <TrendingUp className="w-3.5 h-3.5 text-[#0A0A0A]" />
-                <span>Preporučujemo</span>
-              </div>
-              <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
-                Istaknuti proizvodi
-              </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+              {featuredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onSelect={onSelectProduct}
+                />
+              ))}
             </div>
+          </section>
+        )}
 
-            <button
-              onClick={() => onNavigateToShop('Sve')}
-              className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-            >
-              <span>Pregledaj sve</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onSelect={onSelectProduct}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* NEWSLETTER */}
-      <NewsletterSection />
+        {/* NEWSLETTER */}
+        <NewsletterSection />
+      </div>
     </div>
   );
 };
