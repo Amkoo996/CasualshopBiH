@@ -9,6 +9,8 @@ import {
   Heart,
   ZoomIn,
   Instagram,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Product, Size } from '../types';
 import { useCart } from '../context/CartContext';
@@ -48,6 +50,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [instaCopied, setInstaCopied] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
+  // Touch Swipe State za prebacivanje slika prevlačenjem prsta na mobitelu
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
   const availableSizes = SIZE_ORDER.filter(
     (size) => product.sizes && (product.sizes[size] ?? 0) > 0
   );
@@ -74,6 +79,25 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || !product.images || product.images.length <= 1) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+
+    if (diff > 40) {
+      // Svajp ulijevao -> Sljedeća slika
+      setSelectedImageIndex((prev) => (prev + 1) % product.images.length);
+    } else if (diff < -40) {
+      // Svajp udesno -> Prethodna slika
+      setSelectedImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+    }
+    setTouchStartX(null);
+  };
 
   const totalStock = Object.values(product.sizes || {}).reduce(
     (acc, val) => acc + (val || 0),
@@ -136,21 +160,23 @@ Podaci za dostavu:
   const currentImageUrl = product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 font-['Inter']">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 font-['Inter']">
       <button
         onClick={onBack}
-        className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-8 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-6 sm:mb-8 transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Nazad na kolekciju</span>
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-        {/* GALERIJA SLIKA */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+        {/* GALERIJA SLIKA SA PODRŠKOM ZA SWIPE I STRELICE */}
         <div className="space-y-4">
           <div 
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
             onClick={() => setIsZoomed(true)}
-            className="relative aspect-[3/4] bg-white overflow-hidden border-2 border-neutral-300 group cursor-zoom-in"
+            className="relative aspect-[3/4] bg-white overflow-hidden border-2 border-neutral-300 group cursor-zoom-in touch-pan-y"
             title="Kliknite za uvećanje"
           >
             <img
@@ -159,10 +185,38 @@ Podaci za dostavu:
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
               }}
-              className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 select-none"
             />
 
-            <div className="absolute bottom-3 right-3 bg-black/70 text-white p-2 rounded-full opacity-80 group-hover:opacity-100 transition-opacity backdrop-blur-xs">
+            {/* Strelice za prebacivanje slika na mobitelu i računaru */}
+            {product.images && product.images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+                  }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black text-white rounded-full transition-colors z-20 cursor-pointer backdrop-blur-xs"
+                  aria-label="Prethodna slika"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedImageIndex((prev) => (prev + 1) % product.images.length);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black text-white rounded-full transition-colors z-20 cursor-pointer backdrop-blur-xs"
+                  aria-label="Sljedeća slika"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
+            <div className="absolute bottom-3 right-3 bg-black/70 text-white p-2 rounded-full opacity-80 group-hover:opacity-100 transition-opacity backdrop-blur-xs z-10">
               <ZoomIn className="w-4 h-4" />
             </div>
 
@@ -194,12 +248,12 @@ Podaci za dostavu:
           </div>
 
           {product.images && product.images.length > 1 && (
-            <div className="flex gap-3 overflow-x-auto pb-2">
+            <div className="flex gap-2.5 overflow-x-auto pb-2">
               {product.images.map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedImageIndex(idx)}
-                  className={`relative w-20 h-24 bg-white shrink-0 border-2 transition-all cursor-pointer ${
+                  className={`relative w-16 h-20 sm:w-20 sm:h-24 bg-white shrink-0 border-2 transition-all cursor-pointer ${
                     selectedImageIndex === idx
                       ? 'border-[#0A0A0A] opacity-100'
                       : 'border-transparent opacity-60 hover:opacity-100'
@@ -220,9 +274,9 @@ Podaci za dostavu:
           )}
         </div>
 
-        {/* DETALJI */}
+        {/* DETALJI O PROIZVODU */}
         <div className="flex flex-col space-y-6">
-          <div className="space-y-2 border-b-2 border-neutral-200 pb-6">
+          <div className="space-y-2 border-b-2 border-neutral-200 pb-5 sm:pb-6">
             <div className="flex items-center gap-3">
               <span className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.25em] text-neutral-500">
                 {product.category}
@@ -238,7 +292,7 @@ Podaci za dostavu:
               {product.name}
             </h1>
 
-            <div className="flex items-baseline gap-3 pt-2">
+            <div className="flex items-baseline gap-3 pt-1">
               <span className="font-['Poppins'] text-2xl sm:text-3xl font-black text-[#0A0A0A]">
                 {product.price.toFixed(2)} KM
               </span>
@@ -273,7 +327,7 @@ Podaci za dostavu:
                 Artikal je rasprodan u svim veličinama.
               </p>
             ) : (
-              <div className="flex flex-wrap gap-2.5">
+              <div className="flex flex-wrap gap-2">
                 {availableSizes.map((size) => {
                   const isSelected = selectedSize === size;
 
@@ -285,7 +339,7 @@ Podaci za dostavu:
                         setSelectedSize(size);
                         setQuantity(1);
                       }}
-                      className={`min-w-14 h-12 px-4 text-xs font-['Poppins'] font-bold tracking-wider uppercase border-2 transition-all flex items-center justify-center cursor-pointer ${
+                      className={`min-w-12 h-11 px-3.5 text-xs font-['Poppins'] font-bold tracking-wider uppercase border-2 transition-all flex items-center justify-center cursor-pointer ${
                         isSelected
                           ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A]'
                           : 'bg-white text-neutral-900 border-neutral-300 hover:border-[#0A0A0A]'
@@ -308,26 +362,26 @@ Podaci za dostavu:
             )}
           </div>
 
-          {/* QUANTITY & ADD TO CART */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center border-2 border-neutral-300 bg-white">
+          {/* QUANTITY & ADD TO CART (OPTIMIZOVANA VELIČINA ZA MOBITEL) */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center border-2 border-neutral-300 bg-white shrink-0">
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   disabled={quantity <= 1 || isSoldOut}
-                  className="px-3.5 py-3 hover:bg-neutral-100 font-bold disabled:opacity-30 cursor-pointer"
+                  className="px-3 py-2.5 hover:bg-neutral-100 font-bold disabled:opacity-30 cursor-pointer text-xs"
                 >
                   -
                 </button>
-                <span className="px-4 text-xs font-['Poppins'] font-bold text-neutral-900">
+                <span className="px-3 text-xs font-['Poppins'] font-bold text-neutral-900">
                   {quantity}
                 </span>
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.min(currentSizeStock, quantity + 1))}
                   disabled={quantity >= currentSizeStock || isSoldOut}
-                  className="px-3.5 py-3 hover:bg-neutral-100 font-bold disabled:opacity-30 cursor-pointer"
+                  className="px-3 py-2.5 hover:bg-neutral-100 font-bold disabled:opacity-30 cursor-pointer text-xs"
                 >
                   +
                 </button>
@@ -337,10 +391,10 @@ Podaci za dostavu:
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isSoldOut || !selectedSize || currentSizeStock <= 0}
-                className="flex-1 py-3.5 px-6 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] disabled:bg-[#9A9A9A] disabled:text-white disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 active:scale-[0.99] border-2 border-[#0A0A0A] cursor-pointer"
+                className="flex-1 py-3 px-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider disabled:bg-[#9A9A9A] disabled:text-white disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 active:scale-[0.99] border-2 border-[#0A0A0A] cursor-pointer"
               >
-                <ShoppingBag className="w-4 h-4" />
-                <span>
+                <ShoppingBag className="w-4 h-4 shrink-0" />
+                <span className="truncate">
                   {isSoldOut
                     ? 'RASPRODANO'
                     : addedSuccess
@@ -352,14 +406,14 @@ Podaci za dostavu:
               <button
                 type="button"
                 onClick={() => toggleWishlist(product.id)}
-                className={`py-3.5 px-4 border-2 transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                className={`py-3 px-3.5 border-2 transition-all flex items-center justify-center shrink-0 cursor-pointer ${
                   isSaved
                     ? 'bg-[#0A0A0A] border-[#0A0A0A] text-red-500 hover:bg-neutral-900'
                     : 'bg-white border-neutral-300 text-neutral-700 hover:border-black hover:text-black'
                 }`}
                 title={isSaved ? 'Ukloni iz liste želja' : 'Spremi u listu želja'}
               >
-                <Heart className={`w-5 h-5 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
+                <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
               </button>
             </div>
 
@@ -368,12 +422,12 @@ Podaci za dostavu:
               <button
                 type="button"
                 onClick={handleInstagramOrder}
-                className="w-full py-3.5 px-6 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-['Poppins'] font-black text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-2 shadow-lg hover:opacity-90 transition-all active:scale-[0.99] border-2 border-transparent cursor-pointer"
+                className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-['Poppins'] font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:opacity-90 transition-all active:scale-[0.99] border-2 border-transparent cursor-pointer"
               >
-                <Instagram className="w-4 h-4 text-white" />
-                <span>
+                <Instagram className="w-4 h-4 text-white shrink-0" />
+                <span className="truncate">
                   {instaCopied
-                    ? 'KOPIRANO! OTVARAM INSTAGRAM DM...'
+                    ? 'KOPIRANO! OTVARAM INSTAGRAM...'
                     : 'BRZA NARUDŽBA PREKO INSTAGRAMA'}
                 </span>
               </button>
@@ -383,17 +437,17 @@ Podaci za dostavu:
             </div>
 
             {addedSuccess && (
-              <div className="bg-white border-2 border-[#F7E97F] text-[#0A0A0A] text-xs p-3 font-semibold flex items-center gap-2 animate-fadeIn font-['Inter']">
-                <Check className="w-4 h-4 text-emerald-600" />
+              <div className="bg-white border-2 border-[#F7E97F] text-[#0A0A0A] text-xs p-2.5 font-semibold flex items-center gap-2 animate-fadeIn font-['Inter']">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>Artikal je uspješno dodan u vašu korpu!</span>
               </div>
             )}
           </div>
 
           {/* OPIS I NJEGA */}
-          <div className="space-y-4 pt-4 border-t-2 border-neutral-200">
+          <div className="space-y-4 pt-3 border-t-2 border-neutral-200">
             {product.material && (
-              <div className="bg-white p-3.5 border border-neutral-200">
+              <div className="bg-white p-3 border border-neutral-200">
                 <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-500 block mb-0.5">
                   Materijal:
                 </span>
@@ -402,7 +456,7 @@ Podaci za dostavu:
             )}
 
             <div>
-              <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-neutral-900 mb-1.5">
+              <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-neutral-900 mb-1">
                 Opis artikla
               </h3>
               <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed font-['Inter']">
@@ -420,9 +474,9 @@ Podaci za dostavu:
             )}
           </div>
 
-          <div className="bg-white p-4 border-2 border-[#F7E97F] space-y-2.5 text-xs text-neutral-700">
+          <div className="bg-white p-4 border-2 border-[#F7E97F] space-y-2 text-xs text-neutral-700">
             <h4 className="font-['Poppins'] font-bold text-xs uppercase tracking-wider text-[#0A0A0A] flex items-center gap-2">
-              <Truck className="w-4 h-4 text-[#0A0A0A]" />
+              <Truck className="w-4 h-4 text-[#0A0A0A] shrink-0" />
               <span>Dostava i preuzimanje</span>
             </h4>
             <ul className="space-y-1.5 text-xs text-neutral-600 font-['Inter']">
@@ -456,7 +510,7 @@ Podaci za dostavu:
             className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center"
           >
             <img
-              src={optimizeCloudinaryUrl(currentImageUrl, 2000)}
+              src={optimizeCloudinaryUrl(currentImageUrl, 1000)}
               alt={product.name}
               className="max-w-full max-h-full object-contain rounded-sm border border-neutral-800 shadow-2xl select-none"
             />
@@ -466,7 +520,7 @@ Podaci za dostavu:
 
       {/* TABELA VELIČINA MODAL */}
       {sizeChartOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 font-['Inter']">
           <div className="bg-white max-w-lg w-full p-6 sm:p-8 space-y-5 border-2 border-[#F7E97F] shadow-2xl relative">
             <div className="flex items-center justify-between border-b-2 border-neutral-200 pb-3">
               <div className="flex items-center gap-2">
@@ -483,7 +537,7 @@ Podaci za dostavu:
               </button>
             </div>
 
-            <div className="text-xs text-neutral-700 space-y-3 leading-relaxed font-['Inter']">
+            <div className="text-xs text-neutral-700 space-y-3 leading-relaxed">
               <p>{settings.sizeGuideText || 'Sve dimenzije su izražene u centimetrima (cm).'}</p>
 
               <div className="overflow-x-auto border border-neutral-200">
@@ -495,7 +549,7 @@ Podaci za dostavu:
                       <th className="p-2.5">Dužina (cm)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-200 font-['Inter'] font-semibold">
+                  <tbody className="divide-y divide-neutral-200 font-semibold">
                     <tr>
                       <td className="p-2.5 font-bold">S</td>
                       <td className="p-2.5">54 cm</td>
