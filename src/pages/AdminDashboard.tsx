@@ -16,17 +16,14 @@ import {
   Save,
   ArrowUp,
   ArrowDown,
-  RefreshCw,
   Eye,
   CheckCircle2,
   Mail,
-  ArrowRight,
-  MessageCircle,
-  FileText,
   Palette,
   EyeOff,
   Boxes,
   FileSpreadsheet,
+  Ticket,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS } from '../types';
@@ -42,27 +39,34 @@ import {
 } from '../lib/db';
 import { uploadImage } from '../lib/upload';
 import { getProductViewStats } from '../lib/tracking';
+import { getPromoCodes, createPromoCode } from '../lib/promo';
 import { useCart } from '../context/CartContext';
 import { SalesTrendChart } from '../components/admin/SalesTrendChart';
 import { FunnelAnalytics } from '../components/admin/FunnelAnalytics';
 import { AbandonedCartsPromo } from '../components/admin/AbandonedCartsPromo';
 import { TrafficAndCartStatsTable } from '../components/admin/TrafficAndCartStatsTable';
 import { StockManagementTab } from '../components/admin/StockManagementTab';
-import { generateOrderInvoicePDF, getWhatsAppConfirmationUrl } from '../lib/pdfInvoice';
+import { generateOrderInvoicePDF } from '../lib/pdfInvoice';
 import DevSettings from '../components/admin/DevSettings';
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin, loginWithEmail, signOut } = useAuth();
   const { refreshSettings } = useCart();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'leads' | 'products' | 'stock' | 'orders' | 'subscribers' | 'settings' | 'dev-settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'leads' | 'products' | 'stock' | 'orders' | 'promo' | 'subscribers' | 'settings' | 'dev-settings'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
+  const [promoCodes, setPromoCodes] = useState<any[]>([]);
   const [productViewsMap, setProductViewsMap] = useState<Record<string, number>>({});
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [settingsSaved, setSettingsSaved] = useState(false);
+
+  // Promo Code Creation State
+  const [newPromoCode, setNewPromoCode] = useState('');
+  const [newPromoDiscount, setNewPromoDiscount] = useState(10);
+  const [promoLoading, setPromoLoading] = useState(false);
 
   // Email & Password login state
   const [email, setEmail] = useState('');
@@ -81,25 +85,26 @@ export const AdminDashboard: React.FC = () => {
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('Sve');
   const [orderSearch, setOrderSearch] = useState('');
 
-  // Svi podržani nazivi veličina u fiksnom redoslijedu
   const availableSizesList: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 
   // Load admin data
   const loadData = async () => {
     setLoading(true);
     try {
-      const [prodsData, ordersData, subsData, settingsData, viewsData] = await Promise.all([
+      const [prodsData, ordersData, subsData, settingsData, viewsData, promoData] = await Promise.all([
         getProducts(true),
         getOrders().catch(() => []),
         getSubscribers().catch(() => []),
         getStoreSettings().catch(() => DEFAULT_STORE_SETTINGS),
         getProductViewStats().catch(() => ({})),
+        getPromoCodes().catch(() => []),
       ]);
       setProducts(prodsData);
       setOrders(ordersData);
       setSubscribers(subsData);
       setStoreSettings(settingsData);
       setProductViewsMap(viewsData);
+      setPromoCodes(promoData);
     } catch (e) {
       console.error('Failed to load admin data:', e);
     } finally {
@@ -127,7 +132,21 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // UPLOAD IMAGE HANDLER
+  const handleCreatePromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPromoCode.trim()) return;
+    setPromoLoading(true);
+    try {
+      await createPromoCode(newPromoCode.trim().toUpperCase(), 'manual', newPromoDiscount);
+      setNewPromoCode('');
+      await loadData();
+    } catch (err) {
+      alert('Greška pri kreiranju promo koda.');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -149,7 +168,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // LOGIN SCREEN
   if (!isAdmin) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
@@ -234,13 +252,11 @@ export const AdminDashboard: React.FC = () => {
     );
   }
 
-  // CALCULATE METRICS
   const totalRevenue = orders.reduce((sum, ord) => sum + (ord.status !== 'Otkazana' ? ord.total : 0), 0);
   const totalOrdersCount = orders.length;
   const newOrdersCount = orders.filter((o) => o.status === 'Nova').length;
   const subscribersCount = subscribers.length;
 
-  // Best selling products calculation
   const productSalesMap: Record<string, { name: string; count: number; revenue: number }> = {};
   orders.forEach((ord) => {
     if (ord.status !== 'Otkazana') {
@@ -257,7 +273,6 @@ export const AdminDashboard: React.FC = () => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  // SAVE PRODUCT (KOMPLETIRANA SA SVIM POLJIMA I TAČNIM BOOLEAN TIPOVIMA)
   const handleSaveProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct || !editingProduct.name || !editingProduct.price) return;
@@ -298,7 +313,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // DELETE PRODUCT
   const handleDeleteProduct = async (id: string, name: string) => {
     if (confirm(`Jeste li sigurni da želite obrisati proizvod "${name}"?`)) {
       try {
@@ -310,7 +324,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // SAVE STORE SETTINGS
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -323,7 +336,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // UPDATE ORDER STATUS
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
     try {
       const targetOrder = orders.find((o) => o.id === orderId);
@@ -349,7 +361,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // GENERISANJE MJESEČNOG IZVJEŠTAJA
   const handleGenerateMonthlyReport = () => {
     if (orders.length === 0) {
       alert('Nema narudžbi za generisanje izvještaja.');
@@ -381,7 +392,6 @@ export const AdminDashboard: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // EXPORT CSV
   const handleExportCSV = () => {
     if (subscribers.length === 0) {
       alert('Nema pretplatnika za izvoz.');
@@ -400,7 +410,6 @@ export const AdminDashboard: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // IMAGE REORDER HELPERS
   const moveImage = (index: number, direction: 'up' | 'down') => {
     if (!editingProduct?.images) return;
     const imgs = [...editingProduct.images];
@@ -473,13 +482,14 @@ export const AdminDashboard: React.FC = () => {
         {[
           { id: 'overview', label: 'Pregled & Prodaja', icon: TrendingUp },
           { id: 'analytics', label: 'Posjete & Funnel', icon: Eye },
-          { id: 'leads', label: 'Napuštene korpe & Promocije', icon: Mail },
+          { id: 'leads', label: 'Napuštene korpe', icon: Mail },
           { id: 'products', label: `Proizvodi (${products.length})`, icon: Package },
-          { id: 'stock', label: 'Stock & Inventar', icon: Boxes },
+          { id: 'stock', label: 'Inventar', icon: Boxes },
           { id: 'orders', label: `Narudžbe (${orders.length})`, icon: ShoppingBag },
+          { id: 'promo', label: `Promo Kodovi (${promoCodes.length})`, icon: Ticket },
           { id: 'subscribers', label: `Newsletter (${subscribers.length})`, icon: Users },
           { id: 'settings', label: 'Postavke Trgovine', icon: Settings },
-          { id: 'dev-settings', label: 'Dev Settings & Tema', icon: Palette },
+          { id: 'dev-settings', label: 'Dev Settings', icon: Palette },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -508,7 +518,7 @@ export const AdminDashboard: React.FC = () => {
               <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-400">
                 UKUPAN PRIHOD
               </span>
-              <div className="font-[#Poppins] text-2xl sm:text-3xl font-black text-black">
+              <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">
                 {totalRevenue.toFixed(2)} KM
               </div>
               <span className="text-[11px] text-emerald-600 font-semibold block font-['Inter']">
@@ -614,13 +624,6 @@ export const AdminDashboard: React.FC = () => {
                             {ord.status}
                           </span>
                         </div>
-                        <button
-                          onClick={() => generateOrderInvoicePDF(ord, storeSettings)}
-                          className="p-1.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white transition-colors border border-black cursor-pointer"
-                          title="Preuzmi PDF fakturu"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     </div>
                   ))}
@@ -654,7 +657,7 @@ export const AdminDashboard: React.FC = () => {
                 Upravljanje proizvodima ({products.length})
               </h2>
               <p className="text-xs text-neutral-500 font-['Inter']">
-                Dodajte, uredite ili sakrijte artikle. Pratite statistiku otvaranja po proizvodu u realnom vremenu.
+                Dodajte, uredite ili sakrijte artikle. Pratite statistiku otvaranja po proizvodu.
               </p>
             </div>
 
@@ -728,11 +731,6 @@ export const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="p-3 font-['Poppins'] font-bold text-neutral-900">
                         {p.price.toFixed(2)} KM
-                        {p.originalPrice && (
-                          <span className="text-[10px] text-neutral-400 line-through block font-normal">
-                            {p.originalPrice.toFixed(2)} KM
-                          </span>
-                        )}
                       </td>
                       <td className="p-3 font-mono">
                         <div className="flex flex-wrap gap-1 text-[10px]">
@@ -765,16 +763,6 @@ export const AdminDashboard: React.FC = () => {
                               NOVO
                             </span>
                           )}
-                          {p.featured && (
-                            <span className="bg-amber-500 text-white text-[9px] font-['Poppins'] font-bold px-1.5 py-0.5">
-                              ISTAKNUTO
-                            </span>
-                          )}
-                          {p.isHidden && (
-                            <span className="bg-red-100 text-red-800 text-[9px] font-['Poppins'] font-bold px-1.5 py-0.5">
-                              SAKRIVEN
-                            </span>
-                          )}
                         </div>
                       </td>
                       <td className="p-3 text-right">
@@ -785,14 +773,12 @@ export const AdminDashboard: React.FC = () => {
                               setIsModalOpen(true);
                             }}
                             className="p-1.5 hover:bg-neutral-200 text-neutral-700 transition-colors cursor-pointer"
-                            title="Uredi artikal"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteProduct(p.id, p.name)}
                             className="p-1.5 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
-                            title="Obriši artikal"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -807,7 +793,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* STOCK & INVENTAR TAB */}
+      {/* STOCK TAB */}
       {activeTab === 'stock' && (
         <div className="animate-fadeIn">
           <StockManagementTab products={products} onRefreshData={loadData} />
@@ -917,11 +903,6 @@ export const AdminDashboard: React.FC = () => {
                       <p className="text-neutral-800">
                         📍 Adresa: {order.customer.address}, {order.customer.postalCode} {order.customer.city}
                       </p>
-                      {order.customer.note && (
-                        <p className="text-neutral-600 italic pt-1">
-                          Napomena kupca: "{order.customer.note}"
-                        </p>
-                      )}
                     </div>
 
                     <div className="space-y-2 bg-[#F4F2EC] p-3.5 border border-neutral-300">
@@ -944,22 +925,116 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                     </div>
                   </div>
-
-                  <div className="pt-3 border-t border-neutral-200 flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-[11px] text-neutral-500 font-['Inter']">
-                      Plaćanje pouzećem ili lično preuzimanje
-                    </span>
-
-                    <button
-                      onClick={() => generateOrderInvoicePDF(order, storeSettings)}
-                      className="px-3.5 py-2 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white font-['Poppins'] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 border-2 border-[#0A0A0A] cursor-pointer"
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span>Preuzmi PDF fakturu</span>
-                    </button>
-                  </div>
                 </div>
               ))}
+          </div>
+        </div>
+      )}
+
+      {/* PROMO KODOVI TAB */}
+      {activeTab === 'promo' && (
+        <div className="space-y-6 animate-fadeIn max-w-4xl font-['Inter']">
+          <div>
+            <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black">
+              Upravljanje Promo Kodovima
+            </h2>
+            <p className="text-xs text-neutral-600">
+              Generišite nove kodove za popust, pratite broj aktivnih kodova i iskorištenost po kupcima.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <div className="p-4 bg-white border-2 border-neutral-300 shadow-sm font-['Poppins']">
+              <span className="block text-2xl font-black text-black">{promoCodes.length}</span>
+              <span className="text-xs text-neutral-500 uppercase font-bold">Ukupno Kodova</span>
+            </div>
+            <div className="p-4 bg-white border-2 border-emerald-500 shadow-sm font-['Poppins']">
+              <span className="block text-2xl font-black text-emerald-600">
+                {promoCodes.filter((c) => !c.used).length}
+              </span>
+              <span className="text-xs text-emerald-700 uppercase font-bold">Aktivno / Dostupno</span>
+            </div>
+            <div className="p-4 bg-white border-2 border-amber-500 shadow-sm font-['Poppins']">
+              <span className="block text-2xl font-black text-amber-600">
+                {promoCodes.filter((c) => c.used).length}
+              </span>
+              <span className="text-xs text-amber-700 uppercase font-bold">Iskorišteno</span>
+            </div>
+          </div>
+
+          {/* Form za kreiranje */}
+          <form onSubmit={handleCreatePromo} className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
+            <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
+              Kreiraj novi promo kod
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Naziv Koda *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="npr. LJETI10"
+                  value={newPromoCode}
+                  onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
+                  className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold uppercase focus:border-black focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Popust (%) *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  max="100"
+                  value={newPromoDiscount}
+                  onChange={(e) => setNewPromoDiscount(Number(e.target.value))}
+                  className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={promoLoading}
+              className="px-6 py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-[#0A0A0A] cursor-pointer"
+            >
+              {promoLoading ? 'Kreiranje...' : 'Generiši Promo Kod'}
+            </button>
+          </form>
+
+          {/* Tabela Promo Kodova */}
+          <div className="bg-white border-2 border-neutral-200 overflow-x-auto shadow-sm">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-[#0A0A0A] text-white font-['Poppins'] font-bold uppercase">
+                <tr>
+                  <th className="p-3">Kod</th>
+                  <th className="p-3">Popust</th>
+                  <th className="p-3">Tip</th>
+                  <th className="p-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-200">
+                {promoCodes.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center text-neutral-500">Nema kreiranih promo kodova.</td>
+                  </tr>
+                ) : (
+                  promoCodes.map((codeItem, idx) => (
+                    <tr key={idx} className="hover:bg-neutral-50">
+                      <td className="p-3 font-mono font-bold text-black">{codeItem.code}</td>
+                      <td className="p-3 font-['Poppins'] font-bold">{codeItem.discountPercent || 10}%</td>
+                      <td className="p-3 text-neutral-600">{codeItem.type || 'Ručni'}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 text-[10px] font-['Poppins'] font-bold uppercase ${
+                          codeItem.used ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {codeItem.used ? 'Iskorišten' : 'Aktivan'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -972,9 +1047,6 @@ export const AdminDashboard: React.FC = () => {
               <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black">
                 Newsletter pretplatnici ({subscribers.length})
               </h2>
-              <p className="text-xs text-neutral-600 font-['Inter']">
-                Korisnici koji su dali saglasnost za obavijesti brenda Casual Shop BiH.
-              </p>
             </div>
             <button
               onClick={handleExportCSV}
@@ -996,24 +1068,16 @@ export const AdminDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 font-['Inter']">
-                {subscribers.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-neutral-500">
-                      Još nema prijavljenih pretplatnika na newsletter.
+                {subscribers.map((sub, idx) => (
+                  <tr key={idx} className="hover:bg-neutral-50">
+                    <td className="p-3 text-neutral-400 font-mono">{idx + 1}</td>
+                    <td className="p-3 font-semibold text-neutral-900">{sub.email}</td>
+                    <td className="p-3 text-neutral-600">
+                      {new Date(sub.subscribedAt).toLocaleString('bs-BA')}
                     </td>
+                    <td className="p-3 text-emerald-600 font-bold">Potvrđena</td>
                   </tr>
-                ) : (
-                  subscribers.map((sub, idx) => (
-                    <tr key={idx} className="hover:bg-neutral-50">
-                      <td className="p-3 text-neutral-400 font-mono">{idx + 1}</td>
-                      <td className="p-3 font-semibold text-neutral-900">{sub.email}</td>
-                      <td className="p-3 text-neutral-600">
-                        {new Date(sub.subscribedAt).toLocaleString('bs-BA')}
-                      </td>
-                      <td className="p-3 text-emerald-600 font-bold">Potvrđena</td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
@@ -1027,15 +1091,12 @@ export const AdminDashboard: React.FC = () => {
             <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black">
               Postavke trgovine
             </h2>
-            <p className="text-xs text-neutral-600 font-['Inter']">
-              Prilagodite troškove dostave, kontakte, sakrijte ili prikažite kategorije te uredite pravne podatke o firmi.
-            </p>
           </div>
 
           {settingsSaved && (
             <div className="bg-white border-2 border-[#F7E97F] p-4 flex items-center gap-2 text-xs font-['Poppins'] font-bold text-black animate-fadeIn">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              <span>Postavke su uspješno spremljene u Firestore bazu!</span>
+              <span>Postavke su uspješno spremljene!</span>
             </div>
           )}
 
@@ -1043,9 +1104,9 @@ export const AdminDashboard: React.FC = () => {
             <div className="space-y-4 border-b pb-6 border-neutral-200">
               <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black flex items-center gap-2">
                 <EyeOff className="w-4 h-4 text-[#0A0A0A]" />
-                <span>Upravljanje prikazom kategorija (Označite kategoriju za SAKRIVANJE iz navigacije i ponude)</span>
+                <span>Upravljanje prikazom kategorija</span>
               </h3>
-              
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#F4F2EC] p-4 border border-neutral-300">
                 {CATEGORIES.filter((c) => c !== 'Rasprodano').map((cat) => {
                   const isHidden = (storeSettings.hiddenCategories || []).includes(cat);
@@ -1132,7 +1193,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PRODUCT FORM MODAL (SADRŽI PORAVNANA POLJA I PROVJERNU LOGIKU) */}
+      {/* PRODUCT FORM MODAL */}
       {isModalOpen && editingProduct && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white max-w-2xl w-full p-6 sm:p-8 space-y-6 border-2 border-[#F7E97F] shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
@@ -1149,7 +1210,6 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveProductSubmit} className="space-y-4 text-xs font-['Inter']">
-              {/* NAZIV */}
               <div>
                 <label htmlFor="product-name-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                   Naziv artikla *
@@ -1166,7 +1226,6 @@ export const AdminDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* CIJENE I KATEGORIJA - POPRAVLJENO VODORAVNO PORAVNANJE (items-end) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                 <div>
                   <label htmlFor="product-price-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
@@ -1220,7 +1279,6 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* BOJA I MATERIJAL */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="product-color-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
@@ -1255,7 +1313,6 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* OPIS I NJEGA */}
               <div>
                 <label htmlFor="product-desc-textarea" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                   Opis artikla
@@ -1286,7 +1343,6 @@ export const AdminDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* ZALIHE PO VELIČINAMA */}
               <div className="space-y-2 bg-[#F4F2EC] p-4 border-2 border-neutral-300">
                 <label className="block font-['Poppins'] font-black uppercase text-black">
                   Zalihe po veličinama (komada na stanju):
@@ -1313,10 +1369,9 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* UPLOAD SLIKA */}
               <div className="space-y-2 border-2 border-neutral-300 p-4 bg-white">
                 <label className="block font-['Poppins'] font-bold uppercase text-neutral-800">
-                  Galerija slika (Prva slika je glavna):
+                  Galerija slika:
                 </label>
 
                 <div className="mb-3">
@@ -1394,7 +1449,6 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* STATUS OZNAKE (CHECKBOXES) */}
               <div className="flex flex-wrap gap-6 pt-2 bg-[#F4F2EC] p-3 border border-neutral-300">
                 <label className="flex items-center gap-2 cursor-pointer font-['Poppins'] font-bold">
                   <input
@@ -1433,7 +1487,6 @@ export const AdminDashboard: React.FC = () => {
                 </label>
               </div>
 
-              {/* DUGMADI ZA SPREMANJE */}
               <div className="flex justify-end gap-3 pt-4 border-t-2 border-neutral-200">
                 <button
                   type="button"
