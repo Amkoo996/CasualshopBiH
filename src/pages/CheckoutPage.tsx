@@ -48,7 +48,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [promoValidating, setPromoValidating] = useState(false);
   const [promoMessage, setPromoMessage] = useState<{ text: string; error: boolean } | null>(null);
 
-  // Izračun konačnih iznosa
+  // Izračun konačnih iznosa (osnovni subtotal ostaje originalna cijena artikala)
   const activeShippingFee = deliveryMethod === 'pickup' ? 0 : shippingFee;
   const discountAmount = Number(((subtotal * promoDiscountPercent) / 100).toFixed(2));
   const finalSubtotal = Number((subtotal - discountAmount).toFixed(2));
@@ -210,7 +210,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           note: noteDetails.substring(0, 300),
           termsAccepted: formData.termsAccepted,
         },
-        subtotal: finalSubtotal,
+        subtotal: subtotal, // Puna cijena artikala prije popusta
         shippingFee: activeShippingFee,
         total: calculatedTotal,
         paymentMethod: 'cash_on_delivery',
@@ -246,7 +246,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
-      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOTA (DIREKTNO IZ BRUZERA, ISPRAVLJEN TEKST)
+      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOTA
       const TELEGRAM_BOT_TOKEN = '8572264255:AAGOOomuba8xozD90V5_sYV2SR2ECdG0hJI';
       const TELEGRAM_CHAT_IDS = ['6333078744', '7082286798'];
 
@@ -258,6 +258,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         const promoInfoText = appliedPromoCode 
           ? `\nIskorišten Promo Kod: ${appliedPromoCode} (-${discountAmount.toFixed(2)} KM / ${promoDiscountPercent}%)` 
           : '';
+
+        const shippingText = activeShippingFee === 0 ? '0.00 KM (Lično / Gratis)' : `${activeShippingFee.toFixed(2)} KM`;
 
         const telegramText = `
 🛒 NOVA NARUDŽBA #${finalizedOrder.orderNumber}
@@ -271,7 +273,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 📦 Artikli:
 ${itemsListMsg}${promoInfoText}
 
-💳 Dostava: ${activeShippingFee === 0 ? '0.00 KM (Lično / Gratis)' : `\${activeShippingFee.toFixed(2)} KM`}
+💳 Dostava: ${shippingText}
 💰 UKUPNO ZA NAPLATU: ${finalizedOrder.total.toFixed(2)} KM
         `.trim();
 
@@ -303,6 +305,7 @@ ${itemsListMsg}${promoInfoText}
           : fallbackSellerEmail;
 
         const emailSubjectText = `Potvrda narudžbe #${finalizedOrder.orderNumber} - Casual Shop BiH`;
+        const shippingFeeText = activeShippingFee === 0 ? '0.00 KM (Lično preuzimanje / Besplatna dostava)' : `${activeShippingFee.toFixed(2)} KM`;
 
         const messageBodyFormatted = `
 Pozdrav ${formData.firstName},
@@ -310,16 +313,16 @@ Pozdrav ${formData.firstName},
 Vaša narudžba #${finalizedOrder.orderNumber} je uspješno kreirana!
 
 Podaci o kupcu:
-• Ime i prezime: ${formData.firstName} ${formData.lastName}
-• Telefon: ${cleanPhone}
-• Adresa: ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
-• Napomena: ${noteDetails || 'Nema napomene'}
+- Ime i prezime: ${formData.firstName} ${formData.lastName}
+- Telefon: ${cleanPhone}
+- Adresa: ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
+- Napomena: ${noteDetails || 'Nema napomene'}
 
 Naručeni artikli:
 ${itemsSummary}
 ${appliedPromoCode ? `\nPrimijenjen promo kod: ${appliedPromoCode} (-${discountAmount.toFixed(2)} KM)` : ''}
 
-Dostava: ${activeShippingFee === 0 ? '0.00 KM (Lično preuzimanje / Besplatna dostava)' : `\${activeShippingFee.toFixed(2)} KM`}
+Dostava: ${shippingFeeText}
 Ukupno za plaćanje: ${finalizedOrder.total.toFixed(2)} KM (Plaćanje pouzećem)
 ${promoNote}
 
