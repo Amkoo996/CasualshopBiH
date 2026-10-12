@@ -5,7 +5,7 @@ import { CustomerDetails, Order } from '../types';
 import { createOrder, getProducts } from '../lib/db';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics';
 import { recordCheckoutStart, recordCompletedPurchase, saveCartSession } from '../lib/tracking';
-import { validateAndApplyPromoCode, markPromoCodeAsUsed, createPromoCode } from '../lib/promo';
+import { validateAndApplyPromoCode, markPromoCodeAsUsed } from '../lib/promo';
 import { normalizePhone, isValidEmail, isValidName, isValidPostalCode } from '../lib/validation';
 
 interface CheckoutPageProps {
@@ -210,7 +210,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           note: noteDetails.substring(0, 300),
           termsAccepted: formData.termsAccepted,
         },
-        subtotal: subtotal, // Puna cijena artikala prije popusta
+        subtotal: subtotal,
         shippingFee: activeShippingFee,
         total: calculatedTotal,
         paymentMethod: 'cash_on_delivery',
@@ -233,16 +233,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         }
       }
 
-      let nextPromoCode = '';
-      if (cleanEmail) {
-        try {
-          const nextPromo = await createPromoCode(cleanEmail, 'post_purchase', 30 * 24);
-          nextPromoCode = nextPromo.code;
-        } catch (err) {
-          console.warn('Greška pri kreiranju narednog koda:', err);
-        }
-      }
-
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
@@ -259,12 +249,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ? `\nIskorišten Promo Kod: ${appliedPromoCode} (-${discountAmount.toFixed(2)} KM / ${promoDiscountPercent}%)` 
           : '';
 
-        // Pripravljanje teksta za dostavu bez escape znaka '\'
-const shippingText = activeShippingFee === 0 
-  ? '0.00 KM (Lično preuzimanje / Gratis)' 
-  : `${activeShippingFee.toFixed(2)} KM`;
+        const shippingText = activeShippingFee === 0 
+          ? '0.00 KM (Lično preuzimanje / Gratis)' 
+          : `${activeShippingFee.toFixed(2)} KM`;
 
-const telegramText = `
+        const telegramText = `
 🛒 NOVA NARUDŽBA #${finalizedOrder.orderNumber}
 
 👤 Kupac: ${formData.firstName} ${formData.lastName}
@@ -278,7 +267,7 @@ ${itemsListMsg}${promoInfoText}
 
 💳 Dostava: ${shippingText}
 💰 UKUPNO ZA NAPLATU: ${finalizedOrder.total.toFixed(2)} KM
-`.trim();
+        `.trim();
 
         TELEGRAM_CHAT_IDS.forEach((chatId) => {
           fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -298,10 +287,6 @@ ${itemsListMsg}${promoInfoText}
         const itemsSummary = items
           .map((i) => `• ${i.quantity}x ${i.name} (${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
           .join('\n');
-
-        const promoNote = nextPromoCode
-          ? `\n\nHVALA NA KUPOVINI!\nTvoj promo kod od 10% za narednu narudžbu (važi 30 dana): ${nextPromoCode}`
-          : '';
 
         const recipientEmail = cleanEmail && cleanEmail.includes('@')
           ? cleanEmail
@@ -327,7 +312,6 @@ ${appliedPromoCode ? `\nPrimijenjen promo kod: ${appliedPromoCode} (-${discountA
 
 Dostava: ${shippingFeeText}
 Ukupno za plaćanje: ${finalizedOrder.total.toFixed(2)} KM (Plaćanje pouzećem)
-${promoNote}
 
 Srdačan pozdrav,
 Casual Shop BiH
@@ -351,7 +335,7 @@ Casual Shop BiH
               customer_email: recipientEmail,
               customer_phone: cleanPhone,
               customer_address: `${finalizedOrder.customer.address}, ${finalizedOrder.customer.city}`,
-              customer_note: (noteDetails || 'Nema napomene') + promoNote,
+              customer_note: noteDetails || 'Nema napomene',
               subject: emailSubjectText,
               email_subject: emailSubjectText,
               order_number: finalizedOrder.orderNumber,
@@ -587,7 +571,7 @@ Casual Shop BiH
                     errors.email ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                   }`}
                 />
-                <p className="text-[10px] text-neutral-500 mt-1">Za slanje promo koda za iduću kupovinu.</p>
+                <p className="text-[10px] text-neutral-500 mt-1">Za slanje potvrde narudžbe.</p>
                 {errors.email && (
                   <p className="text-[11px] text-red-600 mt-1">{errors.email}</p>
                 )}
