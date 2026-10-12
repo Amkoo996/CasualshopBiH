@@ -19,6 +19,7 @@ import { Product, Order } from './types';
 import { getProducts, getStoreSettings } from './lib/db';
 import { trackVisit } from './lib/tracking';
 import { applyTheme } from './utils/theme';
+import { updateMetaTags } from './utils/seo';
 
 // LAZY LOADING: Admin Panel se učitava na zahtjev (Code Splitting za brže učitavanje sajta)
 const AdminDashboard = lazy(() =>
@@ -60,7 +61,7 @@ export function AppContent() {
     init();
   }, []);
 
-  // Postavljanje naslova stranice
+  // Postavljanje naslova stranice i OpenGraph Meta Tagova za Viber/WhatsApp/Instagram dijeljenje
   useEffect(() => {
     const titles: Record<string, string> = {
       home: 'Casual Shop BiH | Casual odjeća online',
@@ -75,10 +76,12 @@ export function AppContent() {
       'order-success': 'Potvrda narudžbe | Casual Shop BiH',
       admin: 'Admin Kontrolna Tabla | Casual Shop BiH',
     };
+
     if (selectedProduct && currentTab === 'product-detail') {
-      document.title = `${selectedProduct.name} (${selectedProduct.price.toFixed(2)} KM) | Casual Shop BiH`;
+      updateMetaTags(selectedProduct);
     } else {
-      document.title = titles[currentTab] || 'Casual Shop BiH | Casual odjeća online';
+      const pageTitle = titles[currentTab] || 'Casual Shop BiH | Casual odjeća online';
+      updateMetaTags(null, pageTitle);
     }
   }, [currentTab, selectedProduct]);
 
