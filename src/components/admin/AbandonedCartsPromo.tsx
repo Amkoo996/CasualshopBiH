@@ -9,14 +9,16 @@ import {
   Clock,
   Sparkles,
   X,
-  Tag,
   Loader2,
   Ticket,
+  CheckCircle2,
 } from 'lucide-react';
+import { doc, updateDoc } from 'firebase/firestore';
 import { AbandonedCartSession } from '../../types';
 import { getAbandonedCarts } from '../../lib/tracking';
 import { createPromoCode } from '../../lib/promo';
 import { useCart } from '../../context/CartContext';
+import { db } from '../../lib/firebase';
 
 export const AbandonedCartsPromo: React.FC = () => {
   const { settings } = useCart();
@@ -163,10 +165,9 @@ Casual Shop BiH Tim`;
         },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          template_id: 'template_b7r6ees', // ZAJEDNIČKI ŠABLON ZA SVE NOTIFIKACIJE
+          template_id: 'template_b7r6ees',
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
-            // Standardna i prilagođena polja za template_b7r6ees
             from_name: 'Casual Shop BiH',
             from_email: sellerEmail,
             to_name: selectedSession.customerName || 'Kupac',
@@ -189,6 +190,28 @@ Casual Shop BiH Tim`;
 
       if (response.ok) {
         setEmailSentSuccess(true);
+
+        // Označavanje u Firestore bazi da je email poslan
+        if (selectedSession.id) {
+          try {
+            const sessionRef = doc(db, 'cart_sessions', selectedSession.id);
+            await updateDoc(sessionRef, {
+              emailSent: true,
+              emailSentAt: new Date().toISOString(),
+            });
+          } catch (e) {
+            console.warn('Upozorenje pri ažuriranju statusa u bazi:', e);
+          }
+        }
+
+        // Ažuriranje lokalnog stanja
+        setCarts((prev) =>
+          prev.map((c) =>
+            c.id === selectedSession.id || c.email === selectedSession.email
+              ? { ...c, emailSent: true, emailSentAt: new Date().toISOString() }
+              : c
+          )
+        );
       } else {
         const errText = await response.text();
         console.error('EmailJS Error:', errText);
@@ -203,16 +226,16 @@ Casual Shop BiH Tim`;
   };
 
   const handleExportLeadsCSV = () => {
-    const headers = 'Ime,Email,Telefon,Vrijednost KM,Artikli u korpi,Datum\n';
+    const headers = 'Ime,Email,Telefon,Vrijednost KM,Artikli u korpi,Datum,Email Poslan\n';
     const rows = carts
       .map((c) => {
         const itemNames = c.items.map((i) => `${i.name} (${i.size})`).join('; ');
         const formattedDate = parseDate(c.lastUpdated).toLocaleString('bs-BA');
-        return `"${c.customerName || ''}","${c.email || ''}","${c.phone || ''}","${c.subtotal.toFixed(2)}","${itemNames}","${formattedDate}"`;
+        return `"${c.customerName || ''}","${c.email || ''}","${c.phone || ''}","${c.subtotal.toFixed(2)}","${itemNames}","${formattedDate}","${c.emailSent ? 'Da' : 'Ne'}"`;
       })
       .join('\n');
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent(headers + rows);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(headers + rows);
     const link = document.createElement('a');
     link.setAttribute('href', csvContent);
     link.setAttribute('download', `casualshop_napustene_korpe_${new Date().toISOString().split('T')[0]}.csv`);
@@ -257,7 +280,8 @@ Casual Shop BiH Tim`;
           </p>
           <p>
             • <strong>Opcija 1 (Nakon 3 dana):</strong> Šalje se podsjetnik bez promo koda na zaboravljene artikle.<br />
-            • <strong>Opcija 2 (Nakon 5 dni):</strong> Šalje se podsjetnik sa ekskluzivnim promo kodom od 10% koji važi 48 sati.
+            • <strong>Opcija 2 (Nakon 5 dni):</strong> Šalje se podsjetnik sa ekskluzivnim promo kodom od 10% koji važi 48 sati.<br />
+            • <strong>Status slanja:</strong> Nakon slanja emaila, korpa se označava kao **POSLANO** čime se sprečava spamanje.
           </p>
         </div>
       </div>
@@ -270,13 +294,14 @@ Casual Shop BiH Tim`;
               <th className="p-3">Artikli u korpi</th>
               <th className="p-3">Vrijednost</th>
               <th className="p-3">Starost korpe</th>
+              <th className="p-3">Status Emaila</th>
               <th className="p-3 text-right">Akcija</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 font-['Inter']">
             {carts.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-neutral-500 font-['Inter']">
+                <td colSpan={6} className="p-8 text-center text-neutral-500 font-['Inter']">
                   {loading ? 'Učitavanje napuštenih korpi...' : 'Trenutno nema napuštenih korpi u bazi.'}
                 </td>
               </tr>
@@ -351,13 +376,27 @@ Casual Shop BiH Tim`;
                       )}
                     </td>
 
+                    <td className="p-3">
+                      {c.emailSent ? (
+                        <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-['Poppins'] font-bold uppercase rounded border border-emerald-300 inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Email Poslan</span>
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-amber-100 text-amber-800 text-[10px] font-['Poppins'] font-bold uppercase rounded border border-amber-300">
+                          Nije Poslano
+                        </span>
+                      )}
+                    </td>
+
                     <td className="p-3 text-right">
                       <button
                         onClick={() => handleOpenPromoModal(c)}
-                        className="px-3.5 py-2 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 border border-[#0A0A0A] transition-colors cursor-pointer"
+                        disabled={c.emailSent || !c.email}
+                        className="px-3.5 py-2 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 border border-[#0A0A0A] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>Pošalji Email</span>
+                        <span>{c.emailSent ? 'Već Poslano' : 'Pošalji Email'}</span>
                       </button>
                     </td>
                   </tr>
@@ -508,7 +547,7 @@ Casual Shop BiH Tim`;
                 {selectedSession.email && (
                   <button
                     onClick={handleSendDirectEmail}
-                    disabled={sendingEmail}
+                    disabled={sendingEmail || selectedSession.emailSent}
                     className="px-4 py-2.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {sendingEmail ? (
@@ -516,7 +555,7 @@ Casual Shop BiH Tim`;
                     ) : (
                       <Mail className="w-4 h-4" />
                     )}
-                    <span>{sendingEmail ? 'Slanje...' : 'Pošalji e-mail'}</span>
+                    <span>{sendingEmail ? 'Slanje...' : selectedSession.emailSent ? 'Već Poslano' : 'Pošalji e-mail'}</span>
                   </button>
                 )}
               </div>
