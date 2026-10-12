@@ -391,4 +391,491 @@ Casual Shop BiH
         </p>
         <button
           onClick={onBack}
-          className
+          className="px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer"
+        >
+          Povratak na kolekciju
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 font-['Inter']">
+      <button
+        onClick={onBack}
+        className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-8 transition-colors cursor-pointer"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Nazad na korpu</span>
+      </button>
+
+      <div className="mb-8">
+        <h1 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-neutral-900">
+          ZAVRŠETAK NARUDŽBE (CHECKOUT)
+        </h1>
+        <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-['Inter']">
+          Izaberite način preuzimanja i unesite podatke za narudžbu.
+        </p>
+      </div>
+
+      {submitError && (
+        <div className="mb-8 p-4 bg-red-50 border-2 border-red-500 text-red-800 text-xs font-['Inter'] flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+          <span className="font-semibold">{submitError}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="lg:col-span-7 space-y-8">
+          {/* ODABIR DOSTAVE */}
+          <div className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
+            <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A] border-b-2 border-neutral-200 pb-3">
+              1. Način dostave i preuzimanja
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label
+                onClick={() => setDeliveryMethod('courier')}
+                className={`p-4 border-2 flex items-start gap-3 cursor-pointer transition-all ${
+                  deliveryMethod === 'courier'
+                    ? 'border-[#0A0A0A] bg-[#0A0A0A] text-white'
+                    : 'border-neutral-300 bg-white text-black hover:border-neutral-400'
+                }`}
+              >
+                <Truck className="w-5 h-5 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-['Poppins'] text-xs font-bold uppercase block">
+                    Brza pošta (BiH)
+                  </span>
+                  <span className="text-[11px] opacity-80 block">Dostava na vašu adresu ({shippingFee.toFixed(2)} KM)</span>
+                </div>
+              </label>
+
+              <label
+                onClick={() => setDeliveryMethod('pickup')}
+                className={`p-4 border-2 flex items-start gap-3 cursor-pointer transition-all ${
+                  deliveryMethod === 'pickup'
+                    ? 'border-[#0A0A0A] bg-[#0A0A0A] text-white'
+                    : 'border-neutral-300 bg-white text-black hover:border-neutral-400'
+                }`}
+              >
+                <MapPin className="w-5 h-5 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-['Poppins'] text-xs font-bold uppercase block">
+                    Lično preuzimanje
+                  </span>
+                  <span className="text-[11px] opacity-80 block">Sarajevo - 0.00 KM</span>
+                </div>
+              </label>
+            </div>
+
+            {deliveryMethod === 'pickup' && (
+              <div className="p-3 bg-[#F7E97F] border border-black text-black text-xs font-['Inter'] space-y-2">
+                <p className="font-bold font-['Poppins'] uppercase">📍 Lokacija za lično preuzimanje:</p>
+                <p>Sarajevo. Tačnu lokaciju i kontakt dobijate nakon potvrde narudžbe.</p>
+              </div>
+            )}
+          </div>
+
+          {/* FORMULAR PODATAKA */}
+          <div className="bg-white p-6 border-2 border-neutral-300 space-y-6 shadow-sm">
+            <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-3">
+              <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A]">
+                2. Podaci o kupcu
+              </h2>
+            </div>
+
+            <div className="hidden" aria-hidden="true">
+              <input
+                type="text"
+                name="bot_field"
+                tabIndex={-1}
+                autoComplete="off"
+                value={formData.bot_field || ''}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                  Ime *
+                </label>
+                <input
+                  type="text"
+                  name="firstName"
+                  autoComplete="given-name"
+                  maxLength={50}
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  placeholder="npr. Haris"
+                  className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                    errors.firstName ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                  }`}
+                />
+                {errors.firstName && (
+                  <p className="text-[11px] text-red-600 mt-1">{errors.firstName}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                  Prezime *
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  autoComplete="family-name"
+                  maxLength={50}
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  placeholder="npr. Hodžić"
+                  className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                    errors.lastName ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                  }`}
+                />
+                {errors.lastName && (
+                  <p className="text-[11px] text-red-600 mt-1">{errors.lastName}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                  Broj telefona (mobitel) *
+                </label>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  maxLength={20}
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="npr. 061 234 567"
+                  className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                    errors.phone ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                  }`}
+                />
+                <p className="text-[10px] text-neutral-500 mt-1">Nazvat ćemo te radi potvrde.</p>
+                {errors.phone && (
+                  <p className="text-[11px] text-red-600 mt-1">{errors.phone}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                  E-mail adresa <span className="text-neutral-400 font-normal">(opciono)</span>
+                </label>
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  maxLength={100}
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="npr. haris@gmail.com"
+                  className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                    errors.email ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                  }`}
+                />
+                <p className="text-[10px] text-neutral-500 mt-1">Za slanje promo koda za iduću kupovinu.</p>
+                {errors.email && (
+                  <p className="text-[11px] text-red-600 mt-1">{errors.email}</p>
+                )}
+              </div>
+            </div>
+
+            {deliveryMethod === 'courier' ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                      Grad / Mjesto u BiH *
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      autoComplete="address-level2"
+                      maxLength={50}
+                      value={formData.city}
+                      onChange={handleChange}
+                      placeholder="npr. Sarajevo, Tuzla..."
+                      className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                        errors.city ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                      }`}
+                    />
+                    {errors.city && (
+                      <p className="text-[11px] text-red-600 mt-1">{errors.city}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                      Poštanski broj
+                    </label>
+                    <input
+                      type="text"
+                      name="postalCode"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                      maxLength={5}
+                      value={formData.postalCode}
+                      onChange={handleChange}
+                      placeholder="npr. 71000"
+                      className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                        errors.postalCode ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                      }`}
+                    />
+                    {errors.postalCode && (
+                      <p className="text-[11px] text-red-600 mt-1">{errors.postalCode}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                    Adresa stanovanja (Ulica i kućni broj) *
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    autoComplete="street-address"
+                    maxLength={100}
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="npr. Maršala Tita 15 (ili bb)"
+                    className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                      errors.address ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                    }`}
+                  />
+                  {errors.address && (
+                    <p className="text-[11px] text-red-600 mt-1">{errors.address}</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                  Željeni dan i vrijeme preuzimanja *
+                </label>
+                <input
+                  type="text"
+                  name="pickupTime"
+                  value={pickupTime}
+                  onChange={(e) => setPickupTime(e.target.value)}
+                  placeholder="npr. Sutra u 17:00h / Subota u toku dana"
+                  className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
+                    errors.pickupTime ? 'border-red-500' : 'border-neutral-300 focus:border-black'
+                  }`}
+                />
+                {errors.pickupTime && (
+                  <p className="text-[11px] text-red-600 mt-1">{errors.pickupTime}</p>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
+                Napomena za narudžbu <span className="text-neutral-400 font-normal">(opciono)</span>
+              </label>
+              <textarea
+                name="note"
+                rows={2}
+                maxLength={300}
+                value={formData.note}
+                onChange={handleChange}
+                placeholder="Dodatne napomene..."
+                className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs sm:text-sm focus:bg-white focus:border-black focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* NAČIN PLAĆANJA */}
+          <div className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
+            <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-3">
+              <CreditCard className="w-4 h-4 text-[#0A0A0A]" />
+              <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A]">
+                3. Način plaćanja
+              </h2>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 p-4 border-2 border-[#F7E97F] bg-[#0A0A0A] text-white cursor-pointer shadow-md">
+                <input
+                  type="radio"
+                  name="paymentOption"
+                  checked={true}
+                  readOnly
+                  className="mt-1 accent-[#F7E97F]"
+                />
+                <div className="space-y-1">
+                  <span className="font-['Poppins'] text-xs sm:text-sm font-black uppercase tracking-wider text-[#F7E97F]">
+                    {deliveryMethod === 'pickup' ? 'Plaćanje gotovinom pri preuzimanju' : 'Plaćanje pouzećem (Gotovinom kuriru)'}
+                  </span>
+                  <p className="text-xs text-neutral-300 font-['Inter']">
+                    {deliveryMethod === 'pickup'
+                      ? 'Plaćate u gotovini na licu mjesta prilikom preuzimanja paketa.'
+                      : 'Plaćate gotovinom kuriru brze pošte. Moguće otvaranje i pregled paketa prije preuzimanja.'}
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* TEKST I USLOVI POVRATA */}
+          <div className="bg-white p-5 border-2 border-neutral-300 space-y-4 font-['Inter']">
+            <div className="p-3 bg-[#F4F2EC] border border-neutral-300 space-y-2 text-xs text-neutral-700">
+              <p className="font-bold text-black font-['Poppins'] uppercase flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-black" />
+                <span>Procedura za povrat pošiljke i reklamacije:</span>
+              </p>
+              <p>
+                Pri primitku robe provjera ispravnosti narudžbe ovisi o kupcu. Molimo Vas da uporedite primljene artikle s narudžbom, te ukoliko nešto nedostaje odmah to napomenite Vašem dostavljaču ili se odmah obratite direktno nama, jer naknadne reklamacije ne uvažavamo.
+              </p>
+              <p>
+                U slučaju povrata robe kupac je dužan uputiti opravdanu reklamaciju putem e-maila ili Instagram profila. Kupac ima pravo na povrat robe u sljedećim slučajevima:
+              </p>
+              <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
+                <li>isporuka robe koja nije naručena</li>
+                <li>isporuka robe koja ima grešku ili oštećenja koja nisu nastala u transportu</li>
+              </ul>
+              <p className="text-[11px] font-semibold text-black">
+                Naručilac snosi troškove povrata robe i obavezan je artikal vratiti u originalnom nenošenom stanju.
+              </p>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer select-none text-xs text-neutral-800">
+              <input
+                type="checkbox"
+                name="termsAccepted"
+                checked={formData.termsAccepted}
+                onChange={handleChange}
+                className="mt-0.5 w-4 h-4 accent-[#0A0A0A] cursor-pointer"
+              />
+              <span>
+                Slažem se i prihvatam uslove kupovine, otvaranje paketa pri dostavi i navedenu proceduru za povrat robe.*
+              </span>
+            </label>
+            {errors.terms && (
+              <p className="text-[11px] text-red-600 pl-7">{errors.terms}</p>
+            )}
+          </div>
+        </div>
+
+        {/* REGIONALNI PREGLED PROIZVODA I PREDRAČUNA */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-white p-6 border-2 border-[#F7E97F] sticky top-28 space-y-6 shadow-md">
+            <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-black border-b-2 border-neutral-200 pb-3">
+              Pregled narudžbe ({items.length})
+            </h2>
+
+            {/* UNOS PROMO KODA */}
+            <div className="space-y-2 bg-[#F4F2EC] p-3.5 border border-neutral-300">
+              <label className="block text-[11px] font-['Poppins'] font-bold uppercase text-neutral-700">
+                Imate promo kod za popust?
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                  placeholder="npr. FIRST100"
+                  disabled={Boolean(appliedPromoCode)}
+                  className="w-full bg-white border border-neutral-300 px-3 py-1.5 text-xs font-mono font-bold focus:border-black focus:outline-none uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyPromo}
+                  disabled={promoValidating || Boolean(appliedPromoCode)}
+                  className="px-4 py-1.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-wider shrink-0 transition-colors border border-black cursor-pointer disabled:opacity-50"
+                >
+                  {promoValidating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Primijeni'}
+                </button>
+              </div>
+
+              {promoMessage && (
+                <p className={`text-[11px] font-['Inter'] font-semibold ${promoMessage.error ? 'text-red-600' : 'text-emerald-700'}`}>
+                  {promoMessage.text}
+                </p>
+              )}
+            </div>
+
+            <div className="divide-y divide-neutral-200 max-h-64 overflow-y-auto pr-1">
+              {items.map((item) => (
+                <div key={`${item.id}-${item.size}`} className="py-3 flex gap-3 first:pt-0">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-14 h-16 object-cover bg-neutral-100 shrink-0 border border-neutral-200"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
+                    }}
+                  />
+                  <div className="flex-1 flex flex-col justify-between text-xs">
+                    <div>
+                      <h4 className="font-['Poppins'] font-bold text-neutral-900 uppercase line-clamp-1">
+                        {item.name}
+                      </h4>
+                      <div className="text-[11px] text-neutral-500 mt-0.5 font-['Inter']">
+                        Veličina: <strong>{item.size}</strong> • Količina: {item.quantity} kom
+                      </div>
+                    </div>
+                    <div className="font-['Poppins'] font-bold text-black text-right">
+                      {(item.price * item.quantity).toFixed(2)} KM
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2 border-t-2 border-neutral-200 pt-4 text-xs font-['Inter']">
+              <div className="flex justify-between text-neutral-700">
+                <span>Iznos artikala:</span>
+                <span className="font-['Poppins'] font-bold">{subtotal.toFixed(2)} KM</span>
+              </div>
+
+              {promoDiscountPercent > 0 && (
+                <div className="flex justify-between text-emerald-700 font-bold">
+                  <span>Popust ({promoDiscountPercent}%):</span>
+                  <span className="font-['Poppins']">-{discountAmount.toFixed(2)} KM</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-neutral-700">
+                <span>Dostava:</span>
+                <span className="font-['Poppins'] font-bold">
+                  {deliveryMethod === 'pickup' ? (
+                    <span className="text-emerald-700 font-black">LIČNO PREUZIMANJE (0 KM)</span>
+                  ) : activeShippingFee === 0 ? (
+                    <span className="text-emerald-700 font-black">BESPLATNO</span>
+                  ) : (
+                    `${activeShippingFee.toFixed(2)} KM`
+                  )}
+                </span>
+              </div>
+
+              <div className="flex justify-between text-base font-black text-black pt-3 border-t-2 border-neutral-200 font-['Poppins']">
+                <span className="uppercase tracking-wider">UKUPNO:</span>
+                <span className="text-xl">{calculatedTotal.toFixed(2)} KM</span>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.99] border-2 border-[#0A0A0A] cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>
+                {submitting ? 'KREIRANJE NARUDŽBE...' : 'POTVRDI NARUDŽBU'}
+              </span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+};
