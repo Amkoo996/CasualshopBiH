@@ -66,8 +66,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand Intro & Logo */}
           <div className="lg:col-span-2 space-y-4">
             <Logo className="w-14 h-14" />
@@ -88,7 +88,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Stranice / Linkovi */}
+          {/* Stranice */}
           <div>
             <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
               Stranice
@@ -162,7 +162,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Newsletter u footeru */}
+          {/* Newsletter */}
           <div>
             <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-3">
               Newsletter
@@ -210,21 +210,60 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* LOGOTIPI PARTNERA DOSTAVE I PLAĆANJA */}
-        <div className="border-t border-neutral-900 pt-6 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-[11px] font-['Poppins']">
-            <span className="text-neutral-500 font-bold uppercase text-[10px] tracking-wider mr-1">Kurirske službe:</span>
-            <span className="bg-[#171717] text-white border border-neutral-800 px-2 py-1 font-bold">BH Pošta Express</span>
-            <span className="bg-[#171717] text-red-500 border border-neutral-800 px-2 py-1 font-bold">X-Express</span>
+        {/* BRZA DOSTAVA & LOGOTIPI KURIRSKIH SLUŽBI */}
+        <div className="bg-[#121212] border border-neutral-800 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-center md:text-left space-y-1">
+            <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F]">
+              POUZDANA I BRZA DOSTAVA
+            </span>
+            <p className="text-xs text-neutral-300">
+              Sve pakete na vašu adresu šaljemo putem provjerenih kurirskih službi:
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 text-[10px] font-['Poppins']">
-            <span className="text-neutral-500 font-bold uppercase tracking-wider mr-1">Plaćanje & Partneri:</span>
-            <span className="bg-[#171717] text-blue-400 border border-neutral-800 px-2 py-0.5 font-bold">Monri</span>
-            <span className="bg-[#171717] text-white border border-neutral-800 px-2 py-0.5 font-bold">WSpay</span>
-            <span className="bg-[#171717] text-red-500 border border-neutral-800 px-2 py-0.5 font-bold italic">UniCredit</span>
-            <span className="bg-[#171717] text-blue-500 border border-neutral-800 px-2 py-0.5 font-bold italic">VISA</span>
-            <span className="bg-[#171717] text-amber-500 border border-neutral-800 px-2 py-0.5 font-bold">mastercard</span>
+          <div className="flex items-center gap-4 bg-white p-2.5 rounded border border-neutral-700">
+            <img 
+              src="/images/bhpe-logo-1024x338.png" 
+              alt="BH Pošta Express" 
+              className="h-6 sm:h-7 object-contain"
+            />
+            <div className="h-6 w-[1px] bg-neutral-300" />
+            <img 
+              src="/images/logo-x-express-footer.webp" 
+              alt="X-Express" 
+              className="h-6 sm:h-7 object-contain bg-[#0A0A0A] p-1 rounded"
+            />
+          </div>
+        </div>
+
+        {/* TRAKA PARTNERA I KARTICA */}
+        <div className="bg-white p-4 rounded flex flex-wrap items-center justify-center gap-4 sm:gap-8 shadow-inner border border-neutral-300">
+          <span className="font-['Poppins'] font-black text-xs text-neutral-800 uppercase tracking-wider">
+            SIGURNO PLAĆANJE:
+          </span>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-[11px] font-['Poppins'] font-bold">
+            <span className="text-blue-900 border-2 border-blue-900 px-2 py-0.5 tracking-tighter">
+              MONRI
+            </span>
+            <span className="text-[#0A0A0A] border-2 border-black px-2 py-0.5 tracking-tighter">
+              WSpay
+            </span>
+            <span className="text-blue-700 font-black tracking-widest text-xs italic">
+              VISA
+            </span>
+            <span className="text-amber-600 font-black tracking-wider text-xs">
+              mastercard
+            </span>
+            <span className="text-[#0A0A0A] font-black text-xs">
+              ID Check
+            </span>
+            <span className="text-blue-800 font-black text-xs">
+              VISA Secure
+            </span>
+            <span className="text-red-700 font-black text-xs italic">
+              INTESA SANPAOLO BANKA
+            </span>
           </div>
         </div>
 
@@ -234,7 +273,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           <div className="flex items-center gap-4">
             <span className="font-['Poppins'] font-bold text-xs text-neutral-300">
-              Plaćanje pouzećem.
+              Plaćanje pouzećem ili karticama.
             </span>
             <button
               onClick={() => onNavigate('admin')}
