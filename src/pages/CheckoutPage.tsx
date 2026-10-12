@@ -252,7 +252,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
       // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOT ADMINU
       const TELEGRAM_BOT_TOKEN = '8572264255:AAGOOomuba8xozD90V5_sYV2SR2ECdG0hJI';
-      const TELEGRAM_CHAT_ID = settings?.telegramChatId || '6333078744';
+      const TELEGRAM_CHAT_ID = (settings as any)?.telegramChatId || '6333078744';
 
       if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
         const itemsListMsg = items
