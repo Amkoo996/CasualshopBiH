@@ -93,7 +93,7 @@ export async function recordAnalyticsEvent(
 }
 
 // ------------------------------------------------------------------
-// POMOĆNE EXPORT FUNKCIJE SA STATISTIKOM ZA PROIZVODE
+// POMOĆNE EXPORT FUNKCIJE SA STATISTIKOM ZA PROIZVODE I NAPUŠTENE KORPE
 // ------------------------------------------------------------------
 
 export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
@@ -109,17 +109,37 @@ export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
   return DEFAULT_METRICS;
 }
 
+// 🛒 DOHVAĆANJE NAPUŠTENIH KORPI SA ČUVANJEM STATUSAS POSLANOG EMAILA
 export async function getAbandonedCarts(): Promise<any[]> {
   try {
     const cartsRef = collection(db, 'abandoned_carts');
     const snap = await getDocs(cartsRef);
-    return snap.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    return snap.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        lastUpdated: data.updatedAt || data.lastUpdated || new Date().toISOString(),
+        emailSent: Boolean(data.emailSent),
+        emailSentAt: data.emailSentAt || null,
+      };
+    });
   } catch (error) {
     console.error('Greška pri dohvaćanju napuštenih korpi:', error);
     return [];
+  }
+}
+
+// ✉️ OZNAČAVANJE DA JE PODSJETNIK POSLAN NA FIREBASE BAZU
+export async function markCartEmailAsSent(cartId: string): Promise<void> {
+  try {
+    const cartRef = doc(db, 'abandoned_carts', cartId);
+    await updateDoc(cartRef, {
+      emailSent: true,
+      emailSentAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Greška pri ažuriranju statusa poslatog e-maila u bazi:', error);
   }
 }
 
@@ -127,10 +147,8 @@ export async function getAbandonedCarts(): Promise<any[]> {
 export async function recordProductView(productOrId?: any) {
   const productId = typeof productOrId === 'string' ? productOrId : productOrId?.id;
   
-  // 1. Zabilježi opšti analytics event
   await recordAnalyticsEvent('product_view', productId ? { productId } : undefined);
 
-  // 2. Ako imamo ID artikla, uvećaj pojedinačni brojač otvaranja u bazi
   if (productId) {
     try {
       const statsRef = doc(db, 'product_stats', productId);
@@ -150,7 +168,6 @@ export async function recordProductView(productOrId?: any) {
   }
 }
 
-// 📈 Dohvaćanje broja otvaranja za sve proizvode (Za Admin Panel)
 export async function getProductViewStats(): Promise<Record<string, number>> {
   try {
     const statsRef = collection(db, 'product_stats');
