@@ -189,6 +189,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
           </div>
         </div>
 
+        {/* LOGISTIKA */}
         <div className="bg-[#121212] border border-neutral-800 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-center md:text-left space-y-1">
             <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F]">
@@ -209,27 +210,28 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded flex flex-wrap items-center justify-center gap-4 sm:gap-6 shadow-inner border border-neutral-300 text-black">
-          <div className="flex items-center gap-2">
-            <span className="font-['Poppins'] font-black text-xs text-neutral-900 uppercase tracking-wider">
-              SIGURNO PLAĆANJE:
+        {/* MODERNO SIGURNO PLAĆANJE (USKORO) */}
+        <div className="bg-[#121212] p-5 border border-neutral-800 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-white">
+              SIGURNO PLAĆANJE
             </span>
-            <span className="text-[10px] font-extrabold bg-[#0A0A0A] text-[#F7E97F] px-2 py-0.5 font-['Poppins'] uppercase tracking-wider rounded">
-              USKORO
+            <span className="text-[10px] font-extrabold bg-[#F7E97F] text-black px-2 py-0.5 font-['Poppins'] uppercase tracking-wider rounded">
+              USKORO KARTICE
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 text-[11px] font-['Poppins'] font-bold opacity-80">
-            <span className="text-blue-900 border-2 border-blue-900 px-2 py-0.5 tracking-tighter">MONRI</span>
-            <span className="text-[#0A0A0A] border-2 border-black px-2 py-0.5 tracking-tighter">WSpay</span>
-            <span className="text-blue-700 font-black tracking-widest text-xs italic">VISA</span>
-            <span className="text-amber-600 font-black tracking-wider text-xs">mastercard</span>
-            <span className="text-[#0A0A0A] font-black text-xs">ID Check</span>
-            <span className="text-blue-800 font-black text-xs">VISA Secure</span>
-            <span className="text-red-700 font-black text-xs italic">INTESA SANPAOLO BANKA</span>
+          <div className="flex flex-wrap items-center justify-center gap-2.5 opacity-90">
+            <div className="px-3 py-1 bg-white text-blue-900 font-black text-xs rounded border border-neutral-700 font-['Poppins']">MONRI</div>
+            <div className="px-3 py-1 bg-white text-black font-black text-xs rounded border border-neutral-700 font-['Poppins']">WSpay</div>
+            <div className="px-3 py-1 bg-[#1A1F71] text-white font-black italic text-xs rounded font-['Poppins']">VISA</div>
+            <div className="px-3 py-1 bg-[#EB001B] text-white font-black text-xs rounded font-['Poppins']">mastercard</div>
+            <div className="px-3 py-1 bg-white text-blue-800 font-bold text-xs rounded font-['Poppins']">VISA Secure</div>
+            <div className="px-3 py-1 bg-white text-red-600 font-black italic text-xs rounded font-['Poppins']">UniCredit</div>
           </div>
         </div>
 
+        {/* BOTTOM BAR */}
         <div className="border-t border-neutral-900 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 gap-4">
           <p>© {new Date().getFullYear()} Casual Shop BiH. Sva prava zadržana.</p>
 
