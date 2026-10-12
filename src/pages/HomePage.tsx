@@ -99,82 +99,79 @@ export const HomePage: React.FC<HomePageProps> = ({
   ).slice(0, 4);
 
   return (
-    <div className="pb-12 bg-[#F4F2EC]">
-      {/* JEDINSTVENI CRNI SKLOP BEZ RAZMAKA S DRUGIM DIJELOM */}
-      <div className="bg-[#0A0A0A]">
-        {/* ČISTI BANER SA POPUSTOM */}
-        <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/30 py-2.5 px-4 shadow-xl">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
-            <div className="flex items-center gap-2 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
-              <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px]">EKSKLUZIVNO</span>
-              <span>POPUST ZA PRVIH 100 NARUDŽBI: <strong className="underline">10% POPUSTA</strong> (Kod: <u>FIRST100</u>)</span>
-            </div>
-
-            <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1 border border-[#F7E97F] text-[11px] text-white shadow-md">
-              <Clock className="w-3.5 h-3.5 text-[#F7E97F] animate-pulse" />
-              <span>OTVARANJE: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
-            </div>
-          </div>
-        </section>
-
-        {/* HERO SEKCIJA */}
-        <section className="relative bg-[#0A0A0A] text-white min-h-[60vh] sm:min-h-[70vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
-          <div className="absolute inset-0 z-0">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover opacity-50 filter contrast-125"
-            >
-              <source src="/hero-video.mp4" type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
+    <div className="pb-12 bg-[#0A0A0A]">
+      {/* 1. TOP BANER */}
+      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/30 py-2.5 px-4 shadow-xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+          <div className="flex items-center gap-2 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
+            <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px]">EKSKLUZIVNO</span>
+            <span>POPUST ZA PRVIH 100 NARUDŽBI: <strong className="underline">10% POPUSTA</strong> (Kod: <u>FIRST100</u>)</span>
           </div>
 
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 w-full">
-            <div className="max-w-2xl space-y-5">
-              <div className="space-y-2">
-                <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
-                  CASUAL. <br />
-                  <span className="text-[#F7E97F]">SVAKI DAN.</span>
-                </h1>
-                <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-wider text-neutral-300">
-                  Udobna odjeća za svaki dan.
-                </p>
-              </div>
+          <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1 border border-[#F7E97F] text-[11px] text-white shadow-md">
+            <Clock className="w-3.5 h-3.5 text-[#F7E97F] animate-pulse" />
+            <span>OTVARANJE: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
+          </div>
+        </div>
+      </section>
 
-              <p className="text-xs sm:text-sm text-neutral-300 max-w-lg leading-relaxed font-['Inter']">
-                Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom.
-                Plaćanje pouzećem gotovinom prilikom preuzimanja ili lično u Sarajevu.
+      {/* 2. HERO SEKCIJA */}
+      <section className="relative bg-[#0A0A0A] text-white min-h-[60vh] sm:min-h-[70vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F] m-0 p-0 leading-none">
+        <div className="absolute inset-0 z-0">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover opacity-50 filter contrast-125 block"
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 w-full leading-normal">
+          <div className="max-w-2xl space-y-5">
+            <div className="space-y-2">
+              <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
+                CASUAL. <br />
+                <span className="text-[#F7E97F]">SVAKI DAN.</span>
+              </h1>
+              <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-wider text-neutral-300">
+                Udobna odjeća za svaki dan.
               </p>
+            </div>
 
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                <button
-                  onClick={() => onNavigateToShop('Sve')}
-                  className="px-8 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] transition-all flex items-center justify-center gap-2 group shadow-xl active:scale-95 cursor-pointer"
-                >
-                  <span>Pogledaj kolekciju</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </button>
+            <p className="text-xs sm:text-sm text-neutral-300 max-w-lg leading-relaxed font-['Inter']">
+              Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom.
+              Plaćanje pouzećem gotovinom prilikom preuzimanja ili lično u Sarajevu.
+            </p>
 
-                <a
-                  href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-3.5 bg-[#171717]/80 backdrop-blur-sm border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
-                >
-                  <Instagram className="w-4 h-4 text-[#F7E97F]" />
-                  <span>Instagram @casualshop.bih</span>
-                </a>
-              </div>
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <button
+                onClick={() => onNavigateToShop('Sve')}
+                className="px-8 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] transition-all flex items-center justify-center gap-2 group shadow-xl active:scale-95 cursor-pointer"
+              >
+                <span>Pogledaj kolekciju</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </button>
+
+              <a
+                href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3.5 bg-[#171717]/80 backdrop-blur-sm border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
+              >
+                <Instagram className="w-4 h-4 text-[#F7E97F]" />
+                <span>Instagram @casualshop.bih</span>
+              </a>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
-      {/* OSTALI SADRŽAJ SA GLATKIM PRELAZOM */}
-      <div className="space-y-12 sm:space-y-16 mt-10">
+      {/* 3. OSTALI SADRŽAJ (SVI PRATEĆI BLOKOVI NA SVJETLIJOJ POZADINI) */}
+      <div className="bg-[#F4F2EC] pt-10 pb-6 space-y-12 sm:space-y-16">
         {/* BENEFITI */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
