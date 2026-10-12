@@ -173,7 +173,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setSubmitError(null);
 
     try {
-      // 1. INTEGRITET ZALIHA (STOCK LOCKING)
+      // 1. INTEGRITET ZALIHA
       const freshProducts = await getProducts(true);
       for (const item of items) {
         const freshProd = freshProducts.find((p) => p.id === item.id);
@@ -250,7 +250,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
-      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOT (DVA TELEGRAM CHAT ID-A)
+      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOT
       const TELEGRAM_BOT_TOKEN = '8572264255:AAGOOomuba8xozD90V5_sYV2SR2ECdG0hJI';
       const TELEGRAM_CHAT_IDS = ['6333078744', '7082286798'];
 
@@ -279,7 +279,6 @@ ${itemsListMsg}${promoInfoText}
 💰 *UKUPNO ZA NAPLATU:* ${finalizedOrder.total.toFixed(2)} KM
         `.trim();
 
-        // Slanje poruke na sve navedene Telegram ID-eve
         TELEGRAM_CHAT_IDS.forEach((chatId) => {
           fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: 'POST',
@@ -293,7 +292,7 @@ ${itemsListMsg}${promoInfoText}
         });
       }
 
-      // 3. SLANJE E-MAIL OBAVIJESTI PREKO EMAILJS
+      // 3. SLANJE E-MAIL OBAVIJESTI PREKO EMAILJS KORIŠTENJEM ZAJEDNIČKOG TEMPLATE_B7R6EES
       const fallbackSellerEmail = settings?.email || 'info@casualshop.ba';
       try {
         const itemsSummary = items
@@ -308,22 +307,29 @@ ${itemsListMsg}${promoInfoText}
           ? cleanEmail
           : fallbackSellerEmail;
 
+        const emailSubjectText = `Potvrda narudžbe #${finalizedOrder.orderNumber} - Casual Shop BiH`;
+
         const messageBodyFormatted = `
-Vaša narudžba #${finalizedOrder.orderNumber} je uspješno kreirana.
+Pozdrav ${formData.firstName},
+
+Vaša narudžba #${finalizedOrder.orderNumber} je uspješno kreirana!
 
 Podaci o kupcu:
-- Ime i prezime: ${formData.firstName} ${formData.lastName}
-- Telefon: ${cleanPhone}
-- Adresa: ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
-- Napomena: ${noteDetails || 'Nema napomene'}
+• Ime i prezime: ${formData.firstName} ${formData.lastName}
+• Telefon: ${cleanPhone}
+• Adresa: ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
+• Napomena: ${noteDetails || 'Nema napomene'}
 
-Pregled naručenih artikala:
+Naručeni artikli:
 ${itemsSummary}
 ${appliedPromoCode ? `\nPrimijenjen promo kod: ${appliedPromoCode} (-${discountAmount.toFixed(2)} KM)` : ''}
 
 Dostava: ${activeShippingFee === 0 ? '0.00 KM (Lično preuzimanje / Besplatna dostava)' : `\${activeShippingFee.toFixed(2)} KM`}
-Ukupno za plaćanje: ${finalizedOrder.total.toFixed(2)} KM
+Ukupno za plaćanje: ${finalizedOrder.total.toFixed(2)} KM (Plaćanje pouzećem)
 ${promoNote}
+
+Srdačan pozdrav,
+Casual Shop BiH
         `.trim();
 
         const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
@@ -333,21 +339,28 @@ ${promoNote}
           },
           body: JSON.stringify({
             service_id: 'service_h4rxrv2',
-            template_id: 'template_b7r6ees',
+            template_id: 'template_b7r6ees', // ZAJEDNIČKI ŠABLON
             user_id: 'mPKyquhWRcGkRq4gS',
             template_params: {
-              subject: `Potvrda narudžbe #${finalizedOrder.orderNumber} - Casual Shop BiH`,
-              order_number: finalizedOrder.orderNumber,
+              from_name: 'Casual Shop BiH',
+              from_email: fallbackSellerEmail,
+              to_name: `${formData.firstName} ${formData.lastName}`,
+              to_email: recipientEmail,
               customer_name: `${formData.firstName} ${formData.lastName}`,
-              customer_phone: cleanPhone,
               customer_email: recipientEmail,
+              customer_phone: cleanPhone,
               customer_address: `${finalizedOrder.customer.address}, ${finalizedOrder.customer.city}`,
               customer_note: (noteDetails || 'Nema napomene') + promoNote,
+              subject: emailSubjectText,
+              email_subject: emailSubjectText,
+              order_number: finalizedOrder.orderNumber,
               items_summary: itemsSummary,
               total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
-              shipping_fee: activeShippingFee === 0 ? 'BESPLATNO' : `${activeShippingFee.toFixed(2)} KM`,
+              shipping_fee: activeShippingFee === 0 ? 'BESPLATNO / LIČNO' : `${activeShippingFee.toFixed(2)} KM`,
+              message: messageBodyFormatted,
               message_body: messageBodyFormatted,
-              reply_to: cleanEmail || fallbackSellerEmail,
+              email_body: messageBodyFormatted,
+              reply_to: fallbackSellerEmail,
             },
           }),
         });
@@ -374,11 +387,11 @@ ${promoNote}
 
   if (items.length === 0) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center space-y-4">
+      <div className="max-w-3xl mx-auto px-4 py-20 text-center space-y-4 font-[#Inter]">
         <h2 className="font-['Poppins'] text-xl font-black uppercase tracking-wider text-black">
           Vaša korpa je prazna
         </h2>
-        <p className="text-sm text-neutral-600 font-['Inter']">
+        <p className="text-sm text-neutral-600">
           Nemate artikala u korpi za završetak narudžbe.
         </p>
         <button
@@ -392,10 +405,10 @@ ${promoNote}
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 font-['Inter']">
       <button
         onClick={onBack}
-        className="inline-flex items-center gap-2 text-xs font-[#Poppins] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-8 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-8 transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Nazad na korpu</span>
@@ -419,7 +432,6 @@ ${promoNote}
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-7 space-y-8">
-          
           {/* ODABIR DOSTAVE */}
           <div className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
             <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A] border-b-2 border-neutral-200 pb-3">
@@ -478,7 +490,6 @@ ${promoNote}
               </h2>
             </div>
 
-            {/* HONEYPOT NEVIDLJIVO POLJE */}
             <div className="hidden" aria-hidden="true">
               <input
                 type="text"
