@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, Clock, ArrowUpRight } from 'lucide-react';
-import { Product, CATEGORIES, Category } from '../types';
+import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, ArrowUpRight } from 'lucide-react';
+import { Product, CATEGORIES, Category, HomeCMSContent, DEFAULT_CMS_CONTENT } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { NewsletterSection } from '../components/common/NewsletterSection';
 import { useCart } from '../context/CartContext';
+import { getCMSContent } from '../lib/db';
 
 interface HomePageProps {
   products: Product[];
@@ -29,11 +30,26 @@ export const HomePage: React.FC<HomePageProps> = ({
   onNavigateToShop,
 }) => {
   const { settings } = useCart();
+  const [cms, setCms] = useState<HomeCMSContent>(DEFAULT_CMS_CONTENT);
 
-  const targetDate = new Date('2026-11-01T12:00:00+02:00').getTime();
+  useEffect(() => {
+    const loadCMS = async () => {
+      try {
+        const data = await getCMSContent();
+        setCms(data);
+      } catch (e) {
+        console.error('Greška pri učitavanju CMS koda:', e);
+      }
+    };
+    loadCMS();
+  }, []);
+
+  const targetDate = new Date(cms.topBar.targetDate || '2026-11-01T12:00:00+02:00').getTime();
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
+    if (!cms.topBar.showTimer) return;
+
     const timer = setInterval(() => {
       const now = new Date().getTime();
       const difference = targetDate - now;
@@ -51,7 +67,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [cms.topBar.targetDate, cms.topBar.showTimer]);
 
   const hiddenCats = settings?.hiddenCategories || [];
   const visibleCategoryNames = CATEGORIES.filter(
@@ -100,38 +116,53 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="pb-0 bg-[#0A0A0A] w-full font-['Inter']">
-      {/* 1. TOP BANER SA SJAJNOM TRAKOM */}
-      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/20 py-2.5 px-4 shadow-lg w-full relative z-20">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 text-center md:text-left">
-          <div className="flex items-center gap-2.5 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
-            <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px] tracking-widest rounded-xs shadow-xs">EKSKLUZIVNO</span>
-            <span className="text-neutral-200">POPUST ZA PRVIH 100 NARUDŽBI: <strong className="text-[#F7E97F] underline underline-offset-2">10% POPUSTA</strong> (Kod: <u className="decoration-[#F7E97F]">FIRST100</u>)</span>
-          </div>
+      {/* 1. TOP BANER SA SJAJNOM TRAKOM (UPRAVLJANO IZ CMS-a) */}
+      {cms.topBar.enabled && (
+        <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/20 py-2.5 px-4 shadow-lg w-full relative z-20">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 text-center md:text-left">
+            <div className="flex items-center gap-2.5 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
+              <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px] tracking-widest rounded-xs shadow-xs">
+                {cms.topBar.tagText}
+              </span>
+              <span className="text-neutral-200">{cms.topBar.promoText}</span>
+            </div>
 
-          <div className="flex items-center gap-2 font-mono font-bold bg-[#141414] px-3.5 py-1 border border-[#F7E97F]/40 text-[11px] text-white shadow-inner rounded-xs">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F7E97F] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F7E97F]"></span>
-            </span>
-            <span className="text-neutral-300">OTVARANJE:</span>
-            <span className="text-[#F7E97F]">{timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
+            {cms.topBar.showTimer && (
+              <div className="flex items-center gap-2 font-mono font-bold bg-[#141414] px-3.5 py-1 border border-[#F7E97F]/40 text-[11px] text-white shadow-inner rounded-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F7E97F] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F7E97F]"></span>
+                </span>
+                <span className="text-neutral-300">OTVARANJE:</span>
+                <span className="text-[#F7E97F]">
+                  {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* 2. HERO SEKCIJA SA ELEGANTNIM PRELIVIMA */}
+      {/* 2. HERO SEKCIJA (UPRAVLJANO IZ CMS-a) */}
       <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover opacity-45 filter contrast-125 scale-105 transition-transform duration-10000 ease-out"
-          >
-            <source src="/hero-video.mp4" type="video/mp4" />
-          </video>
-          {/* Suptilni tamni gradijenti na ivicama */}
+          {cms.hero.videoUrl.endsWith('.mp4') ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover opacity-45 filter contrast-125 scale-105 transition-transform duration-10000 ease-out"
+            >
+              <source src={cms.hero.videoUrl} type="video/mp4" />
+            </video>
+          ) : (
+            <img
+              src={cms.hero.videoUrl || '/hero-video.mp4'}
+              alt="Hero Background"
+              className="w-full h-full object-cover opacity-45 filter contrast-125"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-80" />
         </div>
@@ -141,21 +172,24 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#171717]/80 backdrop-blur-md border border-neutral-700/80 rounded-full">
                 <Sparkles className="w-3.5 h-3.5 text-[#F7E97F]" />
-                <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-widest text-neutral-300">Niti i kroj bez kompromisa</span>
+                <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-widest text-neutral-300">
+                  Niti i kroj bez kompromisa
+                </span>
               </div>
 
               <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.92] text-white">
-                CASUAL. <br />
-                <span className="text-[#F7E97F] drop-shadow-[0_2px_10px_rgba(247,233,127,0.15)]">SVAKI DAN.</span>
+                {cms.hero.titleLine1} <br />
+                <span className="text-[#F7E97F] drop-shadow-[0_2px_10px_rgba(247,233,127,0.15)]">
+                  {cms.hero.titleLine2}
+                </span>
               </h1>
               <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-widest text-neutral-300">
-                Udobna odjeća za svaki dan.
+                {cms.hero.subtitle}
               </p>
             </div>
 
             <p className="text-xs sm:text-sm text-neutral-300/90 max-w-lg leading-relaxed font-['Inter'] font-normal">
-              Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom.
-              Plaćanje pouzećem gotovinom prilikom preuzimanja ili lično u Sarajevu.
+              {cms.hero.description}
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -163,7 +197,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 onClick={() => onNavigateToShop('Sve')}
                 className="px-8 py-4 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] hover:shadow-[0_0_20px_rgba(247,233,127,0.3)] transition-all flex items-center justify-center gap-2.5 group active:scale-95 cursor-pointer rounded-xs"
               >
-                <span>Pogledaj kolekciju</span>
+                <span>{cms.hero.ctaPrimaryText}</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5" />
               </button>
 
@@ -174,14 +208,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className="px-6 py-4 bg-[#141414]/90 backdrop-blur-md border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2 group cursor-pointer rounded-xs"
               >
                 <Instagram className="w-4 h-4 text-[#F7E97F] group-hover:scale-110 transition-transform" />
-                <span>Instagram @casualshop.bih</span>
+                <span>{cms.hero.ctaSecondaryText}</span>
               </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. OSTALI SADRŽAJ NA PROFINJENOJ SVIJETLOJ POZADINI */}
+      {/* 3. OSTALI SADRŽAJ NA POZADINI */}
       <div className="bg-[#F4F2EC] pt-12 pb-0 w-full">
         <div className="space-y-14 sm:space-y-20 pb-14">
           
@@ -194,9 +228,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <Truck className="w-5 h-5" />
                   </div>
                   <div className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
-                    Dostava {settings.shippingFee || 12} KM • Besplatna preko {settings.freeShippingThreshold || 100} KM
+                    {cms.benefits.shippingTitle}
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-snug">Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)</p>
+                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-snug">{cms.benefits.shippingSub}</p>
                 </div>
 
                 <div className="flex flex-col items-center p-3 pt-6 md:pt-3 group">
@@ -204,9 +238,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
-                    100% Plaćanje pouzećem
+                    {cms.benefits.paymentTitle}
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-snug">Plaćanje gotovinom kuriru pri preuzimanju paketa.</p>
+                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-snug">{cms.benefits.paymentSub}</p>
                 </div>
 
                 <div className="flex flex-col items-center p-3 pt-6 md:pt-3 group">
@@ -214,9 +248,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <RefreshCw className="w-5 h-5" />
                   </div>
                   <div className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
-                    Pregled paketa pri dostavi
+                    {cms.benefits.inspectionTitle}
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-snug">Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.</p>
+                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-snug">{cms.benefits.inspectionSub}</p>
                 </div>
               </div>
             </div>
