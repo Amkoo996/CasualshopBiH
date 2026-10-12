@@ -103,6 +103,7 @@ export interface StoreSettings {
   sellerAddress?: string;
   sellerIdNumber?: string;
   hiddenCategories?: Category[];
+  telegramChatId?: string; // Dopisano polje radi rješavanja tsc build greške
   bgColor?: string;
   textColor?: string;
   yellowBrand?: string;
@@ -125,6 +126,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   sellerName: '',
   sellerAddress: '',
   sellerIdNumber: '',
+  telegramChatId: '6333078744',
   hiddenCategories: [
     'Duksevi i hoodice',
     'Pantalone i trenerke',
