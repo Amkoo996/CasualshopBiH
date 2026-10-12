@@ -1,225 +1,291 @@
-import React, { useState, useEffect } from 'react';
-import { AuthProvider } from './context/AuthContext';
-import { CartProvider } from './context/CartContext';
-import { WishlistProvider } from './context/WishlistContext';
-import { Navbar } from './components/layout/Navbar';
-import { Footer } from './components/layout/Footer';
-import { CartDrawer } from './components/cart/CartDrawer';
-import { FloatingActions } from './components/layout/FloatingActions';
-import { CookieConsent } from './components/common/CookieConsent';
-import { NewsletterPopup } from './components/common/NewsletterPopup';
-import { HomePage } from './pages/HomePage';
-import { ShopPage } from './pages/ShopPage';
-import { ProductDetailPage } from './pages/ProductDetailPage';
-import { WishlistPage } from './pages/WishlistPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { OrderSuccessPage } from './pages/OrderSuccessPage';
-import { StaticPages } from './pages/StaticPages';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { Product, Order } from './types';
-import { getProducts, getStoreSettings } from './lib/db';
-import { trackVisit } from './lib/tracking';
-import { applyTheme } from './utils/theme';
+import React, { useState } from 'react';
+import { Instagram, Mail, MapPin, Truck, ShieldCheck, CreditCard, Send, CheckCircle2, Lock } from 'lucide-react';
+import { Logo } from '../common/Logo';
+import { useCart } from '../../context/CartContext';
+import { subscribeNewsletter } from '../../lib/db';
 
-export function AppContent() {
-  const [currentTab, setCurrentTab] = useState<string>('home');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [lastOrder, setLastOrder] = useState<Order | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [shopCategory, setShopCategory] = useState<string>('Sve');
+interface FooterProps {
+  onNavigate?: (tab: string) => void;
+  onNavigateToPage?: (page: string) => void;
+}
 
-  // Load products & theme settings from Firebase
-  useEffect(() => {
-    trackVisit();
+export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) => {
+  const { settings } = useCart();
+  const [footerEmail, setFooterEmail] = useState('');
+  const [footerConsent, setFooterConsent] = useState(false);
+  const [footerStatus, setFooterStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-    const init = async () => {
-      try {
-        const settings = await getStoreSettings();
-        if (settings) {
-          applyTheme(settings);
-        }
-      } catch (e) {
-        console.error('Greška pri učitavanju postavki teme:', e);
-        applyTheme();
-      }
+  const handleNavigation = (page: string) => {
+    if (onNavigate) onNavigate(page);
+    if (onNavigateToPage) onNavigateToPage(page);
+  };
 
-      try {
-        const data = await getProducts(false);
-        setProducts(data);
-      } catch (e) {
-        console.error('Greška pri dohvatanju kataloga:', e);
-      }
-    };
-
-    init();
-  }, []);
-
-  // Sync document title dynamically for SEO
-  useEffect(() => {
-    const titles: Record<string, string> = {
-      home: 'Casual Shop BiH | Casual odjeća online',
-      shop: 'Kolekcija | Casual Shop BiH',
-      wishlist: 'Moja lista želja | Casual Shop BiH',
-      about: 'O nama | Casual Shop BiH',
-      shipping: 'Dostava i povrat | Casual Shop BiH',
-      terms: 'Uslovi korištenja | Casual Shop BiH',
-      privacy: 'Politika privatnosti | Casual Shop BiH',
-      contact: 'Kontakt | Casual Shop BiH',
-      checkout: 'Checkout - Plaćanje pouzećem | Casual Shop BiH',
-      'order-success': 'Potvrda narudžbe | Casual Shop BiH',
-      admin: 'Admin Kontrolna Tabla | Casual Shop BiH',
-    };
-    if (selectedProduct && currentTab === 'product-detail') {
-      document.title = `${selectedProduct.name} (${selectedProduct.price.toFixed(2)} KM) | Casual Shop BiH`;
-    } else {
-      document.title = titles[currentTab] || 'Casual Shop BiH | Casual odjeća online';
+  const handleFooterNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!footerEmail || !footerEmail.includes('@') || !footerConsent) {
+      setFooterStatus('error');
+      return;
     }
-  }, [currentTab, selectedProduct]);
-
-  // Handle URL hash changes or direct deep-links
-  useEffect(() => {
-    const handleHash = () => {
-      const hash = window.location.hash.replace('#/', '').replace('#', '');
-      if (['admin', 'shop', 'wishlist', 'about', 'contact', 'shipping', 'terms', 'privacy'].includes(hash)) {
-        setCurrentTab(hash);
-      }
-    };
-    handleHash();
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
-  }, []);
-
-  const handleSelectProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setCurrentTab('product-detail');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleNavigateToShop = (category: string = 'Sve') => {
-    setShopCategory(category);
-    setSearchTerm('');
-    setSelectedProduct(null);
-    setCurrentTab('shop');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    setSelectedProduct(null);
-    setCurrentTab('shop');
-  };
-
-  const handleOrderSuccess = (order: Order) => {
-    setLastOrder(order);
-    setCurrentTab('order-success');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      await subscribeNewsletter(footerEmail);
+      setFooterStatus('success');
+      setFooterEmail('');
+      setFooterConsent(false);
+    } catch {
+      setFooterStatus('error');
+    }
   };
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col antialiased selection:bg-yellow-brand selection:text-[#0A0A0A]">
-      {/* Sticky Header */}
-      <Navbar
-        currentTab={currentTab}
-        setCurrentTab={(tab) => {
-          setSelectedProduct(null);
-          setCurrentTab(tab);
-        }}
-        onSearch={handleSearch}
-        onSelectCategory={handleNavigateToShop}
-      />
+    <footer className="bg-[#0A0A0A] text-white border-t-2 border-[#F7E97F] pt-14 pb-12 font-['Inter']">
+      {/* 1. TRUST BADGES (UKLONJENA ZAMJENA I POVRAT) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-14 pb-10 border-b border-neutral-900">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+          <div className="flex flex-col items-center p-3">
+            <Truck className="w-7 h-7 text-[#F7E97F] mb-2.5" />
+            <span className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-white">
+              Dostava 12 KM (48-72h)
+            </span>
+            <span className="text-[11px] text-neutral-400 mt-1">Moguće otvaranje paketa prije preuzimanja</span>
+          </div>
 
-      {/* Main Content Area */}
-      <main className="flex-1">
-        {currentTab === 'home' && (
-          <HomePage
-            products={products}
-            onSelectProduct={handleSelectProduct}
-            onNavigateToShop={handleNavigateToShop}
-          />
-        )}
+          <div className="flex flex-col items-center p-3">
+            <CreditCard className="w-7 h-7 text-[#F7E97F] mb-2.5" />
+            <span className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-white">
+              Plaćanje pouzećem
+            </span>
+            <span className="text-[11px] text-neutral-400 mt-1">Plaćaš kuriru tek pri preuzimanju paketa</span>
+          </div>
 
-        {currentTab === 'shop' && (
-          <ShopPage
-            products={products}
-            onSelectProduct={handleSelectProduct}
-            initialCategory={shopCategory}
-            searchTerm={searchTerm}
-          />
-        )}
+          <div className="flex flex-col items-center p-3">
+            <ShieldCheck className="w-7 h-7 text-[#F7E97F] mb-2.5" />
+            <span className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-white">
+              Casual Kvalitet
+            </span>
+            <span className="text-[11px] text-neutral-400 mt-1">Udobna odjeća za svaki dan</span>
+          </div>
+        </div>
+      </div>
 
-        {currentTab === 'product-detail' && selectedProduct && (
-          <ProductDetailPage
-            product={selectedProduct}
-            onBack={() => setCurrentTab('shop')}
-          />
-        )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+          {/* Brand Intro & Logo */}
+          <div className="lg:col-span-2 space-y-4">
+            <Logo className="w-14 h-14" />
+            <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed max-w-sm font-['Inter']">
+              Casual Shop BiH je brend za one koji vole udobnu i stilsku odjeću za svaki dan.
+              Počeli smo na Instagramu, a sada smo tu i online.
+            </p>
+            <div className="pt-1 flex items-center gap-3">
+              <a
+                href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-[#171717] hover:bg-[#F7E97F] text-white hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold px-3.5 py-2 border border-neutral-800 transition-colors"
+              >
+                <Instagram className="w-4 h-4 text-[#F7E97F] hover:text-[#0A0A0A]" />
+                <span>@casualshop.bih</span>
+              </a>
+            </div>
+          </div>
 
-        {currentTab === 'wishlist' && (
-          <WishlistPage
-            products={products}
-            onSelectProduct={handleSelectProduct}
-            onExploreProducts={() => handleNavigateToShop('Sve')}
-          />
-        )}
+          {/* Stranice */}
+          <div>
+            <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
+              Stranice
+            </h3>
+            <ul className="space-y-2.5 text-xs text-neutral-300 font-['Inter']">
+              <li>
+                <button
+                  onClick={() => handleNavigation('shop')}
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
+                >
+                  Shop
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => handleNavigation('about')}
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
+                >
+                  O nama
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => handleNavigation('contact')}
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
+                >
+                  Kontakt
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => handleNavigation('shipping')}
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
+                >
+                  Dostava i povrat (Praćenje)
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => handleNavigation('terms')}
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
+                >
+                  Uslovi korištenja
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => handleNavigation('privacy')}
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
+                >
+                  Politika privatnosti
+                </button>
+              </li>
+            </ul>
+          </div>
 
-        {currentTab === 'checkout' && (
-          <CheckoutPage
-            onBack={() => setCurrentTab('shop')}
-            onOrderSuccess={handleOrderSuccess}
-            onNavigateToPage={(p) => {
-              setCurrentTab(p);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        )}
+          {/* Kontakt */}
+          <div>
+            <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
+              Kontakt
+            </h3>
+            <ul className="space-y-3 text-xs text-neutral-300 font-['Inter']">
+              <li className="flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-[#F7E97F] shrink-0" />
+                <span>{settings.email || 'info@casualshop.ba'}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <MapPin className="w-3.5 h-3.5 text-[#F7E97F] shrink-0 mt-0.5" />
+                <span>Dostava u sve gradove u Bosni i Hercegovini (Lično u Sarajevu)</span>
+              </li>
+            </ul>
+          </div>
 
-        {currentTab === 'order-success' && lastOrder && (
-          <OrderSuccessPage
-            order={lastOrder}
-            onContinueShopping={() => handleNavigateToShop()}
-          />
-        )}
+          {/* Newsletter */}
+          <div>
+            <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-3">
+              Newsletter
+            </h3>
+            <p className="text-[11px] text-neutral-400 mb-3">
+              Budi prvi koji sazna. Prijavi se za obavijesti o novoj odjeći.
+            </p>
 
-        {['about', 'contact', 'shipping', 'terms', 'privacy'].includes(currentTab) && (
-          <StaticPages page={currentTab as any} />
-        )}
+            {footerStatus === 'success' ? (
+              <div className="flex items-center gap-1.5 text-xs text-[#F7E97F] font-bold">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Hvala na prijavi!</span>
+              </div>
+            ) : (
+              <form onSubmit={handleFooterNewsletter} className="space-y-2 text-xs">
+                <div className="flex">
+                  <input
+                    type="email"
+                    required
+                    value={footerEmail}
+                    onChange={(e) => setFooterEmail(e.target.value)}
+                    placeholder="Tvoj e-mail..."
+                    className="w-full bg-[#171717] border border-neutral-700 px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#F7E97F]"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-[#F7E97F] text-[#0A0A0A] px-3 font-bold hover:bg-[#ebd965] transition-colors shrink-0 cursor-pointer"
+                    title="Prijavi se"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
-        {currentTab === 'admin' && <AdminDashboard />}
-      </main>
+                <label className="flex items-start gap-1.5 text-[10px] text-neutral-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={footerConsent}
+                    onChange={(e) => setFooterConsent(e.target.checked)}
+                    className="mt-0.5 accent-[#F7E97F]"
+                  />
+                  <span>Pristajem na primanje novosti.</span>
+                </label>
+              </form>
+            )}
+          </div>
+        </div>
 
-      {/* Footer */}
-      <Footer
-        onNavigate={(tab) => {
-          setSelectedProduct(null);
-          setCurrentTab(tab);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-      />
+        {/* BRZA DOSTAVA & LOGOTIPI KURIRSKIH SLUŽBI */}
+        <div className="bg-[#121212] border border-neutral-800 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-center md:text-left space-y-1">
+            <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F]">
+              POUZDANA I BRZA DOSTAVA
+            </span>
+            <p className="text-xs text-neutral-300">
+              Sve pakete na vašu adresu šaljemo putem provjerenih kurirskih službi:
+            </p>
+          </div>
 
-      {/* Cart Slide-Over Drawer */}
-      <CartDrawer onCheckout={() => setCurrentTab('checkout')} />
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-['Poppins'] font-black text-xs text-white tracking-tighter border-2 border-neutral-700 px-2.5 py-1 bg-black">
+              BH POŠTA <span className="text-red-600">EXPRESS</span>
+            </span>
+            <span className="font-['Poppins'] font-black text-xs text-red-600 tracking-wider border-2 border-neutral-700 px-2.5 py-1 bg-black">
+              X-EXPRESS
+            </span>
+          </div>
+        </div>
 
-      {/* Floating Action */}
-      <FloatingActions />
+        {/* 3. SIGURNO PLAĆANJE (SA OZNAKOM USKORO) */}
+        <div className="bg-white p-4 rounded flex flex-wrap items-center justify-center gap-4 sm:gap-6 shadow-inner border border-neutral-300 text-black">
+          <div className="flex items-center gap-2">
+            <span className="font-['Poppins'] font-black text-xs text-neutral-900 uppercase tracking-wider">
+              SIGURNO PLAĆANJE:
+            </span>
+            <span className="text-[10px] font-extrabold bg-[#0A0A0A] text-[#F7E97F] px-2 py-0.5 font-['Poppins'] uppercase tracking-wider rounded">
+              USKORO
+            </span>
+          </div>
 
-      {/* Cookie Consent Banner */}
-      <CookieConsent />
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 text-[11px] font-['Poppins'] font-bold opacity-80">
+            <span className="text-blue-900 border-2 border-blue-900 px-2 py-0.5 tracking-tighter">
+              MONRI
+            </span>
+            <span className="text-[#0A0A0A] border-2 border-black px-2 py-0.5 tracking-tighter">
+              WSpay
+            </span>
+            <span className="text-blue-700 font-black tracking-widest text-xs italic">
+              VISA
+            </span>
+            <span className="text-amber-600 font-black tracking-wider text-xs">
+              mastercard
+            </span>
+            <span className="text-[#0A0A0A] font-black text-xs">
+              ID Check
+            </span>
+            <span className="text-blue-800 font-black text-xs">
+              VISA Secure
+            </span>
+            <span className="text-red-700 font-black text-xs italic">
+              INTESA SANPAOLO BANKA
+            </span>
+          </div>
+        </div>
 
-      {/* Newsletter Popup */}
-      <NewsletterPopup />
-    </div>
+        {/* 4. BOTTOM BAR */}
+        <div className="border-t border-neutral-900 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 gap-4">
+          <p>© {new Date().getFullYear()} Casual Shop BiH. Sva prava zadržana.</p>
+
+          <div className="flex items-center gap-4">
+            <span className="font-['Poppins'] font-bold text-xs text-neutral-300">
+              Plaćanje pouzećem je jedino trenutno dostupno.
+            </span>
+            <button
+              onClick={() => handleNavigation('admin')}
+              className="text-neutral-800 hover:text-neutral-500 transition-colors p-1 cursor-pointer"
+              title="Admin Access"
+            >
+              <Lock className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <CartProvider>
-        <WishlistProvider>
-          <AppContent />
-        </WishlistProvider>
-      </CartProvider>
-    </AuthProvider>
-  );
-}
+};
