@@ -1,7 +1,37 @@
-import React from 'react';
-import { Truck, ShieldCheck, Clock, CreditCard, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Truck, ShieldCheck, Clock, CreditCard, Search, AlertCircle, PackageCheck } from 'lucide-react';
+import { getOrderByNumberAndPhone } from '../lib/db';
+import { Order } from '../types';
 
 export const ShippingPage: React.FC = () => {
+  const [orderNumber, setOrderNumber] = useState('');
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [foundOrder, setFoundOrder] = useState<Order | null>(null);
+  const [error, setError] = useState('');
+
+  const handleTrack = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderNumber.trim() || !phone.trim()) return;
+
+    setLoading(true);
+    setError('');
+    setFoundOrder(null);
+
+    try {
+      const order = await getOrderByNumberAndPhone(orderNumber.trim(), phone.trim());
+      if (order) {
+        setFoundOrder(order);
+      } else {
+        setError('Narudžba nije pronađena. Provjerite broj narudžbe i telefon.');
+      }
+    } catch {
+      setError('Došlo je do greške pri pretrazi. Pokušajte ponovo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 sm:py-16 space-y-10 font-['Inter']">
       <div className="text-center space-y-2">
@@ -9,8 +39,83 @@ export const ShippingPage: React.FC = () => {
           Dostava i Plaćanje
         </h1>
         <p className="text-xs sm:text-sm text-neutral-600 max-w-lg mx-auto">
-          Sve informacije o načinima isporuke, cijenama brze pošte i opcijama plaćanja za narudžbe unutar BiH.
+          Sve informacije o načinima isporuke, cijenama brze pošte i provjeri statusa vaše narudžbe.
         </p>
+      </div>
+
+      {/* MODUL ZA PRAĆENJE NARUDŽBE */}
+      <div className="bg-white border-2 border-[#0A0A0A] p-6 shadow-md max-w-lg mx-auto space-y-4">
+        <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-2">
+          <PackageCheck className="w-5 h-5 text-[#0A0A0A]" />
+          <h2 className="font-['Poppins'] text-sm font-black uppercase tracking-wider text-black">
+            Provjera statusa narudžbe
+          </h2>
+        </div>
+
+        <form onSubmit={handleTrack} className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj narudžbe *</label>
+            <input
+              type="text"
+              required
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
+              placeholder="npr. CS-1012-AB12"
+              className="w-full border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none uppercase bg-[#F4F2EC]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj telefona *</label>
+            <input
+              type="tel"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="npr. 061123456"
+              className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none bg-[#F4F2EC]"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#0A0A0A] cursor-pointer"
+          >
+            <Search className="w-4 h-4" />
+            <span>{loading ? 'PRETRAŽIVANJE...' : 'PRONAĐI NARUDŽBU'}</span>
+          </button>
+        </form>
+
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-300 text-red-700 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {foundOrder && (
+          <div className="p-4 bg-[#F4F2EC] border-2 border-[#F7E97F] space-y-3 text-xs animate-fadeIn">
+            <div className="flex justify-between items-center border-b border-neutral-300 pb-2">
+              <span className="font-['Poppins'] font-bold text-black">Status narudžbe:</span>
+              <span className={`px-2.5 py-1 font-['Poppins'] font-black uppercase text-[10px] tracking-wider ${
+                foundOrder.status === 'Nova' ? 'bg-amber-400 text-black' :
+                foundOrder.status === 'Potvrđena' ? 'bg-blue-600 text-white' :
+                foundOrder.status === 'Poslana' ? 'bg-purple-600 text-white' :
+                foundOrder.status === 'Dostavljena' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+              }`}>
+                {foundOrder.status}
+              </span>
+            </div>
+
+            <div className="space-y-1.5 text-neutral-800">
+              <p><strong>Broj narudžbe:</strong> <span className="font-mono">{foundOrder.orderNumber}</span></p>
+              <p><strong>Primalac:</strong> {foundOrder.customer.firstName} {foundOrder.customer.lastName}</p>
+              <p><strong>Adresa dostave:</strong> {foundOrder.customer.address}, {foundOrder.customer.city}</p>
+              <p><strong>Ukupno za plaćanje:</strong> <strong className="text-black font-['Poppins']">{foundOrder.total.toFixed(2)} KM</strong></p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* BANER SA LOGOTIPIMA KURIRSKIH SLUŽBI I PLAĆANJA */}
