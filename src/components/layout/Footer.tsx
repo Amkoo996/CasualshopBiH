@@ -1,171 +1,251 @@
-import React from 'react';
-import { Truck, CreditCard, ShieldCheck, Mail, MapPin, Instagram } from 'lucide-react';
+import React, { useState } from 'react';
+import { Instagram, Mail, MapPin, Truck, ShieldCheck, CreditCard, Send, CheckCircle2, Lock } from 'lucide-react';
+import { Logo } from '../common/Logo';
+import { useCart } from '../../context/CartContext';
+import { subscribeNewsletter } from '../../lib/db';
 
 interface FooterProps {
+  onNavigate?: (tab: string) => void;
   onNavigateToPage?: (page: string) => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavigateToPage }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) => {
+  const { settings } = useCart();
+  const [footerEmail, setFooterEmail] = useState('');
+  const [footerConsent, setFooterConsent] = useState(false);
+  const [footerStatus, setFooterStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleNavigation = (page: string) => {
+    if (onNavigate) onNavigate(page);
+    if (onNavigateToPage) onNavigateToPage(page);
+  };
+
+  const handleFooterNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!footerEmail || !footerEmail.includes('@') || !footerConsent) {
+      setFooterStatus('error');
+      return;
+    }
+    try {
+      await subscribeNewsletter(footerEmail);
+      setFooterStatus('success');
+      setFooterEmail('');
+      setFooterConsent(false);
+    } catch {
+      setFooterStatus('error');
+    }
+  };
+
   return (
-    <footer className="bg-[#0A0A0A] text-white pt-12 pb-8 border-t-2 border-[#F7E97F] font-['Inter']">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        
-        {/* 1. KARTICE POVOLJNOSTI (UKLONJENA ZAMJENA I POVRAT) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-10 border-b border-neutral-800 text-center">
-          <div className="flex flex-col items-center space-y-2 p-4 bg-neutral-950 border border-neutral-800">
-            <Truck className="w-6 h-6 text-[#F7E97F]" />
-            <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-white">
-              DOSTAVA 12 KM (48-72h)
-            </h4>
-            <p className="text-[11px] text-neutral-400">Moguće otvaranje paketa prije preuzimanja</p>
+    <footer className="bg-[#0A0A0A] text-white border-t-2 border-[#F7E97F] pt-14 pb-12 font-['Inter']">
+      {/* 1. TRUST BADGES */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-14 pb-10 border-b border-neutral-900">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+          <div className="flex flex-col items-center p-3">
+            <Truck className="w-7 h-7 text-[#F7E97F] mb-2.5" />
+            <span className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-white">
+              Dostava 12 KM (48-72h)
+            </span>
+            <span className="text-[11px] text-neutral-400 mt-1">Moguće otvaranje paketa prije preuzimanja</span>
           </div>
 
-          <div className="flex flex-col items-center space-y-2 p-4 bg-neutral-950 border border-neutral-800">
-            <CreditCard className="w-6 h-6 text-[#F7E97F]" />
-            <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-white">
-              PLAĆANJE POUZEĆEM
-            </h4>
-            <p className="text-[11px] text-neutral-400">Plaćaš kuriru tek pri preuzimanju paketa</p>
+          <div className="flex flex-col items-center p-3">
+            <CreditCard className="w-7 h-7 text-[#F7E97F] mb-2.5" />
+            <span className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-white">
+              Plaćanje pouzećem
+            </span>
+            <span className="text-[11px] text-neutral-400 mt-1">Plaćaš kuriru tek pri preuzimanju paketa</span>
           </div>
 
-          <div className="flex flex-col items-center space-y-2 p-4 bg-neutral-950 border border-neutral-800">
-            <ShieldCheck className="w-6 h-6 text-[#F7E97F]" />
-            <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-white">
-              CASUAL KVALITET
-            </h4>
-            <p className="text-[11px] text-neutral-400">Udobna odjeća od češljanog pamuka</p>
+          <div className="flex flex-col items-center p-3">
+            <ShieldCheck className="w-7 h-7 text-[#F7E97F] mb-2.5" />
+            <span className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-white">
+              Casual Kvalitet
+            </span>
+            <span className="text-[11px] text-neutral-400 mt-1">Udobna odjeća za svaki dan</span>
           </div>
         </div>
+      </div>
 
-        {/* 2. GLAVNI MENI / GLAVNE KOLONE */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* O BRENDU */}
-          <div className="space-y-4 md:col-span-1">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#F7E97F] flex items-center justify-center font-['Poppins'] font-black text-black text-xs">
-                CS
-              </div>
-              <span className="font-['Poppins'] text-base font-black uppercase tracking-wider text-white">
-                CASUAL <span className="text-[#F7E97F]">shop</span>
-              </span>
-            </div>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Casual Shop BiH je brend za one koji vole udobnu i stilsku odjeću za svaki dan. Počeli smo na Instagramu, a sada smo tu i online.
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+          <div className="lg:col-span-2 space-y-4">
+            <Logo className="w-14 h-14" />
+            <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed max-w-sm font-['Inter']">
+              Casual Shop BiH je brend za one koji vole udobnu i stilsku odjeću za svaki dan.
+              Počeli smo na Instagramu, a sada smo tu i online.
             </p>
-            <a
-              href="https://www.instagram.com/casualshop.bih"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F] hover:underline"
-            >
-              <Instagram className="w-4 h-4" />
-              <span>@casualshop.bih</span>
-            </a>
+            <div className="pt-1 flex items-center gap-3">
+              <a
+                href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-[#171717] hover:bg-[#F7E97F] text-white hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold px-3.5 py-2 border border-neutral-800 transition-colors"
+              >
+                <Instagram className="w-4 h-4 text-[#F7E97F] hover:text-[#0A0A0A]" />
+                <span>@casualshop.bih</span>
+              </a>
+            </div>
           </div>
 
-          {/* STRANICE */}
-          <div className="space-y-3">
-            <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-widest text-[#F7E97F]">
-              STRANICE
-            </h4>
-            <ul className="space-y-2 text-xs text-neutral-300">
+          <div>
+            <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
+              Stranice
+            </h3>
+            <ul className="space-y-2.5 text-xs text-neutral-300 font-['Inter']">
               <li>
-                <button onClick={() => onNavigateToPage?.('shop')} className="hover:text-white transition-colors cursor-pointer">
-                  Kolekcija
+                <button onClick={() => handleNavigation('shop')} className="hover:text-[#F7E97F] transition-colors cursor-pointer">
+                  Shop
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigateToPage?.('about')} className="hover:text-white transition-colors cursor-pointer">
+                <button onClick={() => handleNavigation('about')} className="hover:text-[#F7E97F] transition-colors cursor-pointer">
                   O nama
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigateToPage?.('contact')} className="hover:text-white transition-colors cursor-pointer">
+                <button onClick={() => handleNavigation('contact')} className="hover:text-[#F7E97F] transition-colors cursor-pointer">
                   Kontakt
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigateToPage?.('shipping')} className="hover:text-white transition-colors cursor-pointer">
+                <button onClick={() => handleNavigation('shipping')} className="hover:text-[#F7E97F] transition-colors cursor-pointer">
                   Dostava i povrat (Praćenje)
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigateToPage?.('terms')} className="hover:text-white transition-colors cursor-pointer">
+                <button onClick={() => handleNavigation('terms')} className="hover:text-[#F7E97F] transition-colors cursor-pointer">
                   Uslovi korištenja
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigateToPage?.('privacy')} className="hover:text-white transition-colors cursor-pointer">
+                <button onClick={() => handleNavigation('privacy')} className="hover:text-[#F7E97F] transition-colors cursor-pointer">
                   Politika privatnosti
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* KONTAKT */}
-          <div className="space-y-3">
-            <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-widest text-[#F7E97F]">
-              KONTAKT
-            </h4>
-            <ul className="space-y-2.5 text-xs text-neutral-300">
+          <div>
+            <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
+              Kontakt
+            </h3>
+            <ul className="space-y-3 text-xs text-neutral-300 font-['Inter']">
               <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-[#F7E97F] shrink-0" />
-                <span>info@casualshop.ba</span>
+                <Mail className="w-3.5 h-3.5 text-[#F7E97F] shrink-0" />
+                <span>{settings.email || 'info@casualshop.ba'}</span>
               </li>
               <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-[#F7E97F] shrink-0 mt-0.5" />
-                <span>Dostava u sve gradove u Bosni i Hercegovini (Lično preuzimanje u Sarajevu)</span>
+                <MapPin className="w-3.5 h-3.5 text-[#F7E97F] shrink-0 mt-0.5" />
+                <span>Dostava u sve gradove u Bosni i Hercegovini (Lično u Sarajevu)</span>
               </li>
             </ul>
           </div>
 
-          {/* DOSTAVA PARTNERI BANER */}
-          <div className="space-y-3 bg-neutral-950 p-4 border border-neutral-800">
-            <span className="font-['Poppins'] text-[10px] font-black uppercase tracking-widest text-[#F7E97F] block">
+          <div>
+            <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-3">
+              Newsletter
+            </h3>
+            <p className="text-[11px] text-neutral-400 mb-3">
+              Budi prvi koji sazna. Prijavi se za obavijesti o novoj odjeći.
+            </p>
+
+            {footerStatus === 'success' ? (
+              <div className="flex items-center gap-1.5 text-xs text-[#F7E97F] font-bold">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Hvala na prijavi!</span>
+              </div>
+            ) : (
+              <form onSubmit={handleFooterNewsletter} className="space-y-2 text-xs">
+                <div className="flex">
+                  <input
+                    type="email"
+                    required
+                    value={footerEmail}
+                    onChange={(e) => setFooterEmail(e.target.value)}
+                    placeholder="Tvoj e-mail..."
+                    className="w-full bg-[#171717] border border-neutral-700 px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#F7E97F]"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-[#F7E97F] text-[#0A0A0A] px-3 font-bold hover:bg-[#ebd965] transition-colors shrink-0 cursor-pointer"
+                    title="Prijavi se"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <label className="flex items-start gap-1.5 text-[10px] text-neutral-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={footerConsent}
+                    onChange={(e) => setFooterConsent(e.target.checked)}
+                    className="mt-0.5 accent-[#F7E97F]"
+                  />
+                  <span>Pristajem na primanje novosti.</span>
+                </label>
+              </form>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-[#121212] border border-neutral-800 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-center md:text-left space-y-1">
+            <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F]">
               POUZDANA I BRZA DOSTAVA
             </span>
-            <p className="text-[11px] text-neutral-400">
+            <p className="text-xs text-neutral-300">
               Sve pakete na vašu adresu šaljemo putem provjerenih kurirskih službi:
             </p>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="font-['Poppins'] font-black text-[11px] text-white tracking-tighter border border-neutral-700 px-2 py-1 bg-black">
-                BH POŠTA <span className="text-red-500">EXPRESS</span>
-              </span>
-              <span className="font-['Poppins'] font-black text-[11px] text-red-500 tracking-wider border border-neutral-700 px-2 py-1 bg-black">
-                X-EXPRESS
-              </span>
-            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-['Poppins'] font-black text-xs text-white tracking-tighter border-2 border-neutral-700 px-2.5 py-1 bg-black">
+              BH POŠTA <span className="text-red-600">EXPRESS</span>
+            </span>
+            <span className="font-['Poppins'] font-black text-xs text-red-600 tracking-wider border-2 border-neutral-700 px-2.5 py-1 bg-black">
+              X-EXPRESS
+            </span>
           </div>
         </div>
 
-        {/* 3. SIGURNO PLAĆANJE BANER (KARTIČNO USKORO) */}
-        <div className="bg-white text-black p-4 border-2 border-[#F7E97F] flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="bg-white p-4 rounded flex flex-wrap items-center justify-center gap-4 sm:gap-6 shadow-inner border border-neutral-300 text-black">
           <div className="flex items-center gap-2">
-            <span className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
-              SIGURNO PLAĆANJE
+            <span className="font-['Poppins'] font-black text-xs text-neutral-900 uppercase tracking-wider">
+              SIGURNO PLAĆANJE:
             </span>
-            <span className="text-[10px] font-bold bg-[#0A0A0A] text-[#F7E97F] px-2 py-0.5 font-['Poppins'] uppercase tracking-wider">
-              KARTIČNO PLAĆANJE - USKORO
+            <span className="text-[10px] font-extrabold bg-[#0A0A0A] text-[#F7E97F] px-2 py-0.5 font-['Poppins'] uppercase tracking-wider rounded">
+              USKORO
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-xs font-['Poppins'] font-bold opacity-75">
-            <span className="border border-neutral-300 px-2 py-0.5 text-blue-900">MONRI</span>
-            <span className="border border-neutral-300 px-2 py-0.5 text-black">WSpay</span>
-            <span className="text-blue-800 italic font-black">VISA</span>
-            <span className="text-amber-600 font-black">mastercard</span>
-            <span className="text-red-600 italic font-black">UniCredit</span>
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 text-[11px] font-['Poppins'] font-bold opacity-80">
+            <span className="text-blue-900 border-2 border-blue-900 px-2 py-0.5 tracking-tighter">MONRI</span>
+            <span className="text-[#0A0A0A] border-2 border-black px-2 py-0.5 tracking-tighter">WSpay</span>
+            <span className="text-blue-700 font-black tracking-widest text-xs italic">VISA</span>
+            <span className="text-amber-600 font-black tracking-wider text-xs">mastercard</span>
+            <span className="text-[#0A0A0A] font-black text-xs">ID Check</span>
+            <span className="text-blue-800 font-black text-xs">VISA Secure</span>
+            <span className="text-red-700 font-black text-xs italic">INTESA SANPAOLO BANKA</span>
           </div>
         </div>
 
-        {/* 4. COPYRIGHT NA SAMOM DNU */}
-        <div className="pt-6 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-neutral-500">
+        <div className="border-t border-neutral-900 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 gap-4">
           <p>© {new Date().getFullYear()} Casual Shop BiH. Sva prava zadržana.</p>
-          <p className="font-medium text-neutral-400">
-            Plaćanje pouzećem (gotovinom kuriru) ili lično u Sarajevu.
-          </p>
-        </div>
 
+          <div className="flex items-center gap-4">
+            <span className="font-['Poppins'] font-bold text-xs text-neutral-300">
+              Plaćanje pouzećem je jedino trenutno dostupno.
+            </span>
+            <button
+              onClick={() => handleNavigation('admin')}
+              className="text-neutral-800 hover:text-neutral-500 transition-colors p-1 cursor-pointer"
+              title="Admin Access"
+            >
+              <Lock className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
       </div>
     </footer>
   );
