@@ -14,7 +14,7 @@ declare global {
   }
 }
 
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-FH6DDBHLJ7';
+const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-RL3ZGMND3K';
 const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID;
 
 export const initAnalytics = (consentGranted: boolean) => {
