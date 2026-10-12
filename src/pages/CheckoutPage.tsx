@@ -250,14 +250,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
-      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOT ADMINU
+      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOT (DVA TELEGRAM CHAT ID-A)
       const TELEGRAM_BOT_TOKEN = '8572264255:AAGOOomuba8xozD90V5_sYV2SR2ECdG0hJI';
-      const TELEGRAM_CHAT_ID = (settings as any)?.telegramChatId || '6333078744';
+      const TELEGRAM_CHAT_IDS = ['6333078744', '7082286798'];
 
-      if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+      if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_IDS.length > 0) {
         const itemsListMsg = items
           .map((i) => `• ${i.quantity}x ${i.name} (${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
           .join('\n');
+
+        const promoInfoText = appliedPromoCode 
+          ? `\n🎟 *Iskorišten Promo Kod:* \`\${appliedPromoCode}\` (-${discountAmount.toFixed(2)} KM / ${promoDiscountPercent}%)` 
+          : '';
 
         const telegramText = `
 🛒 *NOVA NARUDŽBA #${finalizedOrder.orderNumber}*
@@ -269,21 +273,24 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 📝 *Napomena:* ${noteDetails || 'Nema napomene'}
 
 📦 *Artikli:*
-${itemsListMsg}
+${itemsListMsg}${promoInfoText}
 
 💳 *Dostava:* ${activeShippingFee === 0 ? '0.00 KM (Lično / Gratis)' : `\${activeShippingFee.toFixed(2)} KM`}
 💰 *UKUPNO ZA NAPLATU:* ${finalizedOrder.total.toFixed(2)} KM
         `.trim();
 
-        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: telegramText,
-            parse_mode: 'Markdown',
-          }),
-        }).catch((err) => console.warn('Telegram notifikacija nije uspješno poslata:', err));
+        // Slanje poruke na sve navedene Telegram ID-eve
+        TELEGRAM_CHAT_IDS.forEach((chatId) => {
+          fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: telegramText,
+              parse_mode: 'Markdown',
+            }),
+          }).catch((err) => console.warn(`Telegram notifikacija za ID ${chatId} nije poslata:`, err));
+        });
       }
 
       // 3. Slanje e-mail obavijesti preko EmailJS
