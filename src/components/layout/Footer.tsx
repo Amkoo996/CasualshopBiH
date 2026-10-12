@@ -189,7 +189,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
           </div>
         </div>
 
-        {/* LOGISTIKA */}
+        {/* LOGISTIKA SA SLIKAMA LOGOA */}
         <div className="bg-[#121212] border border-neutral-800 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-center md:text-left space-y-1">
             <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F]">
@@ -200,34 +200,17 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-['Poppins'] font-black text-xs text-white tracking-tighter border-2 border-neutral-700 px-2.5 py-1 bg-black">
-              BH POŠTA <span className="text-red-600">EXPRESS</span>
-            </span>
-            <span className="font-['Poppins'] font-black text-xs text-red-600 tracking-wider border-2 border-neutral-700 px-2.5 py-1 bg-black">
-              X-EXPRESS
-            </span>
-          </div>
-        </div>
-
-        {/* MODERNO SIGURNO PLAĆANJE (USKORO) */}
-        <div className="bg-[#121212] p-5 border border-neutral-800 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-white">
-              SIGURNO PLAĆANJE
-            </span>
-            <span className="text-[10px] font-extrabold bg-[#F7E97F] text-black px-2 py-0.5 font-['Poppins'] uppercase tracking-wider rounded">
-              USKORO KARTICE
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-2.5 opacity-90">
-            <div className="px-3 py-1 bg-white text-blue-900 font-black text-xs rounded border border-neutral-700 font-['Poppins']">MONRI</div>
-            <div className="px-3 py-1 bg-white text-black font-black text-xs rounded border border-neutral-700 font-['Poppins']">WSpay</div>
-            <div className="px-3 py-1 bg-[#1A1F71] text-white font-black italic text-xs rounded font-['Poppins']">VISA</div>
-            <div className="px-3 py-1 bg-[#EB001B] text-white font-black text-xs rounded font-['Poppins']">mastercard</div>
-            <div className="px-3 py-1 bg-white text-blue-800 font-bold text-xs rounded font-['Poppins']">VISA Secure</div>
-            <div className="px-3 py-1 bg-white text-red-600 font-black italic text-xs rounded font-['Poppins']">UniCredit</div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <img 
+              src="/images/logo-postexpress.png" 
+              alt="BH Pošta Express" 
+              className="h-8 object-contain bg-black px-2.5 py-1 border border-neutral-800 rounded"
+            />
+            <img 
+              src="/images/logo-xexpress.webp" 
+              alt="X-Express" 
+              className="h-8 object-contain bg-black px-2.5 py-1 border border-neutral-800 rounded"
+            />
           </div>
         </div>
 
@@ -237,7 +220,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
 
           <div className="flex items-center gap-4">
             <span className="font-['Poppins'] font-bold text-xs text-neutral-300">
-              Plaćanje pouzećem je jedino trenutno dostupno.
+              Plaćanje pouzećem
             </span>
             <button
               onClick={() => handleNavigation('admin')}
