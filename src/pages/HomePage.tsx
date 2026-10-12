@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, Clock } from 'lucide-react';
+import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, Clock, ArrowUpRight } from 'lucide-react';
 import { Product, CATEGORIES, Category } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { NewsletterSection } from '../components/common/NewsletterSection';
@@ -99,23 +99,27 @@ export const HomePage: React.FC<HomePageProps> = ({
   ).slice(0, 4);
 
   return (
-    <div className="pb-0 bg-[#0A0A0A] w-full">
-      {/* 1. TOP BANER */}
-      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/30 py-2.5 px-4 shadow-xl w-full">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
-          <div className="flex items-center gap-2 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
-            <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px]">EKSKLUZIVNO</span>
-            <span>POPUST ZA PRVIH 100 NARUDŽBI: <strong className="underline">10% POPUSTA</strong> (Kod: <u>FIRST100</u>)</span>
+    <div className="pb-0 bg-[#0A0A0A] w-full font-['Inter']">
+      {/* 1. TOP BANER SA SJAJNOM TRAKOM */}
+      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/20 py-2.5 px-4 shadow-lg w-full relative z-20">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 text-center md:text-left">
+          <div className="flex items-center gap-2.5 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
+            <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px] tracking-widest rounded-xs shadow-xs">EKSKLUZIVNO</span>
+            <span className="text-neutral-200">POPUST ZA PRVIH 100 NARUDŽBI: <strong className="text-[#F7E97F] underline underline-offset-2">10% POPUSTA</strong> (Kod: <u className="decoration-[#F7E97F]">FIRST100</u>)</span>
           </div>
 
-          <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1 border border-[#F7E97F] text-[11px] text-white shadow-md">
-            <Clock className="w-3.5 h-3.5 text-[#F7E97F] animate-pulse" />
-            <span>OTVARANJE: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
+          <div className="flex items-center gap-2 font-mono font-bold bg-[#141414] px-3.5 py-1 border border-[#F7E97F]/40 text-[11px] text-white shadow-inner rounded-xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F7E97F] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F7E97F]"></span>
+            </span>
+            <span className="text-neutral-300">OTVARANJE:</span>
+            <span className="text-[#F7E97F]">{timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
           </div>
         </div>
       </section>
 
-      {/* 2. HERO SEKCIJA */}
+      {/* 2. HERO SEKCIJA SA ELEGANTNIM PRELIVIMA */}
       <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
           <video
@@ -123,26 +127,33 @@ export const HomePage: React.FC<HomePageProps> = ({
             loop
             muted
             playsInline
-            className="w-full h-full object-cover opacity-50 filter contrast-125"
+            className="w-full h-full object-cover opacity-45 filter contrast-125 scale-105 transition-transform duration-10000 ease-out"
           >
             <source src="/hero-video.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/70 to-transparent" />
+          {/* Suptilni tamni gradijenti na ivicama */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-80" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
           <div className="max-w-2xl space-y-6">
-            <div className="space-y-2">
-              <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#171717]/80 backdrop-blur-md border border-neutral-700/80 rounded-full">
+                <Sparkles className="w-3.5 h-3.5 text-[#F7E97F]" />
+                <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-widest text-neutral-300">Niti i kroj bez kompromisa</span>
+              </div>
+
+              <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.92] text-white">
                 CASUAL. <br />
-                <span className="text-[#F7E97F]">SVAKI DAN.</span>
+                <span className="text-[#F7E97F] drop-shadow-[0_2px_10px_rgba(247,233,127,0.15)]">SVAKI DAN.</span>
               </h1>
-              <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-wider text-neutral-300">
+              <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-widest text-neutral-300">
                 Udobna odjeća za svaki dan.
               </p>
             </div>
 
-            <p className="text-xs sm:text-sm text-neutral-300 max-w-lg leading-relaxed font-['Inter']">
+            <p className="text-xs sm:text-sm text-neutral-300/90 max-w-lg leading-relaxed font-['Inter'] font-normal">
               Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom.
               Plaćanje pouzećem gotovinom prilikom preuzimanja ili lično u Sarajevu.
             </p>
@@ -150,19 +161,19 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
               <button
                 onClick={() => onNavigateToShop('Sve')}
-                className="px-8 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] transition-all flex items-center justify-center gap-2 group shadow-xl active:scale-95 cursor-pointer"
+                className="px-8 py-4 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] hover:shadow-[0_0_20px_rgba(247,233,127,0.3)] transition-all flex items-center justify-center gap-2.5 group active:scale-95 cursor-pointer rounded-xs"
               >
                 <span>Pogledaj kolekciju</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5" />
               </button>
 
               <a
                 href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3.5 bg-[#171717]/80 backdrop-blur-sm border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
+                className="px-6 py-4 bg-[#141414]/90 backdrop-blur-md border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2 group cursor-pointer rounded-xs"
               >
-                <Instagram className="w-4 h-4 text-[#F7E97F]" />
+                <Instagram className="w-4 h-4 text-[#F7E97F] group-hover:scale-110 transition-transform" />
                 <span>Instagram @casualshop.bih</span>
               </a>
             </div>
@@ -170,44 +181,53 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 3. OSTALI SADRŽAJ (PRATEĆI BLOKOVI NA SVJETLIJOJ POZADINI) */}
-      <div className="bg-[#F4F2EC] pt-10 pb-0 w-full font-['Inter']">
-        <div className="space-y-12 sm:space-y-16 pb-12">
-          {/* BENEFITI */}
+      {/* 3. OSTALI SADRŽAJ NA PROFINJENOJ SVIJETLOJ POZADINI */}
+      <div className="bg-[#F4F2EC] pt-12 pb-0 w-full">
+        <div className="space-y-14 sm:space-y-20 pb-14">
+          
+          {/* BENEFITI CARDS */}
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
+            <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-md rounded-xs">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
-                <div className="flex flex-col items-center p-2">
-                  <Truck className="w-6 h-6 text-[#0A0A0A] mb-2" />
-                  <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                <div className="flex flex-col items-center p-3 group">
+                  <div className="w-12 h-12 bg-[#0A0A0A] text-[#F7E97F] flex items-center justify-center rounded-full mb-3 group-hover:scale-110 transition-transform">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
                     Dostava {settings.shippingFee || 12} KM • Besplatna preko {settings.freeShippingThreshold || 100} KM
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-1">Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)</p>
+                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-snug">Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)</p>
                 </div>
-                <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
-                  <ShieldCheck className="w-6 h-6 text-[#0A0A0A] mb-2" />
-                  <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+
+                <div className="flex flex-col items-center p-3 pt-6 md:pt-3 group">
+                  <div className="w-12 h-12 bg-[#0A0A0A] text-[#F7E97F] flex items-center justify-center rounded-full mb-3 group-hover:scale-110 transition-transform">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
                     100% Plaćanje pouzećem
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-1">Plaćanje gotovinom kuriru pri preuzimanju paketa.</p>
+                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-snug">Plaćanje gotovinom kuriru pri preuzimanju paketa.</p>
                 </div>
-                <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
-                  <RefreshCw className="w-6 h-6 text-[#0A0A0A] mb-2" />
-                  <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+
+                <div className="flex flex-col items-center p-3 pt-6 md:pt-3 group">
+                  <div className="w-12 h-12 bg-[#0A0A0A] text-[#F7E97F] flex items-center justify-center rounded-full mb-3 group-hover:scale-110 transition-transform">
+                    <RefreshCw className="w-5 h-5" />
+                  </div>
+                  <div className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
                     Pregled paketa pri dostavi
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-1">Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.</p>
+                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-snug">Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.</p>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* KATEGORIJE */}
+          {/* KATEGORIJE SEKCIJA */}
           {displayCategories.length > 0 && (
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
               <div className="flex justify-between items-end border-b-2 border-neutral-300 pb-3">
                 <div>
-                  <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 block mb-1">
+                  <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.25em] text-neutral-500 block mb-1">
                     Katalog
                   </span>
                   <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
@@ -217,20 +237,20 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {visibleCategoryNames.length > displayCategories.length && (
                   <button
                     onClick={() => onNavigateToShop('Sve')}
-                    className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                    className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 cursor-pointer group"
                   >
                     <span>Vidi sve kategorije</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </button>
                 )}
               </div>
 
-              <div className={`grid gap-4 ${getGridClass(displayCategories.length)}`}>
+              <div className={`grid gap-5 ${getGridClass(displayCategories.length)}`}>
                 {displayCategories.map((cat) => (
                   <div
                     key={cat.title}
                     onClick={() => onNavigateToShop(cat.category)}
-                    className="group relative h-48 sm:h-64 overflow-hidden bg-[#0A0A0A] cursor-pointer border-2 border-neutral-200 hover:border-[#F7E97F] transition-all"
+                    className="group relative h-56 sm:h-72 overflow-hidden bg-[#0A0A0A] cursor-pointer border-2 border-neutral-300 hover:border-[#F7E97F] transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 rounded-xs"
                   >
                     <img
                       src={cat.image}
@@ -239,14 +259,15 @@ export const HomePage: React.FC<HomePageProps> = ({
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = OPTIMIZED_FALLBACK_IMAGE;
                       }}
-                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 opacity-75 group-hover:opacity-100"
+                      className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700 ease-out opacity-80 group-hover:opacity-100"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-4">
-                      <span className="font-['Poppins'] text-white text-xs sm:text-sm font-black uppercase tracking-wider group-hover:text-[#F7E97F] transition-colors">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent flex flex-col justify-end p-5 transition-opacity">
+                      <span className="font-['Poppins'] text-white text-sm sm:text-base font-black uppercase tracking-wider group-hover:text-[#F7E97F] transition-colors">
                         {cat.title}
                       </span>
-                      <span className="text-[#F7E97F] text-[10px] font-['Poppins'] font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1 group-hover:underline">
-                        Pogledaj ({cat.count}) <ArrowRight className="w-3 h-3" />
+                      <span className="text-[#F7E97F] text-[11px] font-['Poppins'] font-bold uppercase tracking-widest mt-1 flex items-center gap-1.5 opacity-90 group-hover:opacity-100">
+                        <span>Pogledaj ({cat.count})</span>
+                        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                       </span>
                     </div>
                   </div>
@@ -258,7 +279,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* NOVO U PONUDI */}
           {newProducts.length > 0 && (
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b-2 border-neutral-300 gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-3 border-b-2 border-neutral-300 gap-4">
                 <div>
                   <div className="flex items-center gap-2 text-xs font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 mb-1">
                     <Sparkles className="w-3.5 h-3.5 text-[#0A0A0A]" />
@@ -271,10 +292,10 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                 <button
                   onClick={() => onNavigateToShop('Sve')}
-                  className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                  className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer group"
                 >
                   <span>Pogledaj sve novitete</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </button>
               </div>
 
@@ -293,7 +314,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* ISTAKNUTI ARTIKLI */}
           {featuredProducts.length > 0 && (
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b-2 border-neutral-300 gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-3 border-b-2 border-neutral-300 gap-4">
                 <div>
                   <div className="flex items-center gap-2 text-xs font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 mb-1">
                     <TrendingUp className="w-3.5 h-3.5 text-[#0A0A0A]" />
@@ -306,10 +327,10 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                 <button
                   onClick={() => onNavigateToShop('Sve')}
-                  className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                  className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer group"
                 >
                   <span>Pregledaj sve</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </button>
               </div>
 
@@ -326,7 +347,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           )}
         </div>
 
-        {/* Newsletter naliježe bez donje margine direktno na crni footer */}
+        {/* NEWSLETTER NALIJEŽE DIREKTNO NA FOOTER */}
         <div className="bg-[#0A0A0A] -mb-12">
           <NewsletterSection />
         </div>
