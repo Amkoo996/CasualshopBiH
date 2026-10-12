@@ -151,7 +151,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
       setContactData({ name: '', email: '', phone: '', message: '' });
     } catch (err: any) {
       console.error('Kontakt forma slanje e-maila zakazalo:', err);
-      // Iako EmailJS zakaže, poruka je poslana na Telegram pa možemo prikazati uspjeh
       setContactSubmitted(true);
       setContactData({ name: '', email: '', phone: '', message: '' });
     } finally {
@@ -285,6 +284,29 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 <p><strong>Primalac:</strong> {foundOrder.customer.firstName} {foundOrder.customer.lastName}</p>
                 <p><strong>Adresa dostave:</strong> {foundOrder.customer.address}, {foundOrder.customer.city}</p>
                 <p><strong>Ukupno za plaćanje:</strong> <strong className="text-black font-['Poppins']">{foundOrder.total.toFixed(2)} KM</strong></p>
+
+                {/* DETALJI O PODACIMA PRAĆENJA KADA JE POŠILJKA POSLANA */}
+                {foundOrder.trackingNumber ? (
+                  <div className="mt-3 p-3 bg-purple-50 border border-purple-300 rounded space-y-1 text-purple-950 font-['Inter']">
+                    <p className="font-['Poppins'] font-bold uppercase text-[11px] text-purple-900 flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-purple-700 shrink-0" />
+                      <span>Informacije o dostavi brze pošte</span>
+                    </p>
+                    <p><strong>Kurir:</strong> {foundOrder.courierName || 'X Express'}</p>
+                    <p><strong>Broj pošiljke (Tracking):</strong> <strong className="font-mono text-sm">{foundOrder.trackingNumber}</strong></p>
+                    <p className="text-[11px] text-neutral-600 pt-1 border-t border-purple-200">
+                      * Paket možete pratiti direktno putem zvanične stranice kurirske službe {foundOrder.courierName || 'X Express'} ili sačekajte Viber/SMS obavijest.
+                    </p>
+                  </div>
+                ) : foundOrder.status === 'Poslana' ? (
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-300 text-amber-900 rounded space-y-1 text-[11px]">
+                    <p className="font-bold font-['Poppins'] uppercase flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-amber-700 shrink-0" />
+                      <span>Paket je predan kurirskoj službi X Express</span>
+                    </p>
+                    <p>Broj pošiljke stiže direktno na vaš telefon putem Viber / SMS poruke od strane X Expressa čim paket uđe u distribuciju.</p>
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
