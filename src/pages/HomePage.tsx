@@ -99,9 +99,9 @@ export const HomePage: React.FC<HomePageProps> = ({
   ).slice(0, 4);
 
   return (
-    <div className="pb-12 bg-[#0A0A0A]">
+    <div className="pb-12 bg-[#0A0A0A] w-full">
       {/* 1. TOP BANER */}
-      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/30 py-2.5 px-4 shadow-xl">
+      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/30 py-2.5 px-4 shadow-xl w-full">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
           <div className="flex items-center gap-2 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
             <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px]">EKSKLUZIVNO</span>
@@ -115,23 +115,23 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 2. HERO SEKCIJA */}
-      <section className="relative bg-[#0A0A0A] text-white min-h-[60vh] sm:min-h-[70vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F] m-0 p-0 leading-none">
+      {/* 2. HERO SEKCIJA (ISPRAVLJENO PUNO PREKRIVANJE) */}
+      <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
           <video
             autoPlay
             loop
             muted
             playsInline
-            className="w-full h-full object-cover opacity-50 filter contrast-125 block"
+            className="w-full h-full object-cover opacity-50 filter contrast-125"
           >
             <source src="/hero-video.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/70 to-transparent" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 w-full leading-normal">
-          <div className="max-w-2xl space-y-5">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
+          <div className="max-w-2xl space-y-6">
             <div className="space-y-2">
               <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
                 CASUAL. <br />
@@ -170,8 +170,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 3. OSTALI SADRŽAJ (SVI PRATEĆI BLOKOVI NA SVJETLIJOJ POZADINI) */}
-      <div className="bg-[#F4F2EC] pt-10 pb-6 space-y-12 sm:space-y-16">
+      {/* 3. OSTALI SADRŽAJ (PRATEĆI BLOKOVI NA SVJETLIJOJ POZADINI) */}
+      <div className="bg-[#F4F2EC] pt-10 pb-6 space-y-12 sm:space-y-16 w-full">
         {/* BENEFITI */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
