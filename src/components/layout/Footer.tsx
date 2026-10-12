@@ -189,27 +189,26 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
           </div>
         </div>
 
-        {/* LOGISTIKA SA SLIKAMA LOGOA */}
+        {/* LOGISTIKA SA SLIKAMA LOGOA X EXPRESS */}
         <div className="bg-[#121212] border border-neutral-800 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-center md:text-left space-y-1">
             <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F]">
               POUZDANA I BRZA DOSTAVA
             </span>
             <p className="text-xs text-neutral-300">
-              Sve pakete na vašu adresu šaljemo putem provjerenih kurirskih službi:
+              Sve pakete na vašu adresu šaljemo putem ugovorene kurirske službe brze pošte:
             </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
             <img 
-              src="/images/logo-postexpress.png" 
-              alt="BH Pošta Express" 
-              className="h-8 object-contain bg-black px-2.5 py-1 border border-neutral-800 rounded"
-            />
-            <img 
-              src="/images/logo-xexpress.webp" 
-              alt="X-Express" 
-              className="h-8 object-contain bg-black px-2.5 py-1 border border-neutral-800 rounded"
+              src="/images/logo-x-express-brza-posta.png" 
+              alt="X Express Brza Pošta" 
+              className="h-9 object-contain bg-white px-3 py-1 border border-neutral-800 rounded"
+              onError={(e) => {
+                // Fallback ukoliko slika ima ekstenziju .jpg ili .webp
+                (e.target as HTMLImageElement).src = '/images/logo-xexpress.webp';
+              }}
             />
           </div>
         </div>
