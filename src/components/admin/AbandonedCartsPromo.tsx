@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Mail,
-  ShoppingBag,
   Send,
   Copy,
   Check,
@@ -11,8 +10,8 @@ import {
   Sparkles,
   X,
   Tag,
-  AlertCircle,
   Loader2,
+  Ticket,
 } from 'lucide-react';
 import { AbandonedCartSession } from '../../types';
 import { getAbandonedCarts } from '../../lib/tracking';
@@ -27,6 +26,9 @@ export const AbandonedCartsPromo: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState<AbandonedCartSession | null>(null);
   const [copied, setCopied] = useState(false);
+  
+  // 2 Opcije slanja e-maila
+  const [emailMode, setEmailMode] = useState<'3days_no_code' | '5days_with_code'>('3days_no_code');
   const [promoCode, setPromoCode] = useState('');
   const [promoDiscount, setPromoDiscount] = useState('10%');
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -39,7 +41,7 @@ export const AbandonedCartsPromo: React.FC = () => {
       setCarts(real || []);
     } catch {
       setCarts([]);
-    } finally {
+    } fontally {
       setLoading(false);
     }
   };
@@ -48,7 +50,6 @@ export const AbandonedCartsPromo: React.FC = () => {
     loadCarts();
   }, []);
 
-  // Sigurno parsiranje datuma bez obzira na format polja lastUpdated
   const parseDate = (dateVal: any): Date => {
     if (!dateVal) return new Date();
     if (typeof dateVal === 'object' && typeof dateVal.toDate === 'function') {
@@ -62,6 +63,16 @@ export const AbandonedCartsPromo: React.FC = () => {
     setSelectedSession(session);
     setEmailSentSuccess(false);
 
+    // Provjera starosti korpe radi automatske preporuke opcije
+    const dateObj = parseDate(session.lastUpdated);
+    const daysDiff = Math.floor((Date.now() - dateObj.getTime()) / (1000 * 3600 * 24));
+    
+    if (daysDiff >= 5) {
+      setEmailMode('5days_with_code');
+    } else {
+      setEmailMode('3days_no_code');
+    }
+
     try {
       const generated = await createPromoCode(
         session.email || 'gost@casualshop.ba',
@@ -74,15 +85,35 @@ export const AbandonedCartsPromo: React.FC = () => {
     }
   };
 
+  // GENERISANJE SADRŽAJA EMAIL-A ZAVISNO OD ODABRANE OPCIJE
   const generateEmailBody = (session: AbandonedCartSession) => {
     const name = session.customerName || 'prijatelju';
     const itemsList = session.items
       .map((i) => `• ${i.name} (Veličina: ${i.size})`)
       .join('\n');
 
+    if (emailMode === '3days_no_code') {
+      return `Pozdrav ${name},
+
+Primijetili smo da ti se svidjela odjeća u Casual Shop BiH, ali nisi dovršio/la narudžbu:
+
+${itemsList}
+
+Tvoja kombinacija te i dalje čeka!
+
+Plaćanje je sigurno pouzećem prilikom preuzimanja od kurira, a dostava stiže u roku 48–72h širom BiH.
+
+Klikni na link i dovrši narudžbu dok su zalihe u tvojoj veličini još dostupne:
+https://casualshopbih.pages.dev
+
+Ako imaš pitanja oko veličine ili dostave, samo odgovori na ovu poruku ili nam se javi na Instagram @casualshop.bih.
+
+Casual Shop BiH`;
+    }
+
     return `Pozdrav ${name},
 
-Primijetili smo da ti se svidjela odjeća u Casual Shop BiH, ali nisi dovršio narudžbu:
+Primijetili smo da ti se svidjela odjeća u Casual Shop BiH, ali nisi dovršio/la narudžbu:
 
 ${itemsList}
 
@@ -95,12 +126,13 @@ Plaćanje je sigurno pouzećem prilikom preuzimanja od kurira, a dostava stiže 
 Klikni na link i dovrši narudžbu dok su zalihe u tvojoj veličini još dostupne:
 https://casualshopbih.pages.dev
 
-Ako imaš pitanja oko veličine ili dostave, samo odgovori na ovu poruku ili nam se javi na Instagram @casualshop.bih.
-
 Casual Shop BiH`;
   };
 
   const generateEmailSubject = () => {
+    if (emailMode === '3days_no_code') {
+      return `Casual Shop BiH • Zaboravio/la si nešto u korpi?`;
+    }
     return `Casual Shop BiH • Zaboravio/la si nešto u korpi? Poklanjamo ti ${promoDiscount} popusta!`;
   };
 
@@ -135,8 +167,8 @@ Casual Shop BiH`;
           template_params: {
             customer_name: selectedSession.customerName || 'Kupac',
             customer_email: selectedSession.email,
-            promo_code: promoCode,
-            discount_percent: promoDiscount,
+            promo_code: emailMode === '5days_with_code' ? promoCode : 'N/A',
+            discount_percent: emailMode === '5days_with_code' ? promoDiscount : '0%',
             items_summary: itemsSummary,
             email_body: fullEmailContent,
             reply_to: sellerEmail,
@@ -179,21 +211,21 @@ Casual Shop BiH`;
   };
 
   return (
-    <div className="bg-white border-2 border-neutral-200 p-5 sm:p-7 space-y-6 shadow-sm">
+    <div className="bg-white border-2 border-neutral-200 p-5 sm:p-7 space-y-6 shadow-sm font-['Inter']">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-200">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] bg-[#0A0A0A] text-[#F7E97F] px-2 py-0.5 border border-[#F7E97F]">
               SMART MARKETING
             </span>
-            <span className="text-xs text-neutral-500 font-medium">Automatizacija Popusta</span>
+            <span className="text-xs text-neutral-500 font-medium">Automatizacija Podsjetnika</span>
           </div>
           <h3 className="font-['Poppins'] text-lg sm:text-xl font-black uppercase tracking-tight text-neutral-900 mt-1 flex items-center gap-2">
             <Mail className="w-5 h-5 text-[#0A0A0A]" />
-            <span>Napuštene korpe & Generisanje Promo Kodova</span>
+            <span>Napuštene korpe & E-mail Podsjetnici</span>
           </h3>
           <p className="text-xs text-neutral-500 font-['Inter']">
-            Spisak posjetilaca koji su ostavili artikle u korpi. Pošaljite im jedinstveni promo kod od 10% popusta (trajanje 48h).
+            Slanje podsjetnika u 2 koraka: Obični podsjetnik nakon 3 dni ili podsjetnik sa promo kodom od 10% nakon 5 dni.
           </p>
         </div>
 
@@ -210,11 +242,11 @@ Casual Shop BiH`;
         <Sparkles className="w-5 h-5 text-[#0A0A0A] shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p className="font-semibold text-neutral-900">
-            Logika slanja promo kodova od 10%:
+            Logika i opcije slanja e-mail podsjetnika:
           </p>
           <p>
-            • Kupci u napuštenim korpama dobijaju kod s trajanjem od <strong>48 sati</strong>.<br />
-            • Nakon uspješno završene kupovine, kupac u mailu dobija <strong>jednokratni kod od 10% za narednu kupovinu koji važi 30 dana</strong>.
+            • <strong>Opcija 1 (Nakon 3 dana):</strong> Šalje se podsjetnik bez promo koda na zaboravljene artikle.<br />
+            • <strong>Opcija 2 (Nakon 5 dni):</strong> Šalje se podsjetnik sa ekskluzivnim promo kodom od 10% koji važi 48 sati.
           </p>
         </div>
       </div>
@@ -234,15 +266,15 @@ Casual Shop BiH`;
             {carts.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-neutral-500 font-['Inter']">
-                  Trenutno nema napuštenih korpi u bazi.
+                  {loading ? 'Učitavanje napuštenih korpi...' : 'Trenutno nema napuštenih korpi u bazi.'}
                 </td>
               </tr>
             ) : (
               carts.map((c) => {
                 const dateObj = parseDate(c.lastUpdated);
                 const daysDiff = Math.floor((Date.now() - dateObj.getTime()) / (1000 * 3600 * 24));
-                const is2to5Days = daysDiff >= 2 && daysDiff <= 5;
-                const isMoreThan7Days = daysDiff >= 7;
+                const is3Days = daysDiff >= 3 && daysDiff < 5;
+                const is5DaysPlus = daysDiff >= 5;
 
                 return (
                   <tr key={c.id || c.email} className="hover:bg-neutral-50">
@@ -296,14 +328,14 @@ Casual Shop BiH`;
                         <Clock className="w-3 h-3 text-neutral-400" />
                         <span>{dateObj.toLocaleDateString('bs-BA')}</span>
                       </div>
-                      {is2to5Days && (
-                        <span className="text-[10px] font-['Poppins'] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 mt-1 inline-block">
-                          Za podsjetnik (2-5 dana)
+                      {is3Days && (
+                        <span className="text-[10px] font-['Poppins'] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 mt-1 inline-block">
+                          Podsjetnik (3 dana)
                         </span>
                       )}
-                      {isMoreThan7Days && (
-                        <span className="text-[10px] font-['Poppins'] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200 mt-1 inline-block">
-                          Ponovno slanje (&gt;7 dana)
+                      {is5DaysPlus && (
+                        <span className="text-[10px] font-['Poppins'] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 mt-1 inline-block">
+                          Slanje promo koda (5+ dana)
                         </span>
                       )}
                     </td>
@@ -313,8 +345,8 @@ Casual Shop BiH`;
                         onClick={() => handleOpenPromoModal(c)}
                         className="px-3.5 py-2 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 border border-[#0A0A0A] transition-colors cursor-pointer"
                       >
-                        <Tag className="w-3.5 h-3.5" />
-                        <span>Pošalji Promo (10%)</span>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Pošalji Email</span>
                       </button>
                     </td>
                   </tr>
@@ -325,14 +357,15 @@ Casual Shop BiH`;
         </table>
       </div>
 
+      {/* MODAL ZA ODABIR OPCIJE SLANJA I PREGLED EMAIL-A */}
       {selectedSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white max-w-2xl w-full border-2 border-[#F7E97F] shadow-2xl p-6 space-y-5 animate-scaleUp max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn font-['Inter']">
+          <div className="bg-white max-w-2xl w-full border-2 border-[#F7E97F] shadow-2xl p-6 space-y-5 my-8 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-200">
               <div className="flex items-center gap-2">
-                <Tag className="w-5 h-5 text-[#0A0A0A]" />
+                <Mail className="w-5 h-5 text-[#0A0A0A]" />
                 <h3 className="font-['Poppins'] text-sm sm:text-base font-black uppercase tracking-wider text-black">
-                  Slanje Promo Koda Od 10% (Trajanje 48h)
+                  Slanje e-mail podsjetnika kupcu
                 </h3>
               </div>
               <button
@@ -346,11 +379,57 @@ Casual Shop BiH`;
             {emailSentSuccess && (
               <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-['Poppins'] font-bold flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-600" />
-                <span>E-mail obavijest sa promo kodom je uspješno poslana na {selectedSession.email}!</span>
+                <span>E-mail obavijest je uspješno poslana na adresu {selectedSession.email}!</span>
               </div>
             )}
 
-            <div className="bg-[#F4F2EC] p-3 text-xs flex flex-wrap justify-between gap-3 font-['Inter']">
+            {/* ODABIR OPCIJE EMAIL-A (RADIO GUMB) */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-neutral-700 uppercase tracking-wider block font-['Poppins']">
+                Odaberite opciju slanja:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* OPCIJA 1 */}
+                <button
+                  type="button"
+                  onClick={() => setEmailMode('3days_no_code')}
+                  className={`p-3 text-left border-2 transition-all cursor-pointer ${
+                    emailMode === '3days_no_code'
+                      ? 'border-black bg-[#F4F2EC]'
+                      : 'border-neutral-200 bg-white hover:border-neutral-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-['Poppins'] font-bold text-xs text-black">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <span>1. Nakon 3 dana (BEZ koda)</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-600 mt-1">
+                    Standardni podsjetnik na zaboravljene artikle.
+                  </p>
+                </button>
+
+                {/* OPCIJA 2 */}
+                <button
+                  type="button"
+                  onClick={() => setEmailMode('5days_with_code')}
+                  className={`p-3 text-left border-2 transition-all cursor-pointer ${
+                    emailMode === '5days_with_code'
+                      ? 'border-black bg-[#F4F2EC]'
+                      : 'border-neutral-200 bg-white hover:border-neutral-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-['Poppins'] font-bold text-xs text-black">
+                    <Ticket className="w-4 h-4 text-amber-600" />
+                    <span>2. Nakon 5 dni (SA kodom 10%)</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-600 mt-1">
+                    Uključuje generisani promo kod koji važi 48 sati.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-[#F4F2EC] p-3 text-xs flex flex-wrap justify-between gap-3">
               <div>
                 <span className="text-neutral-500 block text-[10px] uppercase font-bold">Kupac</span>
                 <strong className="text-black font-['Poppins']">{selectedSession.customerName || 'Nepoznato'}</strong>
@@ -365,26 +444,28 @@ Casual Shop BiH`;
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs font-['Inter']">
-              <div>
-                <label className="font-bold text-neutral-700 block mb-1">Generisani 1-time Promo Kod:</label>
-                <input
-                  type="text"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                  className="w-full p-2 border-2 border-neutral-300 font-mono font-bold text-sm bg-neutral-50 focus:border-black focus:outline-none text-[#0A0A0A]"
-                />
+            {emailMode === '5days_with_code' && (
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="font-bold text-neutral-700 block mb-1">Generisani Promo Kod (48h):</label>
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    className="w-full p-2 border-2 border-neutral-300 font-mono font-bold text-sm bg-neutral-50 focus:border-black focus:outline-none text-[#0A0A0A]"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-neutral-700 block mb-1">Popust:</label>
+                  <input
+                    type="text"
+                    value={promoDiscount}
+                    readOnly
+                    className="w-full p-2 border-2 border-neutral-300 font-bold text-sm bg-neutral-100 focus:outline-none"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="font-bold text-neutral-700 block mb-1">Popust:</label>
-                <input
-                  type="text"
-                  value={promoDiscount}
-                  readOnly
-                  className="w-full p-2 border-2 border-neutral-300 font-bold text-sm bg-neutral-100 focus:outline-none"
-                />
-              </div>
-            </div>
+            )}
 
             <div className="space-y-1">
               <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
@@ -403,7 +484,7 @@ Casual Shop BiH`;
                 readOnly
                 rows={8}
                 value={generateEmailBody(selectedSession)}
-                className="w-full p-3 bg-neutral-50 border-2 border-neutral-300 text-xs font-['Inter'] text-neutral-800 leading-relaxed font-mono resize-none focus:outline-none"
+                className="w-full p-3 bg-neutral-50 border-2 border-neutral-300 text-xs text-neutral-800 leading-relaxed font-mono resize-none focus:outline-none"
               />
             </div>
 
@@ -428,7 +509,7 @@ Casual Shop BiH`;
                     ) : (
                       <Mail className="w-4 h-4" />
                     )}
-                    <span>{sendingEmail ? 'Slanje...' : 'Pošalji e-mail direktno'}</span>
+                    <span>{sendingEmail ? 'Slanje...' : 'Pošalji e-mail'}</span>
                   </button>
                 )}
               </div>
