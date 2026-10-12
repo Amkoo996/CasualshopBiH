@@ -8,6 +8,8 @@ import {
   X,
   Heart,
   ZoomIn,
+  Instagram,
+  Copy,
 } from 'lucide-react';
 import { Product, Size } from '../types';
 import { useCart } from '../context/CartContext';
@@ -45,6 +47,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [instaCopied, setInstaCopied] = useState(false);
 
   // Stanje za uvećavanje slike (Lightbox)
   const [isZoomed, setIsZoomed] = useState(false);
@@ -95,6 +98,20 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setTimeout(() => setAddedSuccess(false), 2500);
   };
 
+  const handleInstagramOrder = () => {
+    const sizeText = selectedSize ? selectedSize : 'Nije odabrano';
+    const message = `Pozdrav! Želim naručiti artikal: ${product.name} (Veličina: ${sizeText}, Cijena: ${product.price.toFixed(2)} KM). Molim vas detalje za dostavu.`;
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(message);
+    }
+    setInstaCopied(true);
+    setTimeout(() => setInstaCopied(false), 3500);
+
+    const instaUrl = settings?.instagramUrl || 'https://www.instagram.com/casualshop.bih';
+    window.open(instaUrl, '_blank');
+  };
+
   const hasDiscount = Boolean(product.originalPrice && product.originalPrice > product.price);
 
   const currentImageUrl = product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg';
@@ -117,7 +134,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             className="relative aspect-[3/4] bg-white overflow-hidden border-2 border-neutral-300 group cursor-zoom-in"
             title="Kliknite za uvećanje"
           >
-            {/* Primijenjena optimizacija na glavnu sliku */}
             <img
               src={optimizeCloudinaryUrl(currentImageUrl, 1000)}
               alt={product.name}
@@ -127,7 +143,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
             />
 
-            {/* Ikona za uvećavanje na hover */}
             <div className="absolute bottom-3 right-3 bg-black/70 text-white p-2 rounded-full opacity-80 group-hover:opacity-100 transition-opacity backdrop-blur-xs">
               <ZoomIn className="w-4 h-4" />
             </div>
@@ -327,6 +342,25 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               >
                 <Heart className={`w-5 h-5 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
               </button>
+            </div>
+
+            {/* DUGME ZA INSTAGRAM BRZU NARUDŽBU */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleInstagramOrder}
+                className="w-full py-3.5 px-6 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-['Poppins'] font-black text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-2 shadow-lg hover:opacity-90 transition-all active:scale-[0.99] border-2 border-transparent cursor-pointer"
+              >
+                <Instagram className="w-4 h-4 text-white" />
+                <span>
+                  {instaCopied
+                    ? 'KOPIRANO! OTVARAM INSTAGRAM DM...'
+                    : 'BRZA NARUDŽBA PREKO INSTAGRAMA'}
+                </span>
+              </button>
+              <p className="text-[10px] text-neutral-500 text-center font-['Inter'] mt-1">
+                * Klikom se detalji artikla kopiraju u poruku i otvara naš Instagram profil za slanje DM-a.
+              </p>
             </div>
 
             {addedSuccess && (
