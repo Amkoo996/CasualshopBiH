@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, Clock } from 'lucide-react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { Product, CATEGORIES, Category } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { NewsletterSection } from '../components/common/NewsletterSection';
@@ -13,7 +11,6 @@ interface HomePageProps {
   onNavigateToShop: (category?: string) => void;
 }
 
-// Optimizovani Cloudinary URL umjesto teške lokalne slike
 const OPTIMIZED_FALLBACK_IMAGE = 'https://res.cloudinary.com/rvlsak2u/image/upload/f_auto,q_auto,w_600/v1791551969/xpzi3atps6zrnkflak3c.jpg';
 
 const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
@@ -33,10 +30,8 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const { settings } = useCart();
 
-  // COUNTDOWN TIMEOUT DO 01.11.2026 U 12:00
   const targetDate = new Date('2026-11-01T12:00:00+02:00').getTime();
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [usedCodesCount, setUsedCodesCount] = useState<number>(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -56,16 +51,6 @@ export const HomePage: React.FC<HomePageProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const promoRef = doc(db, 'promo_codes', 'FIRST100');
-    const unsub = onSnapshot(promoRef, (snap) => {
-      if (snap.exists()) {
-        setUsedCodesCount(snap.data()?.usageCount || 0);
-      }
-    });
-    return () => unsub();
   }, []);
 
   const hiddenCats = settings?.hiddenCategories || [];
@@ -109,35 +94,30 @@ export const HomePage: React.FC<HomePageProps> = ({
     (p) => p.isNew || (p.createdAt && new Date(p.createdAt).getTime() >= thirtyDaysAgo)
   ).slice(0, 4);
 
-  // Provjera za boolean i string "true"
   const featuredProducts = activeProductsWithStock.filter(
     (p) => p.featured === true || String(p.featured) === 'true'
   ).slice(0, 4);
 
   return (
-    <div className="pb-12">
-      {/* CRNI SKLOP - POTPUNO SPREČAVA POJAVU BIJELE LINIJE IZMEĐU BANERA I HERO SEKCIJE */}
+    <div className="pb-12 bg-[#F4F2EC]">
+      {/* JEDINSTVENI CRNI SKLOP BEZ RAZMAKA S DRUGIM DIJELOM */}
       <div className="bg-[#0A0A0A]">
-        {/* BANER SA REAL-TIME BROJAČEM I COUNTDOWN TAJMEROM */}
-        <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/30 py-3 px-4 shadow-xl">
+        {/* ČISTI BANER SA POPUSTOM */}
+        <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/30 py-2.5 px-4 shadow-xl">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
-            <div className="flex items-center gap-3">
-              <div className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-1 font-black font-['Poppins'] text-[11px] tracking-wider uppercase shrink-0">
-                EKSKLUZIVNO
-              </div>
-             <div className="bg-[#F7E97F] text-[#0A0A0A] py-2 px-4 text-center font-['Poppins'] text-xs font-bold uppercase tracking-wider border-b border-black">
-                <span>EKSKLUZIVNO: POPUST ZA PRVIH 100 NARUDŽBI - <strong>10% POPUSTA</strong> (Kod: <u>FIRST100</u>)</span>
-            </div>
+            <div className="flex items-center gap-2 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
+              <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px]">EKSKLUZIVNO</span>
+              <span>POPUST ZA PRVIH 100 NARUDŽBI: <strong className="underline">10% POPUSTA</strong> (Kod: <u>FIRST100</u>)</span>
             </div>
 
-            <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1.5 border border-[#F7E97F] text-xs text-white shadow-md">
+            <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1 border border-[#F7E97F] text-[11px] text-white shadow-md">
               <Clock className="w-3.5 h-3.5 text-[#F7E97F] animate-pulse" />
               <span>OTVARANJE: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
             </div>
           </div>
         </section>
 
-        {/* HERO SECTION */}
+        {/* HERO SEKCIJA */}
         <section className="relative bg-[#0A0A0A] text-white min-h-[60vh] sm:min-h-[70vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
           <div className="absolute inset-0 z-0">
             <video
@@ -193,9 +173,9 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       </div>
 
-      {/* OSTALE SEKCIJE SA STANDARDNIM MARGINAMA */}
-      <div className="space-y-12 sm:space-y-16 mt-12 sm:mt-16">
-        {/* QUICK BENEFIT STRIP */}
+      {/* OSTALI SADRŽAJ SA GLATKIM PRELAZOM */}
+      <div className="space-y-12 sm:space-y-16 mt-10">
+        {/* BENEFITI */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
@@ -224,7 +204,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </section>
 
-        {/* KATEGORIJE HIGHLIGHT */}
+        {/* KATEGORIJE */}
         {displayCategories.length > 0 && (
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
             <div className="flex justify-between items-end border-b-2 border-neutral-300 pb-3">
@@ -347,7 +327,6 @@ export const HomePage: React.FC<HomePageProps> = ({
           </section>
         )}
 
-        {/* NEWSLETTER */}
         <NewsletterSection />
       </div>
     </div>
