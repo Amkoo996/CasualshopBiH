@@ -1,225 +1,335 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, CheckCircle2, Download, Send, Clock } from 'lucide-react';
-import { getCartSessions } from '../../lib/tracking';
-import { CartSession } from '../../types';
-import { useCart } from '../../context/CartContext';
-import { sendEmailNotification } from '../../lib/email';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, Clock } from 'lucide-react';
+import { Product, CATEGORIES, Category } from '../types';
+import { ProductCard } from '../components/shop/ProductCard';
+import { NewsletterSection } from '../components/common/NewsletterSection';
+import { useCart } from '../context/CartContext';
 
-export const AbandonedCartsPromo: React.FC = () => {
+interface HomePageProps {
+  products: Product[];
+  onSelectProduct: (product: Product) => void;
+  onNavigateToShop: (category?: string) => void;
+}
+
+const OPTIMIZED_FALLBACK_IMAGE = 'https://res.cloudinary.com/rvlsak2u/image/upload/f_auto,q_auto,w_600/v1791551969/xpzi3atps6zrnkflak3c.jpg';
+
+const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
+  'Majice': OPTIMIZED_FALLBACK_IMAGE,
+  'Duksevi i hoodice': 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
+  'Jakne': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80',
+  'Pantalone i trenerke': 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=600&q=80',
+  'Šorcevi': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=600&q=80',
+  'Kape i šeširi': 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?auto=format&fit=crop&w=600&q=80',
+  'Dodaci (Accessories)': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
+};
+
+export const HomePage: React.FC<HomePageProps> = ({
+  products = [],
+  onSelectProduct,
+  onNavigateToShop,
+}) => {
   const { settings } = useCart();
-  const [sessions, setSessions] = useState<CartSession[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sendingId, setSendingId] = useState<string | null>(null);
 
-  const loadSessions = async () => {
-    setLoading(true);
-    try {
-      const data = await getCartSessions();
-      setSessions(data);
-    } catch (err) {
-      console.error('Greška pri učitavanju napuštenih korpi:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const targetDate = new Date('2026-11-01T12:00:00+02:00').getTime();
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
-    loadSessions();
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const difference = targetDate - now;
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((difference % (1000 * 60)) / 1000),
+        });
+      } else {
+        clearInterval(timer);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
-  const handleSendReminder = async (session: CartSession) => {
-    if (!session.email) {
-      alert('Kupac nije ostavio email adresu.');
-      return;
-    }
+  const hiddenCats = settings?.hiddenCategories || [];
+  const visibleCategoryNames = CATEGORIES.filter(
+    (cat) => cat !== 'Rasprodano' && !hiddenCats.includes(cat as Category)
+  );
 
-    setSendingId(session.id);
-    try {
-      const itemsList = session.items
-        .map((i) => `• ${i.quantity}x ${i.name} (${i.size})`)
-        .join('\n');
+  const categoryData = visibleCategoryNames.map((cat) => {
+    const activeProducts = products.filter((p) => {
+      const totalStock = Object.values(p.sizes || {}).reduce((s, v) => s + (v || 0), 0);
+      return p.category === cat && totalStock > 0 && !p.isHidden;
+    });
 
-      const messageBody = `
-Pozdrav ${session.customerName || 'Kupče'},
+    const firstProduct = activeProducts.find((p) => p.images?.[0]);
+    const image = firstProduct?.images[0] || FALLBACK_CATEGORY_IMAGES[cat] || OPTIMIZED_FALLBACK_IMAGE;
 
-Primijetili smo da ste ostavili artikle u vašoj korpi u Casual Shop BiH!
+    return { title: cat, category: cat, count: activeProducts.length, image };
+  });
 
-Naručeni artikli:
-${itemsList}
+  let displayCategories = [...categoryData];
+  if (displayCategories.length > 4) {
+    displayCategories = displayCategories
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4);
+  }
 
-Ukupno: ${session.subtotal.toFixed(2)} KM
-
-Možete završiti vašu narudžbu klikom na našu stranicu.
-
-Srdačan pozdrav,
-Casual Shop BiH
-      `.trim();
-
-      await sendEmailNotification({
-        to_email: session.email,
-        to_name: session.customerName || 'Kupac',
-        subject: 'Zaboravili ste artikle u korpi - Casual Shop BiH',
-        message: messageBody,
-      });
-
-      // Označavanje u Firestore bazi da je email poslan
-      try {
-        const sessionRef = doc(db, 'cart_sessions', session.id);
-        await updateDoc(sessionRef, {
-          emailSent: true,
-          emailSentAt: new Date().toISOString(),
-        });
-      } catch (e) {
-        console.warn('Upozorenje pri ažuriranju statusa u bazi:', e);
-      }
-
-      // Lokalno ažuriranje stanja
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === session.id
-            ? { ...s, emailSent: true, emailSentAt: new Date().toISOString() }
-            : s
-        )
-      );
-
-      alert(`Podsjetnik je uspješno poslan na ${session.email}`);
-    } catch (err) {
-      console.error('Greška pri slanju emaila:', err);
-      alert('Došlo je do greške pri slanju emaila.');
-    } finally {
-      setSendingId(null);
-    }
+  const getGridClass = (count: number) => {
+    if (count === 1) return 'grid-cols-1 max-w-md mx-auto';
+    if (count === 2) return 'grid-cols-1 sm:grid-cols-2 max-w-4xl mx-auto';
+    if (count === 3) return 'grid-cols-1 sm:grid-cols-3 max-w-6xl mx-auto';
+    return 'grid-cols-2 md:grid-cols-4';
   };
 
-  const handleExportCSV = () => {
-    if (sessions.length === 0) return;
-    const headers = 'Kupac,Email,Telefon,Vrijednost KM,Datum,Email Poslan\n';
-    const rows = sessions
-      .map((s) => `"${s.customerName || 'Nepoznat'}","${s.email || ''}","${s.phone || ''}","${s.subtotal.toFixed(2)}","${s.updatedAt}","${s.emailSent ? 'Da' : 'Ne'}"`)
-      .join('\n');
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(headers + rows);
-    const link = document.createElement('a');
-    link.setAttribute('href', csvContent);
-    link.setAttribute('download', `napustene_korpe_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const activeProductsWithStock = products.filter((p) => {
+    const totalStock = Object.values(p.sizes || {}).reduce((s, v) => s + (v || 0), 0);
+    return !p.isHidden && totalStock > 0;
+  });
+
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const newProducts = activeProductsWithStock.filter(
+    (p) => p.isNew || (p.createdAt && new Date(p.createdAt).getTime() >= thirtyDaysAgo)
+  ).slice(0, 4);
+
+  const featuredProducts = activeProductsWithStock.filter(
+    (p) => p.featured === true || String(p.featured) === 'true'
+  ).slice(0, 4);
 
   return (
-    <div className="space-y-6 font-['Inter']">
-      <div className="bg-white p-6 border-2 border-neutral-300 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="bg-[#0A0A0A] text-[#F7E97F] text-[10px] font-['Poppins'] font-black uppercase px-2 py-0.5">
-                SMART MARKETING
-              </span>
-              <span className="text-xs text-neutral-500 font-['Inter']">Automatizacija Podsjetnika</span>
-            </div>
-            <h2 className="font-['Poppins'] text-lg font-black uppercase tracking-tight text-black mt-1 flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[#0A0A0A]" />
-              <span>NAPUŠTENE KORPE & E-MAIL PODSJETNICI</span>
-            </h2>
+    <div className="pb-0 bg-[#0A0A0A] w-full">
+      {/* 1. TOP BANER */}
+      <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/30 py-2.5 px-4 shadow-xl w-full">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
+          <div className="flex items-center gap-2 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
+            <span className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 font-black text-[10px]">EKSKLUZIVNO</span>
+            <span>POPUST ZA PRVIH 100 NARUDŽBI: <strong className="underline">10% POPUSTA</strong> (Kod: <u>FIRST100</u>)</span>
           </div>
 
-          <button
-            onClick={handleExportCSV}
-            className="px-4 py-2 bg-white border-2 border-neutral-300 hover:border-black text-xs font-['Poppins'] font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
+          <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1 border border-[#F7E97F] text-[11px] text-white shadow-md">
+            <Clock className="w-3.5 h-3.5 text-[#F7E97F] animate-pulse" />
+            <span>OTVARANJE: {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. HERO SEKCIJA */}
+      <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
+        <div className="absolute inset-0 z-0">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover opacity-50 filter contrast-125"
           >
-            <Download className="w-4 h-4" />
-            <span>Izvezi Kontakte (CSV)</span>
-          </button>
+            <source src="/hero-video.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/70 to-transparent" />
         </div>
 
-        <div className="bg-[#F4F2EC] p-4 border border-neutral-300 text-xs text-neutral-700 space-y-1">
-          <p className="font-bold text-black font-['Poppins'] uppercase">Logika slanja e-mail podsjetnika:</p>
-          <p>• Ovdje možete ručno poslati podsjetnik kupcima koji su unijeli kontakt podatke ali nisu završili narudžbu.</p>
-          <p>• Nakon slanja emaila, korpa se označava kao **POSLANO** kako biste izbjegli spamanje istog kupca.</p>
-        </div>
-      </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
+          <div className="max-w-2xl space-y-6">
+            <div className="space-y-2">
+              <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95] text-white">
+                CASUAL. <br />
+                <span className="text-[#F7E97F]">SVAKI DAN.</span>
+              </h1>
+              <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-wider text-neutral-300">
+                Udobna odjeća za svaki dan.
+              </p>
+            </div>
 
-      <div className="bg-white border-2 border-neutral-200 overflow-x-auto shadow-sm">
-        <table className="w-full text-xs text-left">
-          <thead className="bg-[#0A0A0A] text-white font-['Poppins'] font-bold uppercase">
-            <tr>
-              <th className="p-3">Kupac / Kontakt</th>
-              <th className="p-3">Artikli u korpi</th>
-              <th className="p-3">Vrijednost</th>
-              <th className="p-3">Starost korpe</th>
-              <th className="p-3">Status Emaila</th>
-              <th className="p-3 text-right">Akcija</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200">
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="p-6 text-center text-neutral-500 font-['Inter']">Učitavanje napuštenih korpi...</td>
-              </tr>
-            ) : sessions.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-6 text-center text-neutral-500 font-['Inter']">Trenutno nema registrovanih napuštenih korpi.</td>
-              </tr>
-            ) : (
-              sessions.map((session) => (
-                <tr key={session.id} className="hover:bg-neutral-50">
-                  <td className="p-3">
-                    <span className="font-['Poppins'] font-bold text-neutral-900 block">{session.customerName || 'Nepoznat kupac'}</span>
-                    {session.email && <span className="text-[11px] text-neutral-600 block">✉️ {session.email}</span>}
-                    {session.phone && <span className="text-[11px] text-neutral-600 block">📞 {session.phone}</span>}
-                  </td>
-                  <td className="p-3">
-                    <div className="space-y-1">
-                      {session.items.map((it, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-[11px]">
-                          <img src={it.image} alt={it.name} className="w-6 h-7 object-cover border border-neutral-300" />
-                          <span>{it.name} ({it.size}) ×{it.quantity}</span>
-                        </div>
-                      ))}
+            <p className="text-xs sm:text-sm text-neutral-300 max-w-lg leading-relaxed font-['Inter']">
+              Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom.
+              Plaćanje pouzećem gotovinom prilikom preuzimanja ili lično u Sarajevu.
+            </p>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <button
+                onClick={() => onNavigateToShop('Sve')}
+                className="px-8 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] transition-all flex items-center justify-center gap-2 group shadow-xl active:scale-95 cursor-pointer"
+              >
+                <span>Pogledaj kolekciju</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </button>
+
+              <a
+                href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3.5 bg-[#171717]/80 backdrop-blur-sm border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2"
+              >
+                <Instagram className="w-4 h-4 text-[#F7E97F]" />
+                <span>Instagram @casualshop.bih</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. OSTALI SADRŽAJ (PRATEĆI BLOKOVI NA SVJETLIJOJ POZADINI) */}
+      <div className="bg-[#F4F2EC] pt-10 pb-0 w-full font-['Inter']">
+        <div className="space-y-12 sm:space-y-16 pb-12">
+          {/* BENEFITI */}
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
+                <div className="flex flex-col items-center p-2">
+                  <Truck className="w-6 h-6 text-[#0A0A0A] mb-2" />
+                  <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                    Dostava {settings.shippingFee || 12} KM • Besplatna preko {settings.freeShippingThreshold || 100} KM
+                  </div>
+                  <p className="text-[11px] text-neutral-500 mt-1">Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)</p>
+                </div>
+                <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
+                  <ShieldCheck className="w-6 h-6 text-[#0A0A0A] mb-2" />
+                  <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                    100% Plaćanje pouzećem
+                  </div>
+                  <p className="text-[11px] text-neutral-500 mt-1">Plaćanje gotovinom kuriru pri preuzimanju paketa.</p>
+                </div>
+                <div className="flex flex-col items-center p-2 pt-4 md:pt-2">
+                  <RefreshCw className="w-6 h-6 text-[#0A0A0A] mb-2" />
+                  <div className="font-['Poppins'] text-xs font-bold uppercase tracking-wider text-black">
+                    Pregled paketa pri dostavi
+                  </div>
+                  <p className="text-[11px] text-neutral-500 mt-1">Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* KATEGORIJE */}
+          {displayCategories.length > 0 && (
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+              <div className="flex justify-between items-end border-b-2 border-neutral-300 pb-3">
+                <div>
+                  <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 block mb-1">
+                    Katalog
+                  </span>
+                  <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
+                    Odaberite kategoriju
+                  </h2>
+                </div>
+                {visibleCategoryNames.length > displayCategories.length && (
+                  <button
+                    onClick={() => onNavigateToShop('Sve')}
+                    className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Vidi sve kategorije</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className={`grid gap-4 ${getGridClass(displayCategories.length)}`}>
+                {displayCategories.map((cat) => (
+                  <div
+                    key={cat.title}
+                    onClick={() => onNavigateToShop(cat.category)}
+                    className="group relative h-48 sm:h-64 overflow-hidden bg-[#0A0A0A] cursor-pointer border-2 border-neutral-200 hover:border-[#F7E97F] transition-all"
+                  >
+                    <img
+                      src={cat.image}
+                      alt={cat.title}
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = OPTIMIZED_FALLBACK_IMAGE;
+                      }}
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 opacity-75 group-hover:opacity-100"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-4">
+                      <span className="font-['Poppins'] text-white text-xs sm:text-sm font-black uppercase tracking-wider group-hover:text-[#F7E97F] transition-colors">
+                        {cat.title}
+                      </span>
+                      <span className="text-[#F7E97F] text-[10px] font-['Poppins'] font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1 group-hover:underline">
+                        Pogledaj ({cat.count}) <ArrowRight className="w-3 h-3" />
+                      </span>
                     </div>
-                  </td>
-                  <td className="p-3 font-['Poppins'] font-bold text-black">{session.subtotal.toFixed(2)} KM</td>
-                  <td className="p-3 text-neutral-500 text-[11px]">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-neutral-400" />
-                      <span>{new Date(session.updatedAt).toLocaleDateString('bs-BA')}</span>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    {session.emailSent ? (
-                      <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-['Poppins'] font-bold uppercase rounded border border-emerald-300 inline-flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>Email Poslan</span>
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 bg-amber-100 text-amber-800 text-[10px] font-['Poppins'] font-bold uppercase rounded border border-amber-300">
-                        Nije Poslano
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-3 text-right">
-                    <button
-                      onClick={() => handleSendReminder(session)}
-                      disabled={session.emailSent || sendingId === session.id || !session.email}
-                      className="px-3 py-2 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-black text-white font-['Poppins'] text-[11px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed transition-colors border border-black inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Send className="w-3 h-3" />
-                      <span>
-                        {sendingId === session.id
-                          ? 'Slanje...'
-                          : session.emailSent
-                          ? 'Već Poslano'
-                          : 'Pošalji Email'}
-                      </span>
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* NOVO U PONUDI */}
+          {newProducts.length > 0 && (
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b-2 border-neutral-300 gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 mb-1">
+                    <Sparkles className="w-3.5 h-3.5 text-[#0A0A0A]" />
+                    <span>Najnoviji dropovi</span>
+                  </div>
+                  <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
+                    Novo u ponudi
+                  </h2>
+                </div>
+
+                <button
+                  onClick={() => onNavigateToShop('Sve')}
+                  className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                >
+                  <span>Pogledaj sve novitete</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                {newProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onSelect={onSelectProduct}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ISTAKNUTI ARTIKLI */}
+          {featuredProducts.length > 0 && (
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-4 border-b-2 border-neutral-300 gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 mb-1">
+                    <TrendingUp className="w-3.5 h-3.5 text-[#0A0A0A]" />
+                    <span>Preporučujemo</span>
+                  </div>
+                  <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
+                    Istaknuti proizvodi
+                  </h2>
+                </div>
+
+                <button
+                  onClick={() => onNavigateToShop('Sve')}
+                  className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                >
+                  <span>Pregledaj sve</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                {featuredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onSelect={onSelectProduct}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* Newsletter naliježe bez donje margine direktno na crni footer */}
+        <div className="bg-[#0A0A0A] -mb-12">
+          <NewsletterSection />
+        </div>
       </div>
     </div>
   );
