@@ -116,7 +116,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="pb-0 bg-[#0A0A0A] w-full font-['Inter']">
-      {/* 1. TOP BANER SA SJAJNOM TRAKOM (UPRAVLJANO IZ CMS-a) */}
+      {/* 1. TOP BANER SA SJAJNOM TRAKOM */}
       {cms.topBar.enabled && (
         <section className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/20 py-2.5 px-4 shadow-lg w-full relative z-20">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 text-center md:text-left">
@@ -143,7 +143,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* 2. HERO SEKCIJA (UPRAVLJANO IZ CMS-a) */}
+      {/* 2. HERO SEKCIJA */}
       <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
           {cms.hero.videoUrl.endsWith('.mp4') ? (
@@ -167,6 +167,9 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-80" />
         </div>
 
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-12 sm:py-20">
+          <div className="max-w-2xl space-y-6">
+            <div className="space-y-3">
               <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.92] text-white">
                 {cms.hero.titleLine1} <br />
                 <span className="text-[#F7E97F] drop-shadow-[0_2px_10px_rgba(247,233,127,0.15)]">
