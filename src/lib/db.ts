@@ -260,3 +260,37 @@ export async function submitProductReview(reviewData: Omit<ProductReview, 'id'>)
   });
   return reviewRef.id;
 }
+
+// Pretraga narudžbe po broju narudžbe i broju telefona za kupce
+export const getOrderByNumberAndPhone = async (
+  orderNumber: string,
+  phone: string
+): Promise<Order | null> => {
+  try {
+    const cleanPhone = normalizePhone(phone) || phone.trim();
+    const cleanOrderNum = orderNumber.trim().toUpperCase();
+
+    const q = query(
+      collection(db, 'orders'),
+      where('orderNumber', '==', cleanOrderNum)
+    );
+
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+
+    const docSnap = snapshot.docs[0];
+    const orderData = { id: docSnap.id, ...docSnap.data() } as Order;
+
+    // Normalizacija broja iz baze radi sigurnog poređenja
+    const dbPhone = normalizePhone(orderData.customer.phone) || orderData.customer.phone;
+
+    if (dbPhone === cleanPhone || orderData.customer.phone.includes(phone.trim())) {
+      return orderData;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Greška pri pretrazi narudžbe:', error);
+    return null;
+  }
+};
