@@ -11,6 +11,7 @@ import {
   Instagram,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import { Product, Size } from '../types';
 import { useCart } from '../context/CartContext';
@@ -18,10 +19,13 @@ import { useWishlist } from '../context/WishlistContext';
 import { trackViewItem } from '../lib/analytics';
 import { recordProductView } from '../lib/tracking';
 import { ProductReviews } from '../components/shop/ProductReviews';
+import { ProductCard } from '../components/shop/ProductCard';
 
 interface ProductDetailPageProps {
   product: Product;
+  allProducts?: Product[];
   onBack: () => void;
+  onSelectProduct?: (product: Product) => void;
 }
 
 const SIZE_ORDER: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
@@ -36,9 +40,11 @@ const optimizeCloudinaryUrl = (url: string, width: number = 1000) => {
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   product,
+  allProducts = [],
   onBack,
+  onSelectProduct,
 }) => {
-  const { addToCart, settings } = useCart();
+  const { addToCart, settings, setIsCartOpen } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isSaved = isInWishlist(product.id);
 
@@ -50,7 +56,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [instaCopied, setInstaCopied] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
-  // Touch Swipe State za prebacivanje slika prevlačenjem prsta na mobitelu
+  // Touch Swipe State
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const availableSizes = SIZE_ORDER.filter(
@@ -90,10 +96,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     const diff = touchStartX - touchEndX;
 
     if (diff > 40) {
-      // Svajp ulijevao -> Sljedeća slika
       setSelectedImageIndex((prev) => (prev + 1) % product.images.length);
     } else if (diff < -40) {
-      // Svajp udesno -> Prethodna slika
       setSelectedImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
     }
     setTouchStartX(null);
@@ -112,7 +116,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
     addToCart(product, selectedSize, quantity);
     setAddedSuccess(true);
-    setTimeout(() => setAddedSuccess(false), 2500);
+    setTimeout(() => setAddedSuccess(false), 3500);
   };
 
   const handleInstagramOrder = () => {
@@ -159,8 +163,47 @@ Podaci za dostavu:
   const hasDiscount = Boolean(product.originalPrice && product.originalPrice > product.price);
   const currentImageUrl = product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg';
 
+  // Cross-selling: Pronalazak 4 srodna artikla (iz iste kategorije ili najpopularnija)
+  const relatedProducts = allProducts
+    .filter((p) => p.id !== product.id && !p.isHidden)
+    .filter((p) => p.category === product.category || p.featured)
+    .slice(0, 4);
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 font-['Inter']">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 font-['Inter'] relative">
+      
+      {/* ELEGANTNA TOAST NOTIFIKACIJA PRI DODAVANJU U KORPU */}
+      {addedSuccess && (
+        <div className="fixed top-20 right-4 sm:right-8 z-50 bg-[#0A0A0A] text-white border-2 border-[#F7E97F] p-4 shadow-2xl max-w-sm w-full animate-bounce space-y-2">
+          <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+            <span className="font-['Poppins'] text-xs font-bold uppercase text-[#F7E97F] flex items-center gap-1.5">
+              <Check className="w-4 h-4 text-emerald-400" />
+              <span>DODANO U KORPU!</span>
+            </span>
+            <button onClick={() => setAddedSuccess(false)} className="text-neutral-400 hover:text-white text-xs">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <img src={currentImageUrl} alt={product.name} className="w-12 h-14 object-cover border border-neutral-700 bg-neutral-900" />
+            <div className="text-xs space-y-0.5">
+              <p className="font-['Poppins'] font-bold text-white uppercase line-clamp-1">{product.name}</p>
+              <p className="text-neutral-400 text-[11px]">Veličina: {selectedSize} • Količina: {quantity}</p>
+              <p className="font-bold text-[#F7E97F]">{(product.price * quantity).toFixed(2)} KM</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setAddedSuccess(false);
+              setIsCartOpen(true);
+            }}
+            className="w-full py-2 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider hover:bg-[#ebd965] transition-colors mt-1"
+          >
+            OTVORI KORPU & CHECKOUT
+          </button>
+        </div>
+      )}
+
       <button
         onClick={onBack}
         className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-6 sm:mb-8 transition-colors cursor-pointer"
@@ -170,7 +213,7 @@ Podaci za dostavu:
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-        {/* GALERIJA SLIKA SA PODRŠKOM ZA SWIPE I STRELICE */}
+        {/* GALERIJA SLIKA */}
         <div className="space-y-4">
           <div 
             onTouchStart={handleTouchStart}
@@ -188,7 +231,7 @@ Podaci za dostavu:
               className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 select-none"
             />
 
-            {/* Strelice za prebacivanje slika na mobitelu i računaru */}
+            {/* Strelice */}
             {product.images && product.images.length > 1 && (
               <>
                 <button
@@ -435,13 +478,6 @@ Podaci za dostavu:
                 * Klikom se detalji artikla kopiraju u poruku i otvara direktan chat na Instagramu.
               </p>
             </div>
-
-            {addedSuccess && (
-              <div className="bg-white border-2 border-[#F7E97F] text-[#0A0A0A] text-xs p-2.5 font-semibold flex items-center gap-2 animate-fadeIn font-['Inter']">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Artikal je uspješno dodan u vašu korpu!</span>
-              </div>
-            )}
           </div>
 
           {/* OPIS I NJEGA */}
@@ -490,7 +526,32 @@ Podaci za dostavu:
 
       <ProductReviews productId={product.id} productName={product.name} />
 
-      {/* MODAL ZA UVEĆANJE SLIKE - ODZUMIRANJE KLIKOM NA BILO KOJI DIO (SLIKU ILI POZADINU) */}
+      {/* CROSS-SELLING: SRODNI ARTIKLI (MOGLO BI TI SE SVIDJETI) */}
+      {relatedProducts.length > 0 && (
+        <section className="mt-16 pt-10 border-t-2 border-neutral-200 space-y-6">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#0A0A0A]" />
+            <h2 className="font-['Poppins'] text-xl sm:text-2xl font-black uppercase tracking-tight text-[#0A0A0A]">
+              Moglo bi ti se svidjeti
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            {relatedProducts.map((relProd) => (
+              <ProductCard
+                key={relProd.id}
+                product={relProd}
+                onSelect={(p) => {
+                  if (onSelectProduct) onSelectProduct(p);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* MODAL ZA UVEĆANJE SLIKE */}
       {isZoomed && (
         <div 
           onClick={() => setIsZoomed(false)}
