@@ -20,6 +20,7 @@ import {
   StoreSettings,
   DEFAULT_STORE_SETTINGS,
   NewsletterSubscriber,
+  ProductReview,
   Category,
 } from '../types';
 import { normalizePhone } from './validation';
@@ -87,6 +88,17 @@ export const updateProduct = async (id: string, productData: Partial<Product>): 
   }
 };
 
+// Aliased export za kompatibilnost sa Admin komponente
+export const saveProduct = async (productData: Partial<Product> & { id?: string }): Promise<string> => {
+  if (productData.id) {
+    const { id, ...data } = productData;
+    await updateProduct(id, data);
+    return id;
+  } else {
+    return await addProduct(productData as Omit<Product, 'id'>);
+  }
+};
+
 export const deleteProduct = async (id: string): Promise<void> => {
   try {
     const docRef = doc(db, 'products', id);
@@ -109,7 +121,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       createdAt: new Date().toISOString(),
     });
 
-    // Automatsko smanjenje zaliha za kupljene artikle
+    // Smanjivanje zaliha kupljenih artikala
     for (const item of orderData.items) {
       const productRef = doc(db, 'products', item.id);
       const productSnap = await getDoc(productRef);
@@ -192,6 +204,9 @@ export const updateStoreSettings = async (settingsData: Partial<StoreSettings>):
   }
 };
 
+// Alias za kompatibilnost
+export const saveStoreSettings = updateStoreSettings;
+
 // ==========================================
 // NEWSLETTER
 // ==========================================
@@ -227,6 +242,44 @@ export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]
   } catch (error) {
     console.error('Greška pri dohvaćanju newsletter pretplatnika:', error);
     return [];
+  }
+};
+
+// Alias za kompatibilnost s Admin dashboardom
+export const getSubscribers = getNewsletterSubscribers;
+
+// ==========================================
+// RECENZIJE PROIZVODA (REVIEWS)
+// ==========================================
+
+export const getProductReviews = async (productId: string): Promise<ProductReview[]> => {
+  try {
+    const reviewsRef = collection(db, 'reviews');
+    const q = query(reviewsRef, where('productId', '==', productId), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    })) as ProductReview[];
+  } catch (error) {
+    console.error('Greška pri dohvaćanju recenzija:', error);
+    return [];
+  }
+};
+
+export const submitProductReview = async (
+  reviewData: Omit<ProductReview, 'id' | 'createdAt'>
+): Promise<string> => {
+  try {
+    const docRef = await addDoc(collection(db, 'reviews'), {
+      ...reviewData,
+      createdAt: new Date().toISOString(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Greška pri spremanju recenzije:', error);
+    throw error;
   }
 };
 
