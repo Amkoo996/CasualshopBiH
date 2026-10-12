@@ -13,12 +13,10 @@ import {
   Ticket,
   CheckCircle2,
 } from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
 import { AbandonedCartSession } from '../../types';
-import { getAbandonedCarts } from '../../lib/tracking';
+import { getAbandonedCarts, markCartEmailAsSent } from '../../lib/tracking';
 import { createPromoCode } from '../../lib/promo';
 import { useCart } from '../../context/CartContext';
-import { db } from '../../lib/firebase';
 
 export const AbandonedCartsPromo: React.FC = () => {
   const { settings } = useCart();
@@ -190,18 +188,16 @@ Casual Shop BiH Tim`;
       if (response.ok) {
         setEmailSentSuccess(true);
 
+        // TRAJNO SPREMANJE U FIREBASE STORE DOKUMENT
         if (selectedSession.id) {
           try {
-            const sessionRef = doc(db, 'cart_sessions', selectedSession.id);
-            await updateDoc(sessionRef, {
-              emailSent: true,
-              emailSentAt: new Date().toISOString(),
-            });
+            await markCartEmailAsSent(selectedSession.id);
           } catch (e) {
             console.warn('Upozorenje pri ažuriranju statusa u bazi:', e);
           }
         }
 
+        // LOKALNO AŽURIRANJE STATE-A
         setCarts((prev) =>
           prev.map((c) =>
             c.id === selectedSession.id || c.email === selectedSession.email
@@ -209,6 +205,8 @@ Casual Shop BiH Tim`;
               : c
           )
         );
+
+        setSelectedSession((prev) => prev ? { ...prev, emailSent: true, emailSentAt: new Date().toISOString() } : null);
       } else {
         const errText = await response.text();
         console.error('EmailJS Error:', errText);
