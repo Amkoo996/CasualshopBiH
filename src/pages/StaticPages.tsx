@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Mail, MapPin, Instagram, ShieldCheck, Truck, RefreshCw, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, MapPin, Instagram, ShieldCheck, Truck, RefreshCw, Send, CheckCircle2, AlertCircle, Loader2, PackageCheck, Search } from 'lucide-react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useCart } from '../context/CartContext';
+import { getOrderByNumberAndPhone } from '../lib/db';
+import { Order } from '../types';
 
 interface StaticPageProps {
   page: 'about' | 'contact' | 'terms' | 'shipping' | 'privacy';
@@ -16,9 +18,38 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
   const [honeypot, setHoneypot] = useState('');
   const [contactData, setContactData] = useState({ name: '', email: '', phone: '', message: '' });
 
+  // Tracking State
+  const [orderNumber, setOrderNumber] = useState('');
+  const [trackPhone, setTrackPhone] = useState('');
+  const [trackLoading, setTrackLoading] = useState(false);
+  const [foundOrder, setFoundOrder] = useState<Order | null>(null);
+  const [trackError, setTrackError] = useState('');
+
   const sellerNameDisplay = settings.sellerName?.trim() || 'Casual Shop BiH';
   const sellerAddressDisplay = settings.sellerAddress?.trim() || 'Bosna i Hercegovina';
   const sellerEmailDisplay = settings.email?.trim() || 'info@casualshop.ba';
+
+  const handleTrackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderNumber.trim() || !trackPhone.trim()) return;
+
+    setTrackLoading(true);
+    setTrackError('');
+    setFoundOrder(null);
+
+    try {
+      const order = await getOrderByNumberAndPhone(orderNumber.trim(), trackPhone.trim());
+      if (order) {
+        setFoundOrder(order);
+      } else {
+        setTrackError('Narudžba nije pronađena. Provjerite broj narudžbe i telefon.');
+      }
+    } catch {
+      setTrackError('Došlo je do greške pri pretrazi. Pokušajte ponovo.');
+    } finally {
+      setTrackLoading(false);
+    }
+  };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,6 +183,81 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
           <h1 className="font-['Poppins'] text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#0A0A0A]">
             DOSTAVA I POVRAT
           </h1>
+        </div>
+
+        {/* MODUL ZA PRAĆENJE NARUDŽBE */}
+        <div className="bg-white border-2 border-[#0A0A0A] p-6 shadow-md max-w-lg mx-auto space-y-4">
+          <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-2">
+            <PackageCheck className="w-5 h-5 text-[#0A0A0A]" />
+            <h2 className="font-['Poppins'] text-sm font-black uppercase tracking-wider text-black">
+              Provjera statusa narudžbe
+            </h2>
+          </div>
+
+          <form onSubmit={handleTrackSubmit} className="space-y-3 font-['Inter']">
+            <div>
+              <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj narudžbe *</label>
+              <input
+                type="text"
+                required
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
+                placeholder="npr. CS-1012-AB12"
+                className="w-full border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none uppercase bg-[#F4F2EC]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj telefona *</label>
+              <input
+                type="tel"
+                required
+                value={trackPhone}
+                onChange={(e) => setTrackPhone(e.target.value)}
+                placeholder="npr. 061123456"
+                className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none bg-[#F4F2EC]"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={trackLoading}
+              className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#0A0A0A] cursor-pointer"
+            >
+              {trackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              <span>{trackLoading ? 'PRETRAŽIVANJE...' : 'PRONAĐI NARUDŽBU'}</span>
+            </button>
+          </form>
+
+          {trackError && (
+            <div className="p-3 bg-red-50 border border-red-300 text-red-700 text-xs flex items-center gap-2 font-['Inter']">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{trackError}</span>
+            </div>
+          )}
+
+          {foundOrder && (
+            <div className="p-4 bg-[#F4F2EC] border-2 border-[#F7E97F] space-y-3 text-xs animate-fadeIn font-['Inter']">
+              <div className="flex justify-between items-center border-b border-neutral-300 pb-2">
+                <span className="font-['Poppins'] font-bold text-black">Status narudžbe:</span>
+                <span className={`px-2.5 py-1 font-['Poppins'] font-black uppercase text-[10px] tracking-wider ${
+                  foundOrder.status === 'Nova' ? 'bg-amber-400 text-black' :
+                  foundOrder.status === 'Potvrđena' ? 'bg-blue-600 text-white' :
+                  foundOrder.status === 'Poslana' ? 'bg-purple-600 text-white' :
+                  foundOrder.status === 'Dostavljena' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+                }`}>
+                  {foundOrder.status}
+                </span>
+              </div>
+
+              <div className="space-y-1.5 text-neutral-800">
+                <p><strong>Broj narudžbe:</strong> <span className="font-mono">{foundOrder.orderNumber}</span></p>
+                <p><strong>Primalac:</strong> {foundOrder.customer.firstName} {foundOrder.customer.lastName}</p>
+                <p><strong>Adresa dostave:</strong> {foundOrder.customer.address}, {foundOrder.customer.city}</p>
+                <p><strong>Ukupno za plaćanje:</strong> <strong className="text-black font-['Poppins']">{foundOrder.total.toFixed(2)} KM</strong></p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white border-2 border-neutral-200 p-6 sm:p-10 shadow-sm space-y-8 font-['Inter'] text-xs sm:text-sm text-neutral-800 leading-relaxed">
