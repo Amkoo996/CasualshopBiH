@@ -1,5 +1,5 @@
-import React from 'react';
-import { Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Share2, Check } from 'lucide-react';
 import { Product } from '../../types';
 import { useWishlist } from '../../context/WishlistContext';
 
@@ -8,12 +8,10 @@ interface ProductCardProps {
   onSelect: (product: Product) => void;
 }
 
-// Nova helper funkcija za optimizaciju Cloudinary slika
+// Helper funkcija za optimizaciju Cloudinary slika
 const optimizeCloudinaryUrl = (url: string, width: number = 500) => {
   if (!url) return '';
-  // Provjeravamo da li je Cloudinary link
   if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
-    // Ubacujemo f_auto,q_auto,w_X parametre za format, kvalitet i rezoluciju
     return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
   }
   return url;
@@ -22,12 +20,11 @@ const optimizeCloudinaryUrl = (url: string, width: number = 500) => {
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isSaved = isInWishlist(product.id);
+  const [copied, setCopied] = useState(false);
 
   // Računanje ukupne zalihe
   const totalStock = Object.values(product.sizes || {}).reduce((acc, stock) => acc + (stock || 0), 0);
   const isSoldOut = totalStock <= 0;
-  
-  // Note "POSLJEDNJI KOMADI" ako je zaliha ispod 5 komada
   const isLowStock = totalStock > 0 && totalStock < 5;
 
   // Provjera za NOVO (posljednjih 30 dana)
@@ -43,6 +40,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
     toggleWishlist(product.id);
   };
 
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const productUrl = `${window.location.origin}/?product=${product.id}`;
+    const shareData = {
+      title: `${product.name} | Casual Shop BiH`,
+      text: `Pogledaj ${product.name} na Casual Shop BiH po cijeni od ${product.price.toFixed(2)} KM!`,
+      url: productUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('Korisnik je otkazao dijeljenje:', err);
+      }
+    } else {
+      // Fallback: Kopiranje u clipboard na desktop uređajima
+      try {
+        await navigator.clipboard.writeText(productUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Neuspješno kopiranje linka:', err);
+      }
+    }
+  };
+
   // Redoslijed prikazivanja veličina
   const sizeOrder = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
   const sortedSizes = Object.entries(product.sizes || {}).sort(
@@ -56,21 +80,47 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
     >
       {/* Product Image Container */}
       <div className="relative aspect-[3/4] bg-neutral-100 overflow-hidden">
-        {/* Favoriti (Srce) Dugme */}
-        <button
-          type="button"
-          onClick={handleHeartClick}
-          aria-label={isSaved ? 'Ukloni iz liste želja' : 'Dodaj u listu želja'}
-          className={`absolute top-2.5 right-2.5 z-20 p-2 rounded-full transition-all duration-200 shadow-md ${
-            isSaved
-              ? 'bg-[#0A0A0A] text-red-500 border border-neutral-700 hover:scale-110'
-              : 'bg-white/85 text-neutral-600 hover:text-black hover:bg-white hover:scale-110 backdrop-blur-xs'
-          }`}
-        >
-          <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
-        </button>
+        
+        {/* AKCIJSKE TIPKE: Favoriti & Share */}
+        <div className="absolute top-2.5 right-2.5 z-20 flex flex-col gap-2">
+          {/* Favoriti (Srce) Dugme */}
+          <button
+            type="button"
+            onClick={handleHeartClick}
+            aria-label={isSaved ? 'Ukloni iz liste želja' : 'Dodaj u listu želja'}
+            className={`p-2 rounded-full transition-all duration-200 shadow-md ${
+              isSaved
+                ? 'bg-[#0A0A0A] text-red-500 border border-neutral-700 hover:scale-110'
+                : 'bg-white/85 text-neutral-600 hover:text-black hover:bg-white hover:scale-110 backdrop-blur-xs'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
+          </button>
 
-        {/* PRVA SLIKA - Ovdje smo ubacili optimizeCloudinaryUrl */}
+          {/* Share (Podijeli) Dugme */}
+          <button
+            type="button"
+            onClick={handleShareClick}
+            title="Podijeli artikal sa prijateljima"
+            aria-label="Podijeli artikal"
+            className="p-2 rounded-full bg-white/85 text-neutral-600 hover:text-black hover:bg-white hover:scale-110 backdrop-blur-xs transition-all duration-200 shadow-md"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-emerald-600" />
+            ) : (
+              <Share2 className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+
+        {/* Obavijest o kopiranom linku za Desktop */}
+        {copied && (
+          <div className="absolute bottom-10 inset-x-2 z-30 bg-[#0A0A0A] text-[#F7E97F] text-[10px] font-['Poppins'] font-bold uppercase tracking-wider py-1 px-2 text-center border border-[#F7E97F] shadow-lg animate-fadeIn">
+            Link kopiran u međuspremnik!
+          </div>
+        )}
+
+        {/* PRVA SLIKA */}
         <img
           src={optimizeCloudinaryUrl(product.images[0])}
           alt={product.name}
@@ -81,7 +131,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
         />
 
-        {/* DRUGA SLIKA (Hover) - Ovdje smo ubacili optimizeCloudinaryUrl */}
+        {/* DRUGA SLIKA (Hover) */}
         {product.images[1] && (
           <img
             src={optimizeCloudinaryUrl(product.images[1])}
