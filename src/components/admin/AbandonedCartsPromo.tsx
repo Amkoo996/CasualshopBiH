@@ -42,7 +42,7 @@ export const AbandonedCartsPromo: React.FC = () => {
       setCarts(real || []);
     } catch {
       setCarts([]);
-    } finally {
+    } fontally {
       setLoading(false);
     }
   };
@@ -143,7 +143,6 @@ Casual Shop BiH Tim`;
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // SLANJE PREKO EMAILJS SA KORIŠTENJEM DANAŠNJEG TEMPLATE_B7R6EES
   const handleSendDirectEmail = async () => {
     if (!selectedSession?.email) {
       alert('Kupac nema unesen e-mail.');
@@ -191,7 +190,6 @@ Casual Shop BiH Tim`;
       if (response.ok) {
         setEmailSentSuccess(true);
 
-        // Označavanje u Firestore bazi da je email poslan
         if (selectedSession.id) {
           try {
             const sessionRef = doc(db, 'cart_sessions', selectedSession.id);
@@ -204,7 +202,6 @@ Casual Shop BiH Tim`;
           }
         }
 
-        // Ažuriranje lokalnog stanja
         setCarts((prev) =>
           prev.map((c) =>
             c.id === selectedSession.id || c.email === selectedSession.email
@@ -281,7 +278,7 @@ Casual Shop BiH Tim`;
           <p>
             • <strong>Opcija 1 (Nakon 3 dana):</strong> Šalje se podsjetnik bez promo koda na zaboravljene artikle.<br />
             • <strong>Opcija 2 (Nakon 5 dni):</strong> Šalje se podsjetnik sa ekskluzivnim promo kodom od 10% koji važi 48 sati.<br />
-            • <strong>Status slanja:</strong> Nakon slanja emaila, korpa se označava kao **POSLANO** čime se sprečava spamanje.
+            • <strong>Status slanja:</strong> Nakon slanja emaila, korpa se označava kao **POSLANO** kako ne biste ponavljali slanje.
           </p>
         </div>
       </div>
