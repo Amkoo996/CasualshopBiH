@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, collection, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface PromoCode {
@@ -7,7 +7,7 @@ export interface PromoCode {
   expiresAt: string; // ISO Datum
   used: boolean;
   active: boolean;
-  type: 'abandoned_cart' | 'post_purchase' | 'first_100';
+  type: 'abandoned_cart' | 'post_purchase' | 'first_100' | 'manual' | string;
   createdForEmail?: string;
   usageCount?: number;
   maxUsage?: number;
@@ -18,23 +18,52 @@ export function generateUniqueCode(prefix = 'CASUAL10'): string {
   return `${prefix}-${random}`;
 }
 
+// Dohvatanje svih promo kodova za Admin Dashboard
+export async function getPromoCodes(): Promise<PromoCode[]> {
+  try {
+    const snap = await getDocs(collection(db, 'promo_codes'));
+    const codes: PromoCode[] = [];
+    snap.forEach((d) => {
+      codes.push({ code: d.id, ...d.data() } as PromoCode);
+    });
+    return codes;
+  } catch (error) {
+    console.error('Greška pri dohvatanju promo kodova:', error);
+    return [];
+  }
+}
+
+export const getAllPromoCodes = getPromoCodes;
+
 export async function createPromoCode(
-  email: string,
-  type: 'abandoned_cart' | 'post_purchase',
-  durationHours: number
+  emailOrCode: string,
+  type: 'abandoned_cart' | 'post_purchase' | 'manual' | string = 'manual',
+  durationHoursOrPercent: number = 720,
+  manualDiscount?: number
 ): Promise<PromoCode> {
-  const prefix = type === 'abandoned_cart' ? 'WELCOME10' : 'THANKS10';
-  const code = generateUniqueCode(prefix);
+  let code = '';
+  let discountPercent = 10;
+  let durationHours = 720; // 30 dana default
+
+  if (emailOrCode.includes('@')) {
+    const prefix = type === 'abandoned_cart' ? 'WELCOME10' : 'THANKS10';
+    code = generateUniqueCode(prefix);
+    durationHours = durationHoursOrPercent;
+  } else {
+    code = emailOrCode.trim().toUpperCase();
+    discountPercent = manualDiscount || durationHoursOrPercent || 10;
+  }
+
   const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
 
   const promoData: PromoCode = {
     code,
-    discountPercent: 10,
+    discountPercent,
     expiresAt,
     used: false,
     active: true,
     type,
-    createdForEmail: email.toLowerCase().trim(),
+    ...(emailOrCode.includes('@') ? { createdForEmail: emailOrCode.toLowerCase().trim() } : {}),
   };
 
   try {
