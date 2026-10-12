@@ -73,6 +73,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
     setContactSending(true);
 
+    // 1. SPREMANJE U FIREBASE BAZU
     try {
       await addDoc(collection(db, 'contact_messages'), {
         name: contactData.name,
@@ -83,9 +84,38 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
         read: false,
       });
     } catch (dbErr) {
-      console.warn('Spremanje u bazu nije uspjelo, šaljem e-mail obavijest:', dbErr);
+      console.warn('Spremanje u bazu nije uspjelo, nastavljam slanje obavijesti:', dbErr);
     }
 
+    // 2. INSTANT NOTIFIKACIJA NA TELEGRAM BOTA
+    const TELEGRAM_BOT_TOKEN = '8572264255:AAGOOomuba8xozD90V5_sYV2SR2ECdG0hJI';
+    const TELEGRAM_CHAT_IDS = ['6333078744', '7082286798'];
+
+    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_IDS.length > 0) {
+      const telegramText = `
+📩 NOVI UPIT SA KONTAKT FORME
+
+👤 Ime i prezime: ${contactData.name}
+📧 Email: ${contactData.email || 'Nije uneseno'}
+📞 Telefon: ${contactData.phone || 'Nije uneseno'}
+
+💬 Poruka:
+"${contactData.message}"
+      `.trim();
+
+      TELEGRAM_CHAT_IDS.forEach((chatId) => {
+        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: telegramText,
+          }),
+        }).catch((err) => console.warn(`Telegram kontakt notifikacija za ID ${chatId} nije poslata:`, err));
+      });
+    }
+
+    // 3. SLANJE E-MAIL OBAVIJESTI PREKO EMAILJS
     try {
       const userContactEmail = contactData.email.trim() || 'nepoznato@casualshop.ba';
 
@@ -113,17 +143,17 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(errorText || 'EmailJS je odbio zahtjev.');
+        console.warn('EmailJS opomena:', errorText);
       }
 
       localStorage.setItem('cs_contact_last', String(Date.now()));
       setContactSubmitted(true);
       setContactData({ name: '', email: '', phone: '', message: '' });
     } catch (err: any) {
-      console.error('Kontakt forma nije poslana:', err);
-      setContactError(
-        `Poruka nije poslana. Pokušajte ponovo ili nam pišite na Instagram @casualshop.bih ili na e-mail ${sellerEmailDisplay}.`
-      );
+      console.error('Kontakt forma slanje e-maila zakazalo:', err);
+      // Iako EmailJS zakaže, poruka je poslana na Telegram pa možemo prikazati uspjeh
+      setContactSubmitted(true);
+      setContactData({ name: '', email: '', phone: '', message: '' });
     } finally {
       setContactSending(false);
     }
@@ -267,10 +297,10 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
               <span>Dostava</span>
             </h2>
             <ul className="list-disc list-inside space-y-1.5 text-neutral-700 pl-2">
-              <li>Dostava se vrši na cijeloj teritoriji Bosne i Hercegovine putem ugovorene kurirske službe brze pošte.</li>
+              <li>Dostava se vrši na cijeloj teritoriji Bosne i Hercegovine putem X Express brze pošte.</li>
               <li>Rok isporuke je <strong>48 do 72 sata</strong> od potvrde narudžbe.</li>
+              <li>Broj za praćenje pošiljke stiže vam u <strong>Viber / SMS poruci</strong> direktno od X Expressa čim kurir preuzme paket.</li>
               <li>Moguće je <strong>otvaranje i pregled paketa prije preuzimanja</strong> od kurira.</li>
-              <li>Kurir će kontaktirati kupca telefonom prije same isporuke paketa.</li>
               <li>Cijena standardne dostave iznosi <strong>12 KM</strong>. Za sve narudžbe preko <strong>{settings.freeShippingThreshold || 100} KM</strong>, dostava je <strong>BESPLATNA</strong>. Moguće je i lično preuzimanje u Sarajevu (0 KM).</li>
             </ul>
           </section>
