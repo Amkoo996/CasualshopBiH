@@ -27,7 +27,6 @@ export const AbandonedCartsPromo: React.FC = () => {
   const [selectedSession, setSelectedSession] = useState<AbandonedCartSession | null>(null);
   const [copied, setCopied] = useState(false);
   
-  // 2 Opcije slanja e-maila
   const [emailMode, setEmailMode] = useState<'3days_no_code' | '5days_with_code'>('3days_no_code');
   const [promoCode, setPromoCode] = useState('');
   const [promoDiscount, setPromoDiscount] = useState('10%');
@@ -140,7 +139,7 @@ Casual Shop BiH`;
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ISPRAVLJENO MAPIRANJE ZA EMAILJS ŠABLON
+  // ISPRAVLJEN TEMPLATE ID ZA NAPUŠTENU KORPU
   const handleSendDirectEmail = async () => {
     if (!selectedSession?.email) {
       alert('Kupac nema unesen e-mail.');
@@ -159,20 +158,17 @@ Casual Shop BiH`;
         },
         body: JSON.stringify({
           service_id: 'service_h4rxrv2',
-          template_id: 'template_atnmhpk',
+          // OVDJE JE PROMIJENJEN TEMPLATE_ID NA ZASEBAN ZA PODSJETNIKE KORPE
+          template_id: 'template_abandoned_cart', // ili tvoj tačan ID šablona za napuštenu korpu
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
-            // Mapiramo i standardna EmailJS polja i naša prilagođena polja
-            from_name: 'Casual Shop BiH',
-            from_email: sellerEmail,
-            to_name: selectedSession.customerName || 'Kupac',
             to_email: selectedSession.email,
+            to_name: selectedSession.customerName || 'Kupac',
             customer_email: selectedSession.email,
             customer_name: selectedSession.customerName || 'Kupac',
             subject: subject,
             message: fullEmailContent,
             email_body: fullEmailContent,
-            phone: selectedSession.phone || 'Nema telefona',
             promo_code: emailMode === '5days_with_code' ? promoCode : 'N/A',
             discount_percent: emailMode === '5days_with_code' ? promoDiscount : '0%',
             reply_to: sellerEmail,
@@ -361,7 +357,6 @@ Casual Shop BiH`;
         </table>
       </div>
 
-      {/* MODAL ZA ODABIR OPCIJE SLANJA I PREGLED EMAIL-A */}
       {selectedSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn font-['Inter']">
           <div className="bg-white max-w-2xl w-full border-2 border-[#F7E97F] shadow-2xl p-6 space-y-5 my-8 max-h-[90vh] overflow-y-auto">
@@ -387,7 +382,6 @@ Casual Shop BiH`;
               </div>
             )}
 
-            {/* ODABIR OPCIJE EMAIL-A */}
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-neutral-700 uppercase tracking-wider block font-['Poppins']">
                 Odaberite opciju slanja:
