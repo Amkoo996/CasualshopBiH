@@ -26,6 +26,7 @@ import {
   Ticket,
   Power,
   BarChart3,
+  Layout,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS } from '../types';
@@ -48,14 +49,14 @@ import { FunnelAnalytics } from '../components/admin/FunnelAnalytics';
 import { AbandonedCartsPromo } from '../components/admin/AbandonedCartsPromo';
 import { TrafficAndCartStatsTable } from '../components/admin/TrafficAndCartStatsTable';
 import { StockManagementTab } from '../components/admin/StockManagementTab';
-import { generateOrderInvoicePDF } from '../lib/pdfInvoice';
+import { HomeCMSEditor } from '../components/admin/HomeCMSEditor';
 import DevSettings from '../components/admin/DevSettings';
 
 export const AdminDashboard: React.FC = () => {
   const { user, isAdmin, loginWithEmail, signOut } = useAuth();
   const { refreshSettings } = useCart();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'leads' | 'products' | 'stock' | 'orders' | 'promo' | 'subscribers' | 'settings' | 'dev-settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'cms' | 'analytics' | 'leads' | 'products' | 'stock' | 'orders' | 'promo' | 'subscribers' | 'settings' | 'dev-settings'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
@@ -279,7 +280,6 @@ export const AdminDashboard: React.FC = () => {
   const newOrdersCount = orders.filter((o) => o.status === 'Nova').length;
   const subscribersCount = subscribers.length;
 
-  // Izračunavanje iskorištenosti promo kodova iz realizovanih narudžbi
   const promoUsageCountMap: Record<string, number> = {};
   let totalPromosUsedInOrders = 0;
 
@@ -515,6 +515,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="flex border-b-2 border-neutral-300 gap-2 sm:gap-6 overflow-x-auto">
         {[
           { id: 'overview', label: 'Pregled & Prodaja', icon: TrendingUp },
+          { id: 'cms', label: 'CMS (Početna)', icon: Layout },
           { id: 'analytics', label: 'Posjete & Funnel', icon: Eye },
           { id: 'leads', label: 'Napuštene korpe', icon: Mail },
           { id: 'products', label: `Proizvodi (${products.length})`, icon: Package },
@@ -665,6 +666,13 @@ export const AdminDashboard: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* CMS TAB (UPRAVLJANJE SADRŽAJEM POČETNE STRANICE) */}
+      {activeTab === 'cms' && (
+        <div className="animate-fadeIn">
+          <HomeCMSEditor />
         </div>
       )}
 
@@ -971,7 +979,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PROMO KODOVI TAB (UPRAVLJANJE KODOVIMA + STATISTIKA ISKORIŠTENOSTI) */}
+      {/* PROMO KODOVI TAB */}
       {activeTab === 'promo' && (
         <div className="space-y-6 animate-fadeIn max-w-5xl font-['Inter']">
           <div>
@@ -1002,7 +1010,6 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Form za kreiranje */}
           <form onSubmit={handleCreatePromo} className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
             <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
               Kreiraj novi promo kod
@@ -1041,7 +1048,6 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </form>
 
-          {/* Tabela Promo Kodova sa brojačem iskorištenosti po kodu */}
           <div className="bg-white border-2 border-neutral-200 overflow-x-auto shadow-sm">
             <table className="w-full text-xs text-left">
               <thead className="bg-[#0A0A0A] text-white font-['Poppins'] font-bold uppercase">
