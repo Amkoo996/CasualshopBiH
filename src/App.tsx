@@ -54,6 +54,7 @@ export function AppContent() {
     init();
   }, []);
 
+  // Postavljanje naslova stranice
   useEffect(() => {
     const titles: Record<string, string> = {
       home: 'Casual Shop BiH | Casual odjeća online',
@@ -75,52 +76,101 @@ export function AppContent() {
     }
   }, [currentTab, selectedProduct]);
 
+  // NAUČENA NAVIGACIJA SA BROWSER HISTORY STACK-om (BACK BUTTON PODRŠKA)
   useEffect(() => {
-    const handleHash = () => {
-      const hash = window.location.hash.replace('#/', '').replace('#', '');
-      if (['admin', 'shop', 'wishlist', 'about', 'contact', 'shipping', 'terms', 'privacy'].includes(hash)) {
-        setCurrentTab(hash);
+    // Postavi početno stanje historije za prvu posjetu
+    if (!window.history.state) {
+      window.history.replaceState({ tab: 'home' }, '');
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.tab) {
+        setCurrentTab(event.state.tab);
+        if (event.state.productId) {
+          const prod = products.find((p) => p.id === event.state.productId);
+          setSelectedProduct(prod || null);
+        } else {
+          setSelectedProduct(null);
+        }
+        if (event.state.category) {
+          setShopCategory(event.state.category);
+        }
+      } else {
+        // Generički fallback ako se ide skroz nazad
+        const hash = window.location.hash.replace('#/', '').replace('#', '');
+        if (hash) {
+          setCurrentTab(hash);
+        } else {
+          setCurrentTab('home');
+          setSelectedProduct(null);
+        }
       }
     };
-    handleHash();
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
-  }, []);
 
-  const handleSelectProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setCurrentTab('product-detail');
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [products]);
+
+  // Centralna funkcija za prelazak na novu stranicu koja upisuje stazu u Historiju
+  const navigateTo = (tab: string, extraData?: { product?: Product; category?: string }) => {
+    setCurrentTab(tab);
+
+    if (extraData?.product) {
+      setSelectedProduct(extraData.product);
+    } else if (tab !== 'product-detail') {
+      setSelectedProduct(null);
+    }
+
+    if (extraData?.category !== undefined) {
+      setShopCategory(extraData.category);
+    }
+
+    window.history.pushState(
+      {
+        tab,
+        productId: extraData?.product?.id,
+        category: extraData?.category || shopCategory,
+      },
+      '',
+      tab === 'home' ? '/' : `#${tab}`
+    );
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Univerzalna funkcija za gumb "Nazad" (vraca se na stvarni prethodni ekran)
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigateTo('shop', { category: 'Sve' });
+    }
+  };
+
+  const handleSelectProduct = (product: Product) => {
+    navigateTo('product-detail', { product });
+  };
+
   const handleNavigateToShop = (category: string = 'Sve') => {
-    setShopCategory(category);
     setSearchTerm('');
-    setSelectedProduct(null);
-    setCurrentTab('shop');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateTo('shop', { category });
   };
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    setSelectedProduct(null);
-    setCurrentTab('shop');
+    navigateTo('shop');
   };
 
   const handleOrderSuccess = (order: Order) => {
     setLastOrder(order);
-    setCurrentTab('order-success');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateTo('order-success');
   };
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col antialiased selection:bg-yellow-brand selection:text-[#0A0A0A]">
       <Navbar
         currentTab={currentTab}
-        setCurrentTab={(tab) => {
-          setSelectedProduct(null);
-          setCurrentTab(tab);
-        }}
+        setCurrentTab={(tab) => navigateTo(tab)}
         onSearch={handleSearch}
         onSelectCategory={handleNavigateToShop}
       />
@@ -146,7 +196,7 @@ export function AppContent() {
         {currentTab === 'product-detail' && selectedProduct && (
           <ProductDetailPage
             product={selectedProduct}
-            onBack={() => setCurrentTab('shop')}
+            onBack={handleBack}
           />
         )}
 
@@ -160,19 +210,16 @@ export function AppContent() {
 
         {currentTab === 'checkout' && (
           <CheckoutPage
-            onBack={() => setCurrentTab('shop')}
+            onBack={handleBack}
             onOrderSuccess={handleOrderSuccess}
-            onNavigateToPage={(p) => {
-              setCurrentTab(p);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onNavigateToPage={(p) => navigateTo(p)}
           />
         )}
 
         {currentTab === 'order-success' && lastOrder && (
           <OrderSuccessPage
             order={lastOrder}
-            onContinueShopping={() => handleNavigateToShop()}
+            onContinueShopping={() => handleNavigateToShop('Sve')}
           />
         )}
 
@@ -184,14 +231,10 @@ export function AppContent() {
       </main>
 
       <Footer
-        onNavigate={(tab) => {
-          setSelectedProduct(null);
-          setCurrentTab(tab);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onNavigate={(tab) => navigateTo(tab)}
       />
 
-      <CartDrawer onCheckout={() => setCurrentTab('checkout')} />
+      <CartDrawer onCheckout={() => navigateTo('checkout')} />
       <FloatingActions />
       <CookieConsent />
       <NewsletterPopup />
