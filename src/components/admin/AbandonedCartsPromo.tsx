@@ -63,7 +63,6 @@ export const AbandonedCartsPromo: React.FC = () => {
     setSelectedSession(session);
     setEmailSentSuccess(false);
 
-    // Provjera starosti korpe radi automatske preporuke opcije
     const dateObj = parseDate(session.lastUpdated);
     const daysDiff = Math.floor((Date.now() - dateObj.getTime()) / (1000 * 3600 * 24));
     
@@ -85,7 +84,6 @@ export const AbandonedCartsPromo: React.FC = () => {
     }
   };
 
-  // GENERISANJE SADRŽAJA EMAIL-A ZAVISNO OD ODABRANE OPCIJE
   const generateEmailBody = (session: AbandonedCartSession) => {
     const name = session.customerName || 'prijatelju';
     const itemsList = session.items
@@ -142,6 +140,7 @@ Casual Shop BiH`;
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // ISPRAVLJENO MAPIRANJE ZA EMAILJS ŠABLON
   const handleSendDirectEmail = async () => {
     if (!selectedSession?.email) {
       alert('Kupac nema unesen e-mail.');
@@ -151,9 +150,7 @@ Casual Shop BiH`;
     setSendingEmail(true);
     try {
       const fullEmailContent = generateEmailBody(selectedSession);
-      const itemsSummary = selectedSession.items
-        .map((i) => `• ${i.name} (Veličina: ${i.size})`)
-        .join('\n');
+      const subject = generateEmailSubject();
 
       const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST',
@@ -165,12 +162,19 @@ Casual Shop BiH`;
           template_id: 'template_atnmhpk',
           user_id: 'mPKyquhWRcGkRq4gS',
           template_params: {
-            customer_name: selectedSession.customerName || 'Kupac',
+            // Mapiramo i standardna EmailJS polja i naša prilagođena polja
+            from_name: 'Casual Shop BiH',
+            from_email: sellerEmail,
+            to_name: selectedSession.customerName || 'Kupac',
+            to_email: selectedSession.email,
             customer_email: selectedSession.email,
+            customer_name: selectedSession.customerName || 'Kupac',
+            subject: subject,
+            message: fullEmailContent,
+            email_body: fullEmailContent,
+            phone: selectedSession.phone || 'Nema telefona',
             promo_code: emailMode === '5days_with_code' ? promoCode : 'N/A',
             discount_percent: emailMode === '5days_with_code' ? promoDiscount : '0%',
-            items_summary: itemsSummary,
-            email_body: fullEmailContent,
             reply_to: sellerEmail,
           },
         }),
@@ -383,13 +387,12 @@ Casual Shop BiH`;
               </div>
             )}
 
-            {/* ODABIR OPCIJE EMAIL-A (RADIO GUMB) */}
+            {/* ODABIR OPCIJE EMAIL-A */}
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-neutral-700 uppercase tracking-wider block font-['Poppins']">
                 Odaberite opciju slanja:
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* OPCIJA 1 */}
                 <button
                   type="button"
                   onClick={() => setEmailMode('3days_no_code')}
@@ -408,7 +411,6 @@ Casual Shop BiH`;
                   </p>
                 </button>
 
-                {/* OPCIJA 2 */}
                 <button
                   type="button"
                   onClick={() => setEmailMode('5days_with_code')}
