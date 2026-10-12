@@ -88,7 +88,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Brzi Linkovi - ZAMIJENJENO h4 U h3 */}
+          {/* Stranice / Linkovi */}
           <div>
             <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
               Stranice
@@ -97,7 +97,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('shop')}
-                  className="hover:text-[#F7E97F] transition-colors"
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
                 >
                   Shop
                 </button>
@@ -105,7 +105,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('about')}
-                  className="hover:text-[#F7E97F] transition-colors"
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
                 >
                   O nama
                 </button>
@@ -113,7 +113,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('contact')}
-                  className="hover:text-[#F7E97F] transition-colors"
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
                 >
                   Kontakt
                 </button>
@@ -121,7 +121,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('shipping')}
-                  className="hover:text-[#F7E97F] transition-colors"
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
                 >
                   Dostava i povrat
                 </button>
@@ -129,7 +129,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('terms')}
-                  className="hover:text-[#F7E97F] transition-colors"
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
                 >
                   Uslovi korištenja
                 </button>
@@ -137,7 +137,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   onClick={() => onNavigate('privacy')}
-                  className="hover:text-[#F7E97F] transition-colors"
+                  className="hover:text-[#F7E97F] transition-colors cursor-pointer"
                 >
                   Politika privatnosti
                 </button>
@@ -145,7 +145,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Kontakt - ZAMIJENJENO h4 U h3 */}
+          {/* Kontakt */}
           <div>
             <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
               Kontakt
@@ -162,7 +162,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Newsletter u footeru - ZAMIJENJENO h4 U h3 */}
+          {/* Newsletter u footeru */}
           <div>
             <h3 className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.2em] text-[#F7E97F] mb-3">
               Newsletter
@@ -189,7 +189,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   />
                   <button
                     type="submit"
-                    className="bg-[#F7E97F] text-[#0A0A0A] px-3 font-bold hover:bg-[#ebd965] transition-colors shrink-0"
+                    className="bg-[#F7E97F] text-[#0A0A0A] px-3 font-bold hover:bg-[#ebd965] transition-colors shrink-0 cursor-pointer"
                     title="Prijavi se"
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -210,18 +210,35 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Bottom Bar sa diskretno sakrivenim Admin linkom na dnu */}
-        <div className="border-t border-neutral-900 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 gap-4">
+        {/* LOGOTIPI PARTNERA DOSTAVE I PLAĆANJA */}
+        <div className="border-t border-neutral-900 pt-6 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-[11px] font-['Poppins']">
+            <span className="text-neutral-500 font-bold uppercase text-[10px] tracking-wider mr-1">Kurirske službe:</span>
+            <span className="bg-[#171717] text-white border border-neutral-800 px-2 py-1 font-bold">BH Pošta Express</span>
+            <span className="bg-[#171717] text-red-500 border border-neutral-800 px-2 py-1 font-bold">X-Express</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 text-[10px] font-['Poppins']">
+            <span className="text-neutral-500 font-bold uppercase tracking-wider mr-1">Plaćanje & Partneri:</span>
+            <span className="bg-[#171717] text-blue-400 border border-neutral-800 px-2 py-0.5 font-bold">Monri</span>
+            <span className="bg-[#171717] text-white border border-neutral-800 px-2 py-0.5 font-bold">WSpay</span>
+            <span className="bg-[#171717] text-red-500 border border-neutral-800 px-2 py-0.5 font-bold italic">UniCredit</span>
+            <span className="bg-[#171717] text-blue-500 border border-neutral-800 px-2 py-0.5 font-bold italic">VISA</span>
+            <span className="bg-[#171717] text-amber-500 border border-neutral-800 px-2 py-0.5 font-bold">mastercard</span>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="border-t border-neutral-900 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 gap-4">
           <p>© {new Date().getFullYear()} Casual Shop BiH. Sva prava zadržana.</p>
 
           <div className="flex items-center gap-4">
             <span className="font-['Poppins'] font-bold text-xs text-neutral-300">
               Plaćanje pouzećem.
             </span>
-            {/* Sakriveni diskretni link za Admin Panel */}
             <button
               onClick={() => onNavigate('admin')}
-              className="text-neutral-800 hover:text-neutral-500 transition-colors p-1"
+              className="text-neutral-800 hover:text-neutral-500 transition-colors p-1 cursor-pointer"
               title="Admin Access"
             >
               <Lock className="w-3 h-3" />
