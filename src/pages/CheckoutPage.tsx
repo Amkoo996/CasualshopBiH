@@ -293,20 +293,38 @@ ${itemsListMsg}${promoInfoText}
         });
       }
 
-      // 3. Slanje e-mail obavijesti preko EmailJS
+      // 3. SLANJE E-MAIL OBAVIJESTI PREKO EMAILJS
       const fallbackSellerEmail = settings?.email || 'info@casualshop.ba';
       try {
         const itemsSummary = items
-          .map((i) => `- ${i.quantity}x ${i.name} (Vel: ${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
+          .map((i) => `• ${i.quantity}x ${i.name} (${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
           .join('\n');
 
         const promoNote = nextPromoCode
-          ? `\n\nHVALA NA KUPOVINI! Tvoj promo kod od 10% za narednu narudžbu (važi 30 dana): ${nextPromoCode}`
+          ? `\n\nHVALA NA KUPOVINI!\nTvoj promo kod od 10% za narednu narudžbu (važi 30 dana): ${nextPromoCode}`
           : '';
 
         const recipientEmail = cleanEmail && cleanEmail.includes('@')
           ? cleanEmail
           : fallbackSellerEmail;
+
+        const messageBodyFormatted = `
+Vaša narudžba #${finalizedOrder.orderNumber} je uspješno kreirana.
+
+Podaci o kupcu:
+- Ime i prezime: ${formData.firstName} ${formData.lastName}
+- Telefon: ${cleanPhone}
+- Adresa: ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
+- Napomena: ${noteDetails || 'Nema napomene'}
+
+Pregled naručenih artikala:
+${itemsSummary}
+${appliedPromoCode ? `\nPrimijenjen promo kod: ${appliedPromoCode} (-${discountAmount.toFixed(2)} KM)` : ''}
+
+Dostava: ${activeShippingFee === 0 ? '0.00 KM (Lično preuzimanje / Besplatna dostava)' : `\${activeShippingFee.toFixed(2)} KM`}
+Ukupno za plaćanje: ${finalizedOrder.total.toFixed(2)} KM
+${promoNote}
+        `.trim();
 
         const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
@@ -318,15 +336,17 @@ ${itemsListMsg}${promoInfoText}
             template_id: 'template_b7r6ees',
             user_id: 'mPKyquhWRcGkRq4gS',
             template_params: {
+              subject: `Potvrda narudžbe #${finalizedOrder.orderNumber} - Casual Shop BiH`,
               order_number: finalizedOrder.orderNumber,
               customer_name: `${formData.firstName} ${formData.lastName}`,
               customer_phone: cleanPhone,
               customer_email: recipientEmail,
-              customer_address: finalizedOrder.customer.address,
+              customer_address: `${finalizedOrder.customer.address}, ${finalizedOrder.customer.city}`,
               customer_note: (noteDetails || 'Nema napomene') + promoNote,
               items_summary: itemsSummary,
               total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
-              shipping_fee: activeShippingFee === 0 ? 'BESPLATNO (Lično preuzimanje / Prag)' : `${activeShippingFee.toFixed(2)} KM`,
+              shipping_fee: activeShippingFee === 0 ? 'BESPLATNO' : `${activeShippingFee.toFixed(2)} KM`,
+              message_body: messageBodyFormatted,
               reply_to: cleanEmail || fallbackSellerEmail,
             },
           }),
