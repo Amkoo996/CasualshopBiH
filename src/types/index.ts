@@ -81,6 +81,8 @@ export interface Order {
   promoCode?: string;
   discountAmount?: number;
   createdAt: string;
+  trackingNumber?: string; // Broj pošiljke brze pošte (opcionalno)
+  courierName?: string;    // Naziv kurirske službe (npr. X Express)
 }
 
 export interface NewsletterSubscriber {
