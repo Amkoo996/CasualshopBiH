@@ -162,13 +162,24 @@ export const getOrders = async (): Promise<Order[]> => {
   }
 };
 
+// AŽURIRANA FUNKCIJA SA PODRŠKOM ZA OPTIONAL TRACKING NUMBER I COURIER NAME
 export const updateOrderStatus = async (
   orderId: string,
-  status: Order['status']
+  status: Order['status'],
+  trackingData?: { trackingNumber?: string; courierName?: string }
 ): Promise<void> => {
   try {
     const docRef = doc(db, 'orders', orderId);
-    await updateDoc(docRef, { status });
+    const payload: Partial<Order> = { status };
+
+    if (trackingData?.trackingNumber !== undefined) {
+      payload.trackingNumber = trackingData.trackingNumber.trim();
+    }
+    if (trackingData?.courierName !== undefined) {
+      payload.courierName = trackingData.courierName.trim();
+    }
+
+    await updateDoc(docRef, payload);
   } catch (error) {
     console.error('Greška pri ažuriranju statusa narudžbe:', error);
     throw error;
