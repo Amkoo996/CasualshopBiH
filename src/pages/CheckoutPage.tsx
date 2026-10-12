@@ -259,9 +259,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ? `\nIskorišten Promo Kod: ${appliedPromoCode} (-${discountAmount.toFixed(2)} KM / ${promoDiscountPercent}%)` 
           : '';
 
-        const shippingText = activeShippingFee === 0 ? '0.00 KM (Lično / Gratis)' : `${activeShippingFee.toFixed(2)} KM`;
+        // Pripravljanje teksta za dostavu bez escape znaka '\'
+const shippingText = activeShippingFee === 0 
+  ? '0.00 KM (Lično preuzimanje / Gratis)' 
+  : `${activeShippingFee.toFixed(2)} KM`;
 
-        const telegramText = `
+const telegramText = `
 🛒 NOVA NARUDŽBA #${finalizedOrder.orderNumber}
 
 👤 Kupac: ${formData.firstName} ${formData.lastName}
@@ -275,7 +278,7 @@ ${itemsListMsg}${promoInfoText}
 
 💳 Dostava: ${shippingText}
 💰 UKUPNO ZA NAPLATU: ${finalizedOrder.total.toFixed(2)} KM
-        `.trim();
+`.trim();
 
         TELEGRAM_CHAT_IDS.forEach((chatId) => {
           fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
