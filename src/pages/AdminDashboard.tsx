@@ -24,6 +24,7 @@ import {
   Boxes,
   FileSpreadsheet,
   Ticket,
+  Power,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS } from '../types';
@@ -39,7 +40,7 @@ import {
 } from '../lib/db';
 import { uploadImage } from '../lib/upload';
 import { getProductViewStats } from '../lib/tracking';
-import { getPromoCodes, createPromoCode } from '../lib/promo';
+import { getAllPromoCodes, createPromoCode, togglePromoCodeStatus, deletePromoCode } from '../lib/promo';
 import { useCart } from '../context/CartContext';
 import { SalesTrendChart } from '../components/admin/SalesTrendChart';
 import { FunnelAnalytics } from '../components/admin/FunnelAnalytics';
@@ -97,7 +98,7 @@ export const AdminDashboard: React.FC = () => {
         getSubscribers().catch(() => []),
         getStoreSettings().catch(() => DEFAULT_STORE_SETTINGS),
         getProductViewStats().catch(() => ({})),
-        getPromoCodes().catch(() => []),
+        getAllPromoCodes().catch(() => []),
       ]);
       setProducts(prodsData);
       setOrders(ordersData);
@@ -144,6 +145,26 @@ export const AdminDashboard: React.FC = () => {
       alert('Greška pri kreiranju promo koda.');
     } finally {
       setPromoLoading(false);
+    }
+  };
+
+  const handleTogglePromo = async (code: string, activeState: boolean) => {
+    try {
+      await togglePromoCodeStatus(code, activeState);
+      await loadData();
+    } catch (err) {
+      alert('Greška pri promjeni statusa promo koda.');
+    }
+  };
+
+  const handleDeletePromo = async (code: string) => {
+    if (confirm(`Jeste li sigurni da želite trajno obrisati promo kod "${code}"?`)) {
+      try {
+        await deletePromoCode(code);
+        await loadData();
+      } catch (err) {
+        alert('Greška pri brisanju promo koda.');
+      }
     }
   };
 
@@ -931,7 +952,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PROMO KODOVI TAB */}
+      {/* PROMO KODOVI TAB (UPRAVLJANJE KODOVIMA + OPCIJA ZA GAŠENJE / BRISANJE) */}
       {activeTab === 'promo' && (
         <div className="space-y-6 animate-fadeIn max-w-4xl font-['Inter']">
           <div>
@@ -939,7 +960,7 @@ export const AdminDashboard: React.FC = () => {
               Upravljanje Promo Kodovima
             </h2>
             <p className="text-xs text-neutral-600">
-              Generišite nove kodove za popust, pratite broj aktivnih kodova i iskorištenost po kupcima.
+              Generišite nove kodove za popust, ugasite ili obrišite kodove i pratite njihovu aktivnost.
             </p>
           </div>
 
@@ -950,15 +971,15 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="p-4 bg-white border-2 border-emerald-500 shadow-sm font-['Poppins']">
               <span className="block text-2xl font-black text-emerald-600">
-                {promoCodes.filter((c) => !c.used).length}
+                {promoCodes.filter((c) => c.active !== false && !c.used).length}
               </span>
               <span className="text-xs text-emerald-700 uppercase font-bold">Aktivno / Dostupno</span>
             </div>
             <div className="p-4 bg-white border-2 border-amber-500 shadow-sm font-['Poppins']">
               <span className="block text-2xl font-black text-amber-600">
-                {promoCodes.filter((c) => c.used).length}
+                {promoCodes.filter((c) => c.used || c.active === false).length}
               </span>
-              <span className="text-xs text-amber-700 uppercase font-bold">Iskorišteno</span>
+              <span className="text-xs text-amber-700 uppercase font-bold">Iskorišteno / Ugašeno</span>
             </div>
           </div>
 
@@ -1001,7 +1022,7 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </form>
 
-          {/* Tabela Promo Kodova */}
+          {/* Tabela Promo Kodova sa opcijama Deaktiviraj i Obriši */}
           <div className="bg-white border-2 border-neutral-200 overflow-x-auto shadow-sm">
             <table className="w-full text-xs text-left">
               <thead className="bg-[#0A0A0A] text-white font-['Poppins'] font-bold uppercase">
@@ -1010,12 +1031,13 @@ export const AdminDashboard: React.FC = () => {
                   <th className="p-3">Popust</th>
                   <th className="p-3">Tip</th>
                   <th className="p-3">Status</th>
+                  <th className="p-3 text-right">Akcije</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200">
                 {promoCodes.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="p-4 text-center text-neutral-500">Nema kreiranih promo kodova.</td>
+                    <td colSpan={5} className="p-4 text-center text-neutral-500">Nema kreiranih promo kodova.</td>
                   </tr>
                 ) : (
                   promoCodes.map((codeItem, idx) => (
@@ -1025,10 +1047,36 @@ export const AdminDashboard: React.FC = () => {
                       <td className="p-3 text-neutral-600">{codeItem.type || 'Ručni'}</td>
                       <td className="p-3">
                         <span className={`px-2 py-0.5 text-[10px] font-['Poppins'] font-bold uppercase ${
+                          codeItem.active === false ? 'bg-neutral-200 text-neutral-700' :
                           codeItem.used ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
                         }`}>
-                          {codeItem.used ? 'Iskorišten' : 'Aktivan'}
+                          {codeItem.active === false ? 'Ugašen' : codeItem.used ? 'Iskorišten' : 'Aktivan'}
                         </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePromo(codeItem.code, codeItem.active ?? true)}
+                            className={`px-2.5 py-1 text-[10px] font-['Poppins'] font-bold uppercase border flex items-center gap-1 cursor-pointer transition-colors ${
+                              codeItem.active === false
+                                ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+                                : 'bg-amber-600 text-white border-amber-600 hover:bg-amber-700'
+                            }`}
+                            title={codeItem.active === false ? 'Aktiviraj kod' : 'Deaktiviraj / Ugasi kod'}
+                          >
+                            <Power className="w-3 h-3" />
+                            <span>{codeItem.active === false ? 'Aktiviraj' : 'Ugasi'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePromo(codeItem.code)}
+                            className="p-1 text-red-600 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer"
+                            title="Obriši kod"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1140,7 +1188,7 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="settings-shipping-fee" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-shipping-fee" className="block text-xs font-[#Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     Cijena dostave (KM) *
                   </label>
                   <input
