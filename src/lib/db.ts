@@ -22,6 +22,8 @@ import {
   NewsletterSubscriber,
   ProductReview,
   Category,
+  HomeCMSContent,
+  DEFAULT_CMS_CONTENT,
 } from '../types';
 import { normalizePhone } from './validation';
 
@@ -206,6 +208,37 @@ export const updateStoreSettings = async (settingsData: Partial<StoreSettings>):
 
 // Alias za kompatibilnost
 export const saveStoreSettings = updateStoreSettings;
+
+// ==========================================
+// UPRAVLJANJE SADRŽAJEM POČETNE STRANICE (CMS)
+// ==========================================
+
+export const getCMSContent = async (): Promise<HomeCMSContent> => {
+  try {
+    const docRef = doc(db, 'settings', 'cms_content');
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return { ...DEFAULT_CMS_CONTENT, ...docSnap.data() } as HomeCMSContent;
+    } else {
+      await setDoc(docRef, DEFAULT_CMS_CONTENT);
+      return DEFAULT_CMS_CONTENT;
+    }
+  } catch (error) {
+    console.error('Greška pri dohvaćanju CMS sadržaja:', error);
+    return DEFAULT_CMS_CONTENT;
+  }
+};
+
+export const saveCMSContent = async (cmsData: HomeCMSContent): Promise<void> => {
+  try {
+    const docRef = doc(db, 'settings', 'cms_content');
+    await setDoc(docRef, cmsData, { merge: true });
+  } catch (error) {
+    console.error('Greška pri spremanju CMS sadržaja:', error);
+    throw error;
+  }
+};
 
 // ==========================================
 // NEWSLETTER
