@@ -1,267 +1,239 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
-  setDoc,
+  getDoc,
+  addDoc,
   updateDoc,
   deleteDoc,
   query,
   where,
   orderBy,
-  runTransaction,
+  limit,
+  setDoc,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Product, Order, NewsletterSubscriber, StoreSettings, OrderStatus, ProductReview, DEFAULT_STORE_SETTINGS } from '../types';
+import {
+  Product,
+  Order,
+  StoreSettings,
+  DEFAULT_STORE_SETTINGS,
+  NewsletterSubscriber,
+  Category,
+} from '../types';
+import { normalizePhone } from './validation';
 
-export const PRODUCTS_COLLECTION = 'products';
-export const ORDERS_COLLECTION = 'orders';
-export const SUBSCRIBERS_COLLECTION = 'subscribers';
-export const SETTINGS_COLLECTION = 'settings';
-export const WISHLISTS_COLLECTION = 'wishlists';
-export const REVIEWS_COLLECTION = 'reviews';
+// ==========================================
+// PROIZVODI (PRODUCTS)
+// ==========================================
 
-// Pomoćna funkcija koja uklanja undefined polja radi sprečavanja FirebaseError-a
-function sanitizeFirestoreData<T extends Record<string, any>>(data: T): Record<string, any> {
-  const cleanData: Record<string, any> = {};
-
-  Object.keys(data).forEach((key) => {
-    const value = data[key];
-    if (value === undefined) {
-      if (key === 'originalPrice') {
-        cleanData[key] = null;
-      }
-      return;
-    }
-    cleanData[key] = value;
-  });
-
-  return cleanData;
-}
-
-// ------------------------------------------------------------------
-// 1. PROIZVODI (PRODUCTS)
-// ------------------------------------------------------------------
-
-export async function getProducts(includeHidden = false): Promise<Product[]> {
+export const getProducts = async (includeHidden = false): Promise<Product[]> => {
   try {
-    const productsRef = collection(db, PRODUCTS_COLLECTION);
+    const productsRef = collection(db, 'products');
+    const snapshot = await getDocs(productsRef);
     
-    // Ako ne tražimo sakrivene, filtriramo direktno u Firebase upitu
-    const q = includeHidden 
-      ? productsRef 
-      : query(productsRef, where('isHidden', '!=', true));
-
-    const snap = await getDocs(q);
-    
-    return snap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
+    let products = snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
     })) as Product[];
+
+    if (!includeHidden) {
+      products = products.filter((p) => !p.isHidden);
+    }
+
+    return products;
   } catch (error) {
-    console.error('Greška pri dohvatanju proizvoda:', error);
+    console.error('Greška pri dohvaćanju proizvoda:', error);
     return [];
   }
-}
+};
 
-export async function saveProduct(productData: Omit<Product, 'id'> & { id?: string }): Promise<string> {
-  const { id, ...data } = productData;
-  const sanitizedData = sanitizeFirestoreData(data);
-
-  if (id) {
-    const prodRef = doc(db, PRODUCTS_COLLECTION, id);
-    await setDoc(prodRef, sanitizedData, { merge: true });
-    return id;
-  } else {
-    const prodRef = doc(collection(db, PRODUCTS_COLLECTION));
-    await setDoc(prodRef, sanitizedData);
-    return prodRef.id;
-  }
-}
-
-export async function deleteProduct(id: string): Promise<void> {
-  const prodRef = doc(db, PRODUCTS_COLLECTION, id);
-  await deleteDoc(prodRef);
-}
-
-// ------------------------------------------------------------------
-// 2. NARUDŽBE (ORDERS - Atomska Transakcija)
-// ------------------------------------------------------------------
-
-export async function createOrder(orderData: Omit<Order, 'id'>): Promise<string> {
-  const orderRef = doc(collection(db, ORDERS_COLLECTION));
-  const sanitizedOrderData = sanitizeFirestoreData(orderData);
-
-  await runTransaction(db, async (transaction) => {
-    // 1) Čitanja: Preuzmi trenutno stanje svih naručenih proizvoda
-    const snaps = await Promise.all(
-      orderData.items.map((item) =>
-        transaction.get(doc(db, PRODUCTS_COLLECTION, item.id))
-      )
-    );
-
-    // 2) Provjera zalihe i cijene
-    const updates = new Map<string, Record<string, number>>();
-
-    orderData.items.forEach((item, i) => {
-      const snap = snaps[i];
-      if (!snap.exists()) {
-        throw new Error('Artikal "' + item.name + '" više nije dostupan u bazi.');
-      }
-      const prod = snap.data() as Product;
-
-      // PROVJERA CIJENE: Da li se cijena u korpi slaže s onom u bazi?
-      if (Math.abs(prod.price - item.price) > 0.001) {
-        throw new Error(`Cijena artikla "${item.name}" se promijenila. Osvježite korpu i pokušajte ponovo.`);
-      }
-
-      const sizes = updates.get(item.id) ?? ({ ...prod.sizes } as Record<string, number>);
-      const stock = sizes[item.size] ?? 0;
-
-      if (stock < item.quantity) {
-        throw new Error('Artikal "' + item.name + '" (Veličina ' + item.size + ') nema dovoljno komada na stanju.');
-      }
-
-      sizes[item.size] = stock - item.quantity;
-      updates.set(item.id, sizes);
-    });
-
-    // 3) Upisi: Ažuriraj zalihe u proizvodima i snimi novu narudžbu
-    updates.forEach((sizes, id) => {
-      transaction.update(doc(db, PRODUCTS_COLLECTION, id), { sizes });
-    });
-
-    transaction.set(orderRef, sanitizedOrderData);
-  });
-
-  return orderRef.id;
-}
-
-export async function getOrders(): Promise<Order[]> {
+export const getProductById = async (id: string): Promise<Product | null> => {
   try {
-    const ordersRef = collection(db, ORDERS_COLLECTION);
+    const docRef = doc(db, 'products', id);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Product;
+    }
+    return null;
+  } catch (error) {
+    console.error('Greška pri dohvaćanju proizvoda po ID-u:', error);
+    return null;
+  }
+};
+
+export const addProduct = async (productData: Omit<Product, 'id'>): Promise<string> => {
+  try {
+    const docRef = await addDoc(collection(db, 'products'), {
+      ...productData,
+      createdAt: new Date().toISOString(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Greška pri dodavanju proizvoda:', error);
+    throw error;
+  }
+};
+
+export const updateProduct = async (id: string, productData: Partial<Product>): Promise<void> => {
+  try {
+    const docRef = doc(db, 'products', id);
+    await updateDoc(docRef, productData);
+  } catch (error) {
+    console.error('Greška pri ažuriranju proizvoda:', error);
+    throw error;
+  }
+};
+
+export const deleteProduct = async (id: string): Promise<void> => {
+  try {
+    const docRef = doc(db, 'products', id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error('Greška pri brisanju proizvoda:', error);
+    throw error;
+  }
+};
+
+// ==========================================
+// NARUDŽBE (ORDERS)
+// ==========================================
+
+export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
+  try {
+    const ordersRef = collection(db, 'orders');
+    const docRef = await addDoc(ordersRef, {
+      ...orderData,
+      createdAt: new Date().toISOString(),
+    });
+
+    // Automatsko smanjenje zaliha za kupljene artikle
+    for (const item of orderData.items) {
+      const productRef = doc(db, 'products', item.id);
+      const productSnap = await getDoc(productRef);
+
+      if (productSnap.exists()) {
+        const pData = productSnap.data() as Product;
+        const currentStock = pData.sizes?.[item.size] ?? 0;
+        const newStock = Math.max(0, currentStock - item.quantity);
+
+        await updateDoc(productRef, {
+          [`sizes.${item.size}`]: newStock,
+        });
+      }
+    }
+
+    return docRef.id;
+  } catch (error) {
+    console.error('Greška pri kreiranju narudžbe:', error);
+    throw error;
+  }
+};
+
+export const getOrders = async (): Promise<Order[]> => {
+  try {
+    const ordersRef = collection(db, 'orders');
     const q = query(ordersRef, orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
     })) as Order[];
   } catch (error) {
-    console.error('Greška pri dohvatanju narudžbi:', error);
+    console.error('Greška pri dohvaćanju narudžbi:', error);
     return [];
   }
-}
+};
 
-export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
-  const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-  await updateDoc(orderRef, { status });
-}
-
-// ------------------------------------------------------------------
-// 3. NEWSLETTER PRETPLATNICI
-// ------------------------------------------------------------------
-
-export async function getSubscribers(): Promise<NewsletterSubscriber[]> {
+export const updateOrderStatus = async (
+  orderId: string,
+  status: Order['status']
+): Promise<void> => {
   try {
-    const subsRef = collection(db, SUBSCRIBERS_COLLECTION);
-    const snap = await getDocs(subsRef);
-    return snap.docs.map((d) => d.data() as NewsletterSubscriber);
+    const docRef = doc(db, 'orders', orderId);
+    await updateDoc(docRef, { status });
   } catch (error) {
-    console.error('Greška pri dohvatanju pretplatnika:', error);
-    return [];
+    console.error('Greška pri ažuriranju statusa narudžbe:', error);
+    throw error;
   }
-}
+};
 
-export async function subscribeNewsletter(email: string): Promise<void> {
-  const subsRef = doc(collection(db, SUBSCRIBERS_COLLECTION));
-  await setDoc(subsRef, {
-    email: email.trim().toLowerCase(),
-    consent: true,
-    subscribedAt: new Date().toISOString(),
-  });
-}
+// ==========================================
+// POSTAVKE TRGOVINE (STORE SETTINGS)
+// ==========================================
 
-// ------------------------------------------------------------------
-// 4. POSTAVKE TRGOVINE (STORE SETTINGS)
-// ------------------------------------------------------------------
-
-export async function getStoreSettings(): Promise<StoreSettings> {
+export const getStoreSettings = async (): Promise<StoreSettings> => {
   try {
-    const settingsRef = doc(db, SETTINGS_COLLECTION, 'general');
-    const snap = await getDoc(settingsRef);
-    if (snap.exists()) {
-      return { ...DEFAULT_STORE_SETTINGS, ...snap.data() } as StoreSettings;
+    const docRef = doc(db, 'settings', 'store');
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return { ...DEFAULT_STORE_SETTINGS, ...docSnap.data() } as StoreSettings;
+    } else {
+      await setDoc(docRef, DEFAULT_STORE_SETTINGS);
+      return DEFAULT_STORE_SETTINGS;
     }
   } catch (error) {
-    console.error('Greška pri dohvatanju postavki:', error);
+    console.error('Greška pri dohvaćanju postavki:', error);
+    return DEFAULT_STORE_SETTINGS;
   }
-  return DEFAULT_STORE_SETTINGS;
-}
+};
 
-export async function saveStoreSettings(settings: StoreSettings): Promise<void> {
-  const settingsRef = doc(db, SETTINGS_COLLECTION, 'general');
-  const sanitizedSettings = sanitizeFirestoreData(settings);
-  await setDoc(settingsRef, sanitizedSettings, { merge: true });
-}
-
-// ------------------------------------------------------------------
-// 5. LISTA ŽELJA (WISHLIST)
-// ------------------------------------------------------------------
-
-export async function getUserWishlist(userId?: string): Promise<string[]> {
-  if (!userId) return [];
+export const updateStoreSettings = async (settingsData: Partial<StoreSettings>): Promise<void> => {
   try {
-    const wishlistRef = doc(db, WISHLISTS_COLLECTION, userId);
-    const snap = await getDoc(wishlistRef);
-    if (snap.exists()) {
-      return snap.data().productIds || [];
+    const docRef = doc(db, 'settings', 'store');
+    await setDoc(docRef, settingsData, { merge: true });
+  } catch (error) {
+    console.error('Greška pri spremanju postavki:', error);
+    throw error;
+  }
+};
+
+// ==========================================
+// NEWSLETTER
+// ==========================================
+
+export const subscribeNewsletter = async (email: string): Promise<void> => {
+  try {
+    const subscribersRef = collection(db, 'newsletter');
+    const q = query(subscribersRef, where('email', '==', email.trim().toLowerCase()));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      await addDoc(subscribersRef, {
+        email: email.trim().toLowerCase(),
+        consent: true,
+        subscribedAt: new Date().toISOString(),
+      });
     }
   } catch (error) {
-    console.error('Greška pri dohvatanju liste želja:', error);
+    console.error('Greška pri prijavi na newsletter:', error);
+    throw error;
   }
-  return [];
-}
+};
 
-export async function saveUserWishlist(userId: string | undefined, productIds: string[]): Promise<void> {
-  if (!userId) return;
+export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]> => {
   try {
-    const wishlistRef = doc(db, WISHLISTS_COLLECTION, userId);
-    await setDoc(wishlistRef, { productIds, updatedAt: new Date().toISOString() }, { merge: true });
-  } catch (error) {
-    console.error('Greška pri spremanju liste želja:', error);
-  }
-}
+    const subscribersRef = collection(db, 'newsletter');
+    const snapshot = await getDocs(subscribersRef);
 
-// ------------------------------------------------------------------
-// 6. RECENZIJE ARTIKALA (PRODUCT REVIEWS)
-// ------------------------------------------------------------------
-
-export async function getProductReviews(productId: string): Promise<ProductReview[]> {
-  try {
-    const reviewsRef = collection(db, REVIEWS_COLLECTION);
-    const q = query(reviewsRef, where('productId', '==', productId));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-    })) as ProductReview[];
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    })) as NewsletterSubscriber[];
   } catch (error) {
-    console.error('Greška pri dohvatanju recenzija:', error);
+    console.error('Greška pri dohvaćanju newsletter pretplatnika:', error);
     return [];
   }
-}
+};
 
-export async function submitProductReview(reviewData: Omit<ProductReview, 'id'>): Promise<string> {
-  const reviewRef = doc(collection(db, REVIEWS_COLLECTION));
-  const sanitizedReview = sanitizeFirestoreData(reviewData);
-  await setDoc(reviewRef, {
-    ...sanitizedReview,
-    createdAt: new Date().toISOString(),
-  });
-  return reviewRef.id;
-}
+// ==========================================
+// PRETRAGA NARUDŽBE ZA KUPCA
+// ==========================================
 
-// Pretraga narudžbe po broju narudžbe i broju telefona za kupce
 export const getOrderByNumberAndPhone = async (
   orderNumber: string,
   phone: string
@@ -281,7 +253,6 @@ export const getOrderByNumberAndPhone = async (
     const docSnap = snapshot.docs[0];
     const orderData = { id: docSnap.id, ...docSnap.data() } as Order;
 
-    // Normalizacija broja iz baze radi sigurnog poređenja
     const dbPhone = normalizePhone(orderData.customer.phone) || orderData.customer.phone;
 
     if (dbPhone === cleanPhone || orderData.customer.phone.includes(phone.trim())) {
