@@ -2,56 +2,107 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. KORISNICI I ADMINI (FIX ZA LOGIN ERROR):
-    // Dozvoljava prijavljenom korisniku da pročita svoj vlastiti profil/rolu
-    match /users/{userId} {
-      allow read, write: if request.auth != null;
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
-    
-    match /admins/{adminId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    function validSize(k) {
+      let o = resource.data.sizes.get(k, 0);
+      let n = request.resource.data.sizes.get(k, 0);
+      return n is int && n >= 0 && n <= o;
     }
 
-    // 2. POSTAVKE (SETTINGS):
+    match /{document=**} { allow read, write: if false; }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && request.auth.uid == adminId;
+      allow write: if false;
+    }
+
     match /settings/{docId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
 
-    // 3. PROIZVODI (PRODUCTS):
     match /products/{docId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sizes'])
+        && request.resource.data.sizes.keys().hasOnly(['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'])
+        && validSize('S') && validSize('M') && validSize('L') && validSize('XL')
+        && validSize('XXL') && validSize('3XL') && validSize('One size')
+      );
     }
 
-    // 4. PROMO KODOVI:
-    match /promo_codes/{docId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-
-    // 5. NARUDŽBE:
     match /orders/{docId} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null;
+      allow create: if request.resource.data.keys().hasAll(['orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 'total', 'paymentMethod', 'status'])
+        && request.resource.data.keys().hasOnly(['orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 'total', 'paymentMethod', 'status', 'createdAt', 'promoCode', 'discountAmount'])
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 20
+        && request.resource.data.customer is map
+        && request.resource.data.customer.phone is string
+        && request.resource.data.customer.phone.size() >= 6
+        && request.resource.data.customer.phone.size() <= 20
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.total < 10000
+        && request.resource.data.paymentMethod == 'cash_on_delivery'
+        && request.resource.data.status == 'Nova';
+      allow read, update, delete: if isAdmin();
     }
 
-    // 6. NEWSLETTER pretplatnici:
     match /subscribers/{docId} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null;
+      allow create: if request.resource.data.email is string
+        && request.resource.data.email.size() <= 150;
+      allow read, update, delete: if isAdmin();
     }
 
-    // 7. RECENZIJE:
+    match /promo_codes/{docId} {
+      allow get: if true;
+      allow list, delete: if isAdmin();
+      allow create: if isAdmin() || (
+        request.resource.data.discountPercent == 10
+        && request.resource.data.used == false);
+      allow update: if isAdmin() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedAt', 'usageCount']);
+    }
+
     match /reviews/{docId} {
-      allow read, create: if true;
-      allow update, delete: if request.auth != null;
+      allow read: if true;
+      allow create: if request.resource.data.rating is number
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 2000;
+      allow update, delete: if isAdmin();
     }
 
-    // 8. LISTA ŽELJA:
-    match /wishlists/{docId} {
-      allow read, write: if true;
+    match /wishlists/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /contact_messages/{docId} {
+      allow create: if request.resource.data.size() <= 10
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 2000;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /analytics_events/{docId} {
+      allow create: if request.resource.data.size() <= 10;
+      allow read, delete: if isAdmin();
+    }
+
+    match /store_metrics/{docId} {
+      allow read: if isAdmin();
+      allow create, update: if request.resource.data.size() <= 10;
+    }
+
+    match /abandoned_carts/{docId} {
+      allow create, update: if request.resource.data.size() <= 15;
+      allow read, delete: if isAdmin();
     }
   }
 }
