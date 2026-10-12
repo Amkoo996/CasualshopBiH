@@ -173,7 +173,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setSubmitError(null);
 
     try {
-      // 1. INTEGRITET ZALIHA (STOCK LOCKING): Provjera stanja u bazi prije potvrde
+      // 1. INTEGRITET ZALIHA (STOCK LOCKING)
       const freshProducts = await getProducts(true);
       for (const item of items) {
         const freshProd = freshProducts.find((p) => p.id === item.id);
@@ -252,7 +252,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
       // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOT ADMINU
       const TELEGRAM_BOT_TOKEN = '8572264255:AAGOOomuba8xozD90V5_sYV2SR2ECdG0hJI';
-      const TELEGRAM_CHAT_ID = settings?.telegramChatId || ''; // Ovdje unesite vaš chat_id ili ga povucite iz settingsa
+      const TELEGRAM_CHAT_ID = settings?.telegramChatId || '6333078744';
 
       if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
         const itemsListMsg = items
