@@ -41,7 +41,7 @@ export const AbandonedCartsPromo: React.FC = () => {
       setCarts(real || []);
     } catch {
       setCarts([]);
-    } fontally {
+    } finally {
       setLoading(false);
     }
   };
