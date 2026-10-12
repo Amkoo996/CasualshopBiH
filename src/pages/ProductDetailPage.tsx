@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Share2,
 } from 'lucide-react';
 import { Product, Size } from '../types';
 import { useCart } from '../context/CartContext';
@@ -54,6 +55,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
   const [instaCopied, setInstaCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
   // Touch Swipe State
@@ -119,6 +121,31 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setTimeout(() => setAddedSuccess(false), 3500);
   };
 
+  const handleShareClick = async () => {
+    const productUrl = `${window.location.origin}/?product=${product.id}`;
+    const shareData = {
+      title: `${product.name} | Casual Shop BiH`,
+      text: `Pogledaj ${product.name} na Casual Shop BiH po cijeni od ${product.price.toFixed(2)} KM!`,
+      url: productUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('Korisnik je otkazao dijeljenje:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(productUrl);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2500);
+      } catch (err) {
+        console.error('Neuspješno kopiranje linka:', err);
+      }
+    }
+  };
+
   const handleInstagramOrder = () => {
     const sizeText = selectedSize ? selectedSize : 'Nije odabrano';
     const totalPrice = (product.price * quantity).toFixed(2);
@@ -163,7 +190,7 @@ Podaci za dostavu:
   const hasDiscount = Boolean(product.originalPrice && product.originalPrice > product.price);
   const currentImageUrl = product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg';
 
-  // Cross-selling: Pronalazak 4 srodna artikla (iz iste kategorije ili najpopularnija)
+  // Cross-selling: Pronalazak 4 srodna artikla
   const relatedProducts = allProducts
     .filter((p) => p.id !== product.id && !p.isHidden)
     .filter((p) => p.category === product.category || p.featured)
@@ -197,7 +224,7 @@ Podaci za dostavu:
               setAddedSuccess(false);
               setIsCartOpen(true);
             }}
-            className="w-full py-2 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider hover:bg-[#ebd965] transition-colors mt-1"
+            className="w-full py-2 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider hover:bg-[#ebd965] transition-colors mt-1 cursor-pointer"
           >
             OTVORI KORPU & CHECKOUT
           </button>
@@ -405,7 +432,7 @@ Podaci za dostavu:
             )}
           </div>
 
-          {/* QUANTITY & ADD TO CART */}
+          {/* QUANTITY & ADD TO CART & WISHLIST & SHARE */}
           <div className="space-y-3 pt-1">
             <div className="flex items-center gap-3">
               <div className="flex items-center border-2 border-neutral-300 bg-white shrink-0">
@@ -458,7 +485,28 @@ Podaci za dostavu:
               >
                 <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
               </button>
+
+              {/* DUGME ZA DIJELJENJE (SHARE) */}
+              <button
+                type="button"
+                onClick={handleShareClick}
+                className="py-3 px-3.5 bg-white border-2 border-neutral-300 text-neutral-700 hover:border-black hover:text-black transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                title="Podijeli artikal"
+              >
+                {shareCopied ? (
+                  <Check className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <Share2 className="w-4 h-4" />
+                )}
+              </button>
             </div>
+
+            {/* OBAVIJEST KAD JE LINK KOPIRAN NA DESKTOPU */}
+            {shareCopied && (
+              <div className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 p-2 text-center animate-fadeIn font-['Inter']">
+                ✓ Link artikla je kopiran u međuspremnik!
+              </div>
+            )}
 
             {/* DUGME ZA INSTAGRAM BRZU NARUDŽBU */}
             <div className="pt-1">
