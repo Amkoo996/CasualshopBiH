@@ -25,6 +25,7 @@ import {
   FileSpreadsheet,
   Ticket,
   Power,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS } from '../types';
@@ -277,6 +278,18 @@ export const AdminDashboard: React.FC = () => {
   const totalOrdersCount = orders.length;
   const newOrdersCount = orders.filter((o) => o.status === 'Nova').length;
   const subscribersCount = subscribers.length;
+
+  // Izračunavanje iskorištenosti promo kodova iz realizovanih narudžbi
+  const promoUsageCountMap: Record<string, number> = {};
+  let totalPromosUsedInOrders = 0;
+
+  orders.forEach((ord) => {
+    if (ord.status !== 'Otkazana' && ord.promoCode) {
+      const codeUpper = ord.promoCode.trim().toUpperCase();
+      promoUsageCountMap[codeUpper] = (promoUsageCountMap[codeUpper] || 0) + 1;
+      totalPromosUsedInOrders += 1;
+    }
+  });
 
   const productSalesMap: Record<string, { name: string; count: number; revenue: number }> = {};
   orders.forEach((ord) => {
@@ -940,6 +953,12 @@ export const AdminDashboard: React.FC = () => {
                           </div>
                         ))}
                       </div>
+                      {order.promoCode && (
+                        <div className="pt-1 text-[11px] text-emerald-700 font-bold border-t border-neutral-200 flex justify-between">
+                          <span>Iskorišten promo kod ({order.promoCode}):</span>
+                          <span>-{order.discountAmount ? order.discountAmount.toFixed(2) : '0.00'} KM</span>
+                        </div>
+                      )}
                       <div className="pt-2 border-t border-neutral-300 flex justify-between font-bold text-xs font-['Poppins']">
                         <span>Ukupno za plaćanje:</span>
                         <span className="font-black text-black text-sm">{order.total.toFixed(2)} KM</span>
@@ -952,15 +971,15 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PROMO KODOVI TAB (UPRAVLJANJE KODOVIMA + OPCIJA ZA GAŠENJE / BRISANJE) */}
+      {/* PROMO KODOVI TAB (UPRAVLJANJE KODOVIMA + STATISTIKA ISKORIŠTENOSTI) */}
       {activeTab === 'promo' && (
-        <div className="space-y-6 animate-fadeIn max-w-4xl font-['Inter']">
+        <div className="space-y-6 animate-fadeIn max-w-5xl font-['Inter']">
           <div>
             <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black">
-              Upravljanje Promo Kodovima
+              Upravljanje i Statistika Promo Kodova
             </h2>
             <p className="text-xs text-neutral-600">
-              Generišite nove kodove za popust, ugasite ili obrišite kodove i pratite njihovu aktivnost.
+              Generišite nove kodove, ugasite ih, pratite tačan broj narudžbi u kojima su iskorišteni.
             </p>
           </div>
 
@@ -977,9 +996,9 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="p-4 bg-white border-2 border-amber-500 shadow-sm font-['Poppins']">
               <span className="block text-2xl font-black text-amber-600">
-                {promoCodes.filter((c) => c.used || c.active === false).length}
+                {totalPromosUsedInOrders}
               </span>
-              <span className="text-xs text-amber-700 uppercase font-bold">Iskorišteno / Ugašeno</span>
+              <span className="text-xs text-amber-700 uppercase font-bold">Ukupno Iskorišteno u Narudžbama</span>
             </div>
           </div>
 
@@ -1022,7 +1041,7 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </form>
 
-          {/* Tabela Promo Kodova sa opcijama Deaktiviraj i Obriši */}
+          {/* Tabela Promo Kodova sa brojačem iskorištenosti po kodu */}
           <div className="bg-white border-2 border-neutral-200 overflow-x-auto shadow-sm">
             <table className="w-full text-xs text-left">
               <thead className="bg-[#0A0A0A] text-white font-['Poppins'] font-bold uppercase">
@@ -1030,6 +1049,7 @@ export const AdminDashboard: React.FC = () => {
                   <th className="p-3">Kod</th>
                   <th className="p-3">Popust</th>
                   <th className="p-3">Tip</th>
+                  <th className="p-3">Iskorišteno u narudžbama</th>
                   <th className="p-3">Status</th>
                   <th className="p-3 text-right">Akcije</th>
                 </tr>
@@ -1037,49 +1057,60 @@ export const AdminDashboard: React.FC = () => {
               <tbody className="divide-y divide-neutral-200">
                 {promoCodes.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-4 text-center text-neutral-500">Nema kreiranih promo kodova.</td>
+                    <td colSpan={6} className="p-4 text-center text-neutral-500">Nema kreiranih promo kodova.</td>
                   </tr>
                 ) : (
-                  promoCodes.map((codeItem, idx) => (
-                    <tr key={idx} className="hover:bg-neutral-50">
-                      <td className="p-3 font-mono font-bold text-black">{codeItem.code}</td>
-                      <td className="p-3 font-['Poppins'] font-bold">{codeItem.discountPercent || 10}%</td>
-                      <td className="p-3 text-neutral-600">{codeItem.type || 'Ručni'}</td>
-                      <td className="p-3">
-                        <span className={`px-2 py-0.5 text-[10px] font-['Poppins'] font-bold uppercase ${
-                          codeItem.active === false ? 'bg-neutral-200 text-neutral-700' :
-                          codeItem.used ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
-                        }`}>
-                          {codeItem.active === false ? 'Ugašen' : codeItem.used ? 'Iskorišten' : 'Aktivan'}
-                        </span>
-                      </td>
-                      <td className="p-3 text-right">
-                        <div className="inline-flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePromo(codeItem.code, codeItem.active ?? true)}
-                            className={`px-2.5 py-1 text-[10px] font-['Poppins'] font-bold uppercase border flex items-center gap-1 cursor-pointer transition-colors ${
-                              codeItem.active === false
-                                ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
-                                : 'bg-amber-600 text-white border-amber-600 hover:bg-amber-700'
-                            }`}
-                            title={codeItem.active === false ? 'Aktiviraj kod' : 'Deaktiviraj / Ugasi kod'}
-                          >
-                            <Power className="w-3 h-3" />
-                            <span>{codeItem.active === false ? 'Aktiviraj' : 'Ugasi'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePromo(codeItem.code)}
-                            className="p-1 text-red-600 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer"
-                            title="Obriši kod"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  promoCodes.map((codeItem, idx) => {
+                    const codeUpper = (codeItem.code || '').trim().toUpperCase();
+                    const timesUsedInOrders = promoUsageCountMap[codeUpper] || (codeItem.used ? 1 : 0);
+
+                    return (
+                      <tr key={idx} className="hover:bg-neutral-50">
+                        <td className="p-3 font-mono font-bold text-black">{codeItem.code}</td>
+                        <td className="p-3 font-['Poppins'] font-bold text-amber-700">-{codeItem.discountPercent || 10}%</td>
+                        <td className="p-3 text-neutral-600">{codeItem.type || 'Ručni'}</td>
+                        <td className="p-3">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 rounded font-['Poppins'] font-bold text-amber-900 text-[11px]">
+                            <BarChart3 className="w-3.5 h-3.5 text-amber-600" />
+                            <span>{timesUsedInOrders}x iskorišten</span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 text-[10px] font-['Poppins'] font-bold uppercase ${
+                            codeItem.active === false ? 'bg-neutral-200 text-neutral-700' :
+                            codeItem.used || timesUsedInOrders > 0 ? 'bg-blue-100 text-blue-900' : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {codeItem.active === false ? 'Ugašen' : (codeItem.used || timesUsedInOrders > 0) ? 'U upotrebi' : 'Aktivan'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePromo(codeItem.code, codeItem.active ?? true)}
+                              className={`px-2.5 py-1 text-[10px] font-['Poppins'] font-bold uppercase border flex items-center gap-1 cursor-pointer transition-colors ${
+                                codeItem.active === false
+                                  ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+                                  : 'bg-amber-600 text-white border-amber-600 hover:bg-amber-700'
+                              }`}
+                              title={codeItem.active === false ? 'Aktiviraj kod' : 'Deaktiviraj / Ugasi kod'}
+                            >
+                              <Power className="w-3 h-3" />
+                              <span>{codeItem.active === false ? 'Aktiviraj' : 'Ugasi'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePromo(codeItem.code)}
+                              className="p-1 text-red-600 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer"
+                              title="Obriši kod"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
