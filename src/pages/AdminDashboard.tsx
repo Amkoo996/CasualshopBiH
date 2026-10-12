@@ -27,6 +27,7 @@ import {
   Power,
   BarChart3,
   Layout,
+  Truck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS } from '../types';
@@ -66,6 +67,11 @@ export const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
+  // Tracking modal state
+  const [trackingModalOrder, setTrackingModalOrder] = useState<Order | null>(null);
+  const [trackingNumberInput, setTrackingNumberInput] = useState('');
+  const [courierNameInput, setCourierNameInput] = useState('X Express');
+
   // Promo Code Creation State
   const [newPromoCode, setNewPromoCode] = useState('');
   const [newPromoDiscount, setNewPromoDiscount] = useState(10);
@@ -90,7 +96,6 @@ export const AdminDashboard: React.FC = () => {
 
   const availableSizesList: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 
-  // Load admin data
   const loadData = async () => {
     setLoading(true);
     try {
@@ -371,8 +376,17 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+
+    // Ako se prelazi u status "Poslana", otvaramo modal za unos broja pošiljke
+    if (status === 'Poslana' && targetOrder) {
+      setTrackingModalOrder(targetOrder);
+      setTrackingNumberInput(targetOrder.trackingNumber || '');
+      setCourierNameInput(targetOrder.courierName || 'X Express');
+      return;
+    }
+
     try {
-      const targetOrder = orders.find((o) => o.id === orderId);
       await updateOrderStatus(orderId, status);
 
       if (status === 'Otkazana' && targetOrder && targetOrder.status !== 'Otkazana') {
@@ -395,6 +409,31 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleConfirmTrackingAndSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!trackingModalOrder?.id) return;
+
+    try {
+      await updateOrderStatus(trackingModalOrder.id, 'Poslana', {
+        trackingNumber: trackingNumberInput,
+        courierName: courierNameInput,
+      });
+
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === trackingModalOrder.id
+            ? { ...o, status: 'Poslana', trackingNumber: trackingNumberInput, courierName: courierNameInput }
+            : o
+        )
+      );
+
+      setTrackingModalOrder(null);
+      setTrackingNumberInput('');
+    } catch {
+      alert('Greška pri spremanju koda za praćenje.');
+    }
+  };
+
   const handleGenerateMonthlyReport = () => {
     if (orders.length === 0) {
       alert('Nema narudžbi za generisanje izvještaja.');
@@ -409,11 +448,11 @@ export const AdminDashboard: React.FC = () => {
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
 
-    const headers = 'Broj Narudžbe,Kupac,Telefon,Grad,Način Dostave,Ukupno KM,Status,Datum\n';
+    const headers = 'Broj Narudžbe,Kupac,Telefon,Grad,Način Dostave,Ukupno KM,Status,Broj Pošiljke,Datum\n';
     const rows = monthlyOrders
       .map((o) => {
         const deliveryMethod = o.customer.address.includes('Lično') ? 'Lično preuzimanje' : 'Brza pošta';
-        return `"${o.orderNumber}","${o.customer.firstName} ${o.customer.lastName}","${o.customer.phone}","${o.customer.city}","${deliveryMethod}","${o.total.toFixed(2)}","${o.status}","${new Date(o.createdAt).toLocaleString('bs-BA')}"`;
+        return `"${o.orderNumber}","${o.customer.firstName} ${o.customer.lastName}","${o.customer.phone}","${o.customer.city}","${deliveryMethod}","${o.total.toFixed(2)}","${o.status}","${o.trackingNumber || '/'}","${new Date(o.createdAt).toLocaleString('bs-BA')}"`;
       })
       .join('\n');
 
@@ -669,7 +708,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* CMS TAB (UPRAVLJANJE SADRŽAJEM POČETNE STRANICE) */}
+      {/* CMS TAB */}
       {activeTab === 'cms' && (
         <div className="animate-fadeIn">
           <HomeCMSEditor />
@@ -886,7 +925,8 @@ export const AdminDashboard: React.FC = () => {
                   const matchNum = o.orderNumber.toLowerCase().includes(s);
                   const matchName = `${o.customer.firstName} ${o.customer.lastName}`.toLowerCase().includes(s);
                   const matchCity = o.customer.city.toLowerCase().includes(s);
-                  if (!matchNum && !matchName && !matchCity) return false;
+                  const matchTracking = o.trackingNumber?.toLowerCase().includes(s);
+                  if (!matchNum && !matchName && !matchCity && !matchTracking) return false;
                 }
                 return true;
               })
@@ -931,7 +971,7 @@ export const AdminDashboard: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-['Inter']">
                     <div className="space-y-1.5 bg-[#F4F2EC] p-3.5 border border-neutral-300">
                       <span className="font-['Poppins'] font-bold uppercase text-neutral-700 block">
-                        Podaci o kupcu za dostavu:
+                        Podaci o kupcu i dostavi:
                       </span>
                       <p className="font-bold text-neutral-900">
                         {order.customer.firstName} {order.customer.lastName}
@@ -945,6 +985,14 @@ export const AdminDashboard: React.FC = () => {
                       <p className="text-neutral-800">
                         📍 Adresa: {order.customer.address}, {order.customer.postalCode} {order.customer.city}
                       </p>
+                      {order.trackingNumber && (
+                        <div className="pt-2 border-t border-neutral-300 text-purple-900 font-semibold flex items-center gap-1.5">
+                          <Truck className="w-4 h-4 text-purple-700 shrink-0" />
+                          <span>
+                            {order.courierName || 'X Express'} kod za praćenje: <strong className="font-mono">{order.trackingNumber}</strong>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-2 bg-[#F4F2EC] p-3.5 border border-neutral-300">
@@ -1225,7 +1273,7 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="settings-shipping-fee" className="block text-xs font-[#Poppins'] font-bold uppercase text-neutral-700 mb-1">
+                  <label htmlFor="settings-shipping-fee" className="block text-xs font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
                     Cijena dostave (KM) *
                   </label>
                   <input
@@ -1275,6 +1323,81 @@ export const AdminDashboard: React.FC = () => {
       {activeTab === 'dev-settings' && (
         <div className="animate-fadeIn">
           <DevSettings />
+        </div>
+      )}
+
+      {/* TRACKING MODAL (PRESLANJE NARUDŽBE SA KODOM ZA PRAĆENJE) */}
+      {trackingModalOrder && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 font-['Inter']">
+          <div className="bg-white max-w-md w-full p-6 border-2 border-[#F7E97F] shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-neutral-200 pb-3">
+              <div className="flex items-center gap-2">
+                <Truck className="w-5 h-5 text-black" />
+                <h3 className="font-['Poppins'] text-xs font-black uppercase text-black">
+                  Označavanje narudžbe #{trackingModalOrder.orderNumber} kao POSLANA
+                </h3>
+              </div>
+              <button onClick={() => setTrackingModalOrder(null)} className="p-1 text-neutral-400 hover:text-black cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmTrackingAndSend} className="space-y-4 text-xs">
+              <div className="bg-[#F4F2EC] p-3 border border-neutral-300 space-y-1">
+                <p className="font-bold text-black font-['Poppins']">
+                  Primalac: {trackingModalOrder.customer.firstName} {trackingModalOrder.customer.lastName}
+                </p>
+                <p className="text-neutral-600">Adresa: {trackingModalOrder.customer.address}, {trackingModalOrder.customer.city}</p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Kurirska Služba:</label>
+                <select
+                  value={courierNameInput}
+                  onChange={(e) => setCourierNameInput(e.target.value)}
+                  className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-['Poppins'] font-bold focus:border-black focus:outline-none cursor-pointer"
+                >
+                  <option value="X Express">X Express Brza Pošta</option>
+                  <option value="EuroExpress">EuroExpress</option>
+                  <option value="BH Pošta">BH Pošta / Express Courier</option>
+                  <option value="PostExpress">PostExpress</option>
+                  <option value="Ostalo">Drugo / Lično</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                  Broj pošiljke (Tracking Number) <span className="text-neutral-400 font-normal">(Opcionalno)</span>
+                </label>
+                <input
+                  type="text"
+                  value={trackingNumberInput}
+                  onChange={(e) => setTrackingNumberInput(e.target.value.toUpperCase())}
+                  placeholder="npr. XE-987654321"
+                  className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold uppercase focus:border-black focus:outline-none"
+                />
+                <p className="text-[10px] text-neutral-500 mt-1">
+                  Ako ostavite prazno, status će se promijeniti u "Poslana", a kupac dobija Viber poruku od X Expressa.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-neutral-200">
+                <button
+                  type="button"
+                  onClick={() => setTrackingModalOrder(null)}
+                  className="px-4 py-2 border border-neutral-300 text-xs font-['Poppins'] font-bold uppercase cursor-pointer"
+                >
+                  Odustani
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] border-2 border-[#0A0A0A] text-xs font-['Poppins'] font-bold uppercase cursor-pointer transition-colors"
+                >
+                  Potvrdi slanje
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
