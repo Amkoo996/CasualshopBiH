@@ -48,7 +48,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [promoValidating, setPromoValidating] = useState(false);
   const [promoMessage, setPromoMessage] = useState<{ text: string; error: boolean } | null>(null);
 
-  // Izračun konačnih iznosa (osnovni subtotal ostaje originalna cijena artikala)
+  // Izračun konačnih iznosa
   const activeShippingFee = deliveryMethod === 'pickup' ? 0 : shippingFee;
   const discountAmount = Number(((subtotal * promoDiscountPercent) / 100).toFixed(2));
   const finalSubtotal = Number((subtotal - discountAmount).toFixed(2));
@@ -61,6 +61,29 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  // Funkcija za sinhronizaciju napuštene korpe na Firebase
+  const syncAbandonedCart = (dataToSync = formData) => {
+    const fullName = `${dataToSync.firstName} ${dataToSync.lastName}`.trim();
+    if (dataToSync.email || dataToSync.phone || fullName) {
+      saveCartSession({
+        email: dataToSync.email.trim(),
+        phone: normalizePhone(dataToSync.phone) || dataToSync.phone.trim(),
+        customerName: fullName || 'Gost Kupac',
+        items,
+        subtotal: calculatedTotal,
+      });
+    }
+  };
+
+  // Automatsko spašavanje sesije nakon neaktivnosti (Debounce 1.5s)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      syncAbandonedCart();
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [formData.email, formData.phone, formData.firstName, formData.lastName, items, calculatedTotal]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -75,16 +98,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
 
     if (submitError) setSubmitError(null);
+  };
 
-    if (nextForm.email || nextForm.phone) {
-      saveCartSession({
-        email: nextForm.email,
-        phone: nextForm.phone,
-        customerName: `${nextForm.firstName} ${nextForm.lastName}`.trim(),
-        items,
-        subtotal: calculatedTotal,
-      });
-    }
+  const handleBlur = () => {
+    syncAbandonedCart();
   };
 
   const handleApplyPromo = async () => {
@@ -498,6 +515,7 @@ Casual Shop BiH
                   maxLength={50}
                   value={formData.firstName}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="npr. Haris"
                   className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                     errors.firstName ? 'border-red-500' : 'border-neutral-300 focus:border-black'
@@ -519,6 +537,7 @@ Casual Shop BiH
                   maxLength={50}
                   value={formData.lastName}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="npr. Hodžić"
                   className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                     errors.lastName ? 'border-red-500' : 'border-neutral-300 focus:border-black'
@@ -543,6 +562,7 @@ Casual Shop BiH
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="npr. 061 234 567"
                   className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                     errors.phone ? 'border-red-500' : 'border-neutral-300 focus:border-black'
@@ -566,6 +586,7 @@ Casual Shop BiH
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   placeholder="npr. haris@gmail.com"
                   className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                     errors.email ? 'border-red-500' : 'border-neutral-300 focus:border-black'
@@ -592,6 +613,7 @@ Casual Shop BiH
                       maxLength={50}
                       value={formData.city}
                       onChange={handleChange}
+                      onBlur={handleBlur}
                       placeholder="npr. Sarajevo, Tuzla..."
                       className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                         errors.city ? 'border-red-500' : 'border-neutral-300 focus:border-black'
@@ -614,6 +636,7 @@ Casual Shop BiH
                       maxLength={5}
                       value={formData.postalCode}
                       onChange={handleChange}
+                      onBlur={handleBlur}
                       placeholder="npr. 71000"
                       className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                         errors.postalCode ? 'border-red-500' : 'border-neutral-300 focus:border-black'
@@ -636,6 +659,7 @@ Casual Shop BiH
                     maxLength={100}
                     value={formData.address}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="npr. Maršala Tita 15 (ili bb)"
                     className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                       errors.address ? 'border-red-500' : 'border-neutral-300 focus:border-black'
@@ -677,6 +701,7 @@ Casual Shop BiH
                 maxLength={300}
                 value={formData.note}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="Dodatne napomene..."
                 className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs sm:text-sm focus:bg-white focus:border-black focus:outline-none"
               />
