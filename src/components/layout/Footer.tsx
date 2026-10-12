@@ -223,20 +223,26 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           <div className="flex items-center gap-4 bg-white p-2.5 rounded border border-neutral-700">
             <img 
-              src="/images/bhpe-logo-1024x338.png" 
+              src="/images/logo-postexpress.png" 
               alt="BH Pošta Express" 
               className="h-6 sm:h-7 object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/images/bhpe-logo-1024x338.png';
+              }}
             />
             <div className="h-6 w-[1px] bg-neutral-300" />
             <img 
-              src="/images/logo-x-express-footer.webp" 
+              src="/images/logo-xexpress.wpeg" 
               alt="X-Express" 
               className="h-6 sm:h-7 object-contain bg-[#0A0A0A] p-1 rounded"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/images/logo-x-express-footer.webp';
+              }}
             />
           </div>
         </div>
 
-        {/* TRAKA PARTNERA I KARTICA */}
+        {/* TRAKA PARTNERA I KARTICA (Kao na slici) */}
         <div className="bg-white p-4 rounded flex flex-wrap items-center justify-center gap-4 sm:gap-8 shadow-inner border border-neutral-300">
           <span className="font-['Poppins'] font-black text-xs text-neutral-800 uppercase tracking-wider">
             SIGURNO PLAĆANJE:
