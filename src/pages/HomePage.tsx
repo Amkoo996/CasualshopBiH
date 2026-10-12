@@ -125,15 +125,9 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="bg-[#F7E97F] text-[#0A0A0A] px-2 py-1 font-black font-['Poppins'] text-[11px] tracking-wider uppercase shrink-0">
                 EKSKLUZIVNO
               </div>
-              <div>
-                <p className="font-['Poppins'] text-xs sm:text-sm font-black text-white uppercase tracking-wide">
-                  POPUST ZA PRVIH 100 NARUDŽBI: <span className="text-[#F7E97F] underline">10% POPUSTA</span>
-                </p>
-                <p className="text-[11px] text-neutral-300 font-['Inter'] mt-0.5">
-                  Unesite kod <strong className="bg-[#F7E97F] text-[#0A0A0A] px-1.5 py-0.5 font-mono text-[11px]">FIRST100</strong> na checkoutu. 
-                  <span className="text-[#F7E97F] font-bold ml-2">Preostalo još: {Math.max(0, 100 - usedCodesCount)} / 100 kodova!</span>
-                </p>
-              </div>
+             <div className="bg-[#F7E97F] text-[#0A0A0A] py-2 px-4 text-center font-['Poppins'] text-xs font-bold uppercase tracking-wider border-b border-black">
+                <span>EKSKLUZIVNO: POPUST ZA PRVIH 100 NARUDŽBI - <strong>10% POPUSTA</strong> (Kod: <u>FIRST100</u>)</span>
+            </div>
             </div>
 
             <div className="flex items-center gap-2 font-mono font-bold bg-[#171717] px-3 py-1.5 border border-[#F7E97F] text-xs text-white shadow-md">
