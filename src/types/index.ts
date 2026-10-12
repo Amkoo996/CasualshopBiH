@@ -152,6 +152,8 @@ export interface AbandonedCartSession {
   subtotal: number;
   lastUpdated: string;
   recovered?: boolean;
+  emailSent?: boolean;      // Dodato za praćenje slanja emaila
+  emailSentAt?: string;     // Dodato za praćenje datuma slanja
 }
 
 export interface StoreFunnelMetrics {
