@@ -103,7 +103,7 @@ export interface StoreSettings {
   sellerAddress?: string;
   sellerIdNumber?: string;
   hiddenCategories?: Category[];
-  telegramChatId?: string; // Dopisano polje radi rješavanja tsc build greške
+  telegramChatId?: string;
   bgColor?: string;
   textColor?: string;
   yellowBrand?: string;
@@ -143,6 +143,61 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   bgImage: '',
 };
 
+/* --- NOVI CMS TIPOVI ZA UPRAVLJANJE SADRŽAJEM SAJTA --- */
+export interface HomeCMSContent {
+  topBar: {
+    enabled: boolean;
+    tagText: string;
+    promoText: string;
+    showTimer: boolean;
+    targetDate: string;
+  };
+  hero: {
+    titleLine1: string;
+    titleLine2: string;
+    subtitle: string;
+    description: string;
+    videoUrl: string;
+    ctaPrimaryText: string;
+    ctaSecondaryText: string;
+  };
+  benefits: {
+    shippingTitle: string;
+    shippingSub: string;
+    paymentTitle: string;
+    paymentSub: string;
+    inspectionTitle: string;
+    inspectionSub: string;
+  };
+}
+
+export const DEFAULT_CMS_CONTENT: HomeCMSContent = {
+  topBar: {
+    enabled: true,
+    tagText: 'EKSKLUZIVNO',
+    promoText: 'POPUST ZA PRVIH 100 NARUDŽBI: 10% POPUSTA (Kod: FIRST100)',
+    showTimer: true,
+    targetDate: '2026-11-01T12:00:00+02:00',
+  },
+  hero: {
+    titleLine1: 'CASUAL.',
+    titleLine2: 'SVAKI DAN.',
+    subtitle: 'Udobna odjeća za svaki dan.',
+    description: 'Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom. Plaćanje pouzećem gotovinom prilikom preuzimanja ili lično u Sarajevu.',
+    videoUrl: '/hero-video.mp4',
+    ctaPrimaryText: 'Pogledaj kolekciju',
+    ctaSecondaryText: 'Instagram @casualshop.bih',
+  },
+  benefits: {
+    shippingTitle: 'Dostava 12 KM • Besplatna preko 100 KM',
+    shippingSub: 'Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)',
+    paymentTitle: '100% Plaćanje pouzećem',
+    paymentSub: 'Plaćanje gotovinom kuriru pri preuzimanju paketa.',
+    inspectionTitle: 'Pregled paketa pri dostavi',
+    inspectionSub: 'Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.',
+  },
+};
+
 export interface AbandonedCartSession {
   id?: string;
   email?: string;
@@ -152,8 +207,8 @@ export interface AbandonedCartSession {
   subtotal: number;
   lastUpdated: string;
   recovered?: boolean;
-  emailSent?: boolean;      // Dodato za praćenje slanja emaila
-  emailSentAt?: string;     // Dodato za praćenje datuma slanja
+  emailSent?: boolean;
+  emailSentAt?: string;
 }
 
 export interface StoreFunnelMetrics {
