@@ -189,7 +189,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
           </div>
         </div>
 
-        {/* LOGISTIKA SA SLIKAMA LOGOA X EXPRESS */}
+        {/* LOGISTIKA SA DEDIKOVANIM DIMENZIJAMA ZA LIGHTHOUSE CLS FIX */}
         <div className="bg-[#121212] border border-neutral-800 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-center md:text-left space-y-1">
             <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F]">
@@ -204,9 +204,12 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
             <img 
               src="/images/logo-x-express-brza-posta.png" 
               alt="X Express Brza Pošta" 
-              className="h-9 object-contain bg-white px-3 py-1 border border-neutral-800 rounded"
+              width="140"
+              height="36"
+              loading="lazy"
+              decoding="async"
+              className="h-9 w-auto object-contain bg-white px-3 py-1 border border-neutral-800 rounded"
               onError={(e) => {
-                // Fallback ukoliko slika ima ekstenziju .jpg ili .webp
                 (e.target as HTMLImageElement).src = '/images/logo-xexpress.webp';
               }}
             />
