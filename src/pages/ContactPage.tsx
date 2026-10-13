@@ -26,7 +26,7 @@ export const ContactPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. HONEYPOT PROVJERA (spriječava botove)
+    // 1. HONEYPOT PROVJERA (Spriječava botove)
     if (formData.bot_field) {
       setStatus('success');
       return;
@@ -56,10 +56,9 @@ export const ContactPage: React.FC = () => {
     let telegramSuccess = false;
 
     try {
-      // 3. SLANJE ISKLJUČIVO NA KONTAKT TELEGRAM BOT (@Casualshopbihkontakt_bot)
+      // 3. SLANJE STROGO I EKSPLICITNO NA KONTAKT BOT
       const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN;
-      // Ako koristiš poseban Chat ID za kontakt bot, stavi VITE_TELEGRAM_CONTACT_CHAT_ID, inače VITE_TELEGRAM_CHAT_ID
-      const contactChatId = import.meta.env.VITE_TELEGRAM_CONTACT_CHAT_ID || import.meta.env.VITE_TELEGRAM_CHAT_ID;
+      const contactChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
       if (contactBotToken && contactChatId) {
         const telegramMessage = `📩 <b>NOVI UPIT SA KONTAKT FORME</b>\n` +
@@ -85,10 +84,10 @@ export const ContactPage: React.FC = () => {
           console.error('Telegram Kontakt Bot vratio grešku:', await tgRes.text());
         }
       } else {
-        console.warn('VITE_TELEGRAM_CONTACT_BOT_TOKEN ili Chat ID nedostaje u okruženju.');
+        console.warn('VITE_TELEGRAM_CONTACT_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID nedostaje u okruženju.');
       }
 
-      // 4. EmailJS poziv za Kontakt formu (u try-catch bloku da ne blokira uspeh na Telegramu)
+      // 4. EmailJS poziv
       try {
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
