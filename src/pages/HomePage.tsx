@@ -12,7 +12,7 @@ interface HomePageProps {
   onNavigateToShop: (category?: string) => void;
 }
 
-const OPTIMIZED_FALLBACK_IMAGE = 'https://res.cloudinary.com/rvlsak2u/image/upload/f_auto,q_auto,w_600/v1791551969/xpzi3atps6zrnkflak3c.jpg';
+const OPTIMIZED_FALLBACK_IMAGE = 'https://res.cloudinary.com/rvlsak2u/image/upload/f_webp,q_auto,w_800,c_limit/v1791551969/xpzi3atps6zrnkflak3c.jpg';
 
 const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
   'Majice': OPTIMIZED_FALLBACK_IMAGE,
@@ -24,7 +24,6 @@ const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
   'Dodaci (Accessories)': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
 };
 
-// Pomoćna funkcija za kreiranje optimizovanog Cloudinary URL-a za videozapise (smanjuje veličinu i popravlja TCF)
 const getOptimizedCloudinaryVideoUrl = (rawUrl?: string): string => {
   const defaultVideo = 'https://res.cloudinary.com/rvlsak2u/video/upload/f_auto,q_auto,w_1280,vc_h264/v1791897813/hero-video.mp4';
   const targetUrl = rawUrl || defaultVideo;
@@ -143,7 +142,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="pb-0 bg-[#0A0A0A] w-full font-['Inter']">
-      {/* 1. TOP BANER SA SJAJNOM TRAKOM & AUTO-COPY PROMO KODA */}
+      {/* 1. TOP BANER */}
       {cms.topBar.enabled && (
         <section 
           onClick={handleBannerCopy}
@@ -170,7 +169,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {cms.topBar.showTimer && (
-              <div className="flex items-center gap-2 font-mono font-bold bg-[#141414] px-3.5 py-1 border border-[#F7E97F]/40 text-[11px] text-white shadow-inner rounded-xs">
+              <div className="flex items-center gap-2 font-mono font-bold bg-[#141414] px-3.5 py-1 border border-[#F7E97F]/40 text-[11px] text-[#ffffff] shadow-inner rounded-xs">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F7E97F] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F7E97F]"></span>
@@ -185,17 +184,25 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* 2. HERO SEKCIJA (OPTIMIZOVAN CLOUDINARY VIDEO DIRA TCF & PERFORMANCE) */}
+      {/* 2. HERO SEKCIJA (OPTIMIZOVANO ZA MOBILNI + DESKTOP TCF SCORE) */}
       <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
+          {/* Slika za mobilne uređaje (Smanjuje LCP na mobilnim telefonima na ~1.5s) */}
+          <img
+            src={OPTIMIZED_FALLBACK_IMAGE}
+            alt="Hero Background"
+            className="block md:hidden w-full h-full object-cover opacity-45 filter contrast-125"
+            fetchPriority="high"
+          />
+
+          {/* Video samo za desktop računare */}
           <video
             autoPlay
             loop
             muted
             playsInline
-            preload="metadata"
-            poster={OPTIMIZED_FALLBACK_IMAGE}
-            className="w-full h-full object-cover opacity-45 filter contrast-125 scale-105 transition-transform duration-10000 ease-out"
+            preload="none"
+            className="hidden md:block w-full h-full object-cover opacity-45 filter contrast-125 scale-105 transition-transform duration-10000 ease-out"
           >
             <source src={heroVideoSrc} type="video/mp4" />
           </video>
@@ -245,7 +252,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 3. OSTALI SADRŽAJ NA POZADINI */}
+      {/* 3. OSTALI SADRŽAJ */}
       <div className="bg-[#F4F2EC] pt-12 pb-0 w-full">
         <div className="space-y-14 sm:space-y-20 pb-14">
           
