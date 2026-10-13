@@ -254,7 +254,7 @@ export const saveCMSContent = async (cmsData: HomeCMSContent): Promise<void> => 
 };
 
 // ==========================================
-// NEWSLETTER
+// NEWSLETTER (SA MAILERLITE SINHRONIZACIJOM)
 // ==========================================
 
 export const subscribeNewsletter = async (email: string): Promise<void> => {
@@ -262,6 +262,7 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
     const cleanEmail = email.trim().toLowerCase();
     const nowISO = new Date().toISOString();
 
+    // 1. Zapis pretplatnika na Firebase Firestore
     const subscriberDocRef = doc(db, 'subscribers', cleanEmail);
     await setDoc(
       subscriberDocRef,
@@ -274,15 +275,25 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
       { merge: true }
     );
 
-    fetch('/api/subscribe', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: cleanEmail }),
-    }).catch((err) => {
-      console.warn('MailerLite sinhronizacija u pozadini nije uspjela:', err);
-    });
+    // 2. Poziv Cloudflare API funkcije za MailerLite
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.warn('MailerLite API sinhronizacija nije uspjela:', res.status, errData);
+      } else {
+        console.log('Korisnik uspješno poslan u MailerLite bazu.');
+      }
+    } catch (apiErr) {
+      console.warn('Mrežna greška pri slanju na /api/subscribe:', apiErr);
+    }
 
   } catch (error) {
     console.error('Greška pri prijavi na newsletter:', error);
