@@ -26,20 +26,21 @@ export const ContactPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // 1. HONEYPOT PROVJERA (zaustavlja botove)
     if (formData.bot_field) {
       setStatus('success');
       return;
     }
 
-    // STROGA VALIDACIJA: Zaustavlja sve što nije puni broj telefona (npr. '0', '03', 'abc')
+    // 2. STROGA VALIDACIJA TELEFONA (Zaustavlja 0, 03, 3 i kratke brojeve)
     const rawPhone = formData.phone.trim();
     const cleanPhone = normalizePhone(rawPhone);
 
-    if (!rawPhone || !isValidPhone(rawPhone) || !cleanPhone) {
+    if (!rawPhone || rawPhone.length < 8 || !isValidPhone(rawPhone) || !cleanPhone) {
       setStatus('error');
-      setPhoneError('Unesite puni i ispravan broj telefona (npr. 061123456 ili +38761123456)');
+      setPhoneError('Unesite ispravan broj telefona sa najmanje 8 cifara (npr. 061123456 ili +38761123456).');
       setErrorMessage('Broj telefona nije u ispravnom formatu.');
-      return; // OVDJE SE TRENUTNO PREKIDA SLANJE!
+      return; // POTPUNI PREKID SLANJA
     }
 
     setPhoneError('');
@@ -47,21 +48,13 @@ export const ContactPage: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // SLANJE EKSPLICITNO NA KONTAKT BOT TOKEN
+      // 3. SLANJE ISKLJUČIVO NA TELEGRAM KONTAKT BOT (@Casualshopbihkontakt_bot)
       const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN;
       const rawChatIds = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
-      if (!contactBotToken) {
-        console.error('VITE_TELEGRAM_CONTACT_BOT_TOKEN nije učitan iz okruženja!');
+      if (!contactBotToken || !rawChatIds) {
         setStatus('error');
-        setErrorMessage('Sistem za kontakt trenutno nije konfiguisan (nedostaje token bota).');
-        return;
-      }
-
-      if (!rawChatIds) {
-        console.error('VITE_TELEGRAM_CHAT_ID nije učitan iz okruženja!');
-        setStatus('error');
-        setErrorMessage('Sistem za kontakt trenutno nije konfiguisan (nedostaje Chat ID).');
+        setErrorMessage('Sistem za kontakt trenutno nije konfiguisan u okruženju servera.');
         return;
       }
 
@@ -90,7 +83,7 @@ export const ContactPage: React.FC = () => {
         if (tgRes.ok && tgData.ok) {
           anySuccess = true;
         } else {
-          console.error(`Telegram kontakt bot greška za ID ${chatId}:`, tgData);
+          console.error(`Telegram Kontakt Bot Greška za Chat ID (${chatId}):`, tgData);
         }
       }
 
@@ -104,7 +97,7 @@ export const ContactPage: React.FC = () => {
     } catch (err) {
       console.error('Mrežna greška pri slanju:', err);
       setStatus('error');
-      setErrorMessage('Mrežna greška pri slanju poruke.');
+      setErrorMessage('Mrežna greška pri slanju poruke. Pokušajte ponovo.');
     }
   };
 
