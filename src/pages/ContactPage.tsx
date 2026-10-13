@@ -10,7 +10,7 @@ export const ContactPage: React.FC = () => {
     email: '',
     phone: '',
     message: '',
-    bot_field: '', // Honeypot polje
+    bot_field: '',
   });
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -26,27 +26,20 @@ export const ContactPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. HONEYPOT PROVJERA (spriječava botove)
     if (formData.bot_field) {
       setStatus('success');
       return;
     }
 
-    // 2. STROGA VALIDACIJA BROJA TELEFONA
+    // STROGA VALIDACIJA: Zaustavlja sve što nije puni broj telefona (npr. '0', '03', 'abc')
     const rawPhone = formData.phone.trim();
-    if (!rawPhone || !isValidPhone(rawPhone)) {
-      setStatus('error');
-      setPhoneError('Unesite ispravan bh. broj (npr. 061123456) ili međunarodni (+38761123456)');
-      setErrorMessage('Broj telefona nije u ispravnom formatu.');
-      return;
-    }
-
     const cleanPhone = normalizePhone(rawPhone);
-    if (!cleanPhone) {
+
+    if (!rawPhone || !isValidPhone(rawPhone) || !cleanPhone) {
       setStatus('error');
-      setPhoneError('Neispravan format broja telefona.');
-      setErrorMessage('Molimo unesite validan broj telefona.');
-      return;
+      setPhoneError('Unesite puni i ispravan broj telefona (npr. 061123456 ili +38761123456)');
+      setErrorMessage('Broj telefona nije u ispravnom formatu.');
+      return; // OVDJE SE TRENUTNO PREKIDA SLANJE!
     }
 
     setPhoneError('');
@@ -54,14 +47,21 @@ export const ContactPage: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // 3. SLANJE ISKLJUČIVO NA KONTAKT BOT
+      // SLANJE EKSPLICITNO NA KONTAKT BOT TOKEN
       const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN;
       const rawChatIds = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
-      if (!contactBotToken || !rawChatIds) {
-        console.error('Nedostaje VITE_TELEGRAM_CONTACT_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID');
+      if (!contactBotToken) {
+        console.error('VITE_TELEGRAM_CONTACT_BOT_TOKEN nije učitan iz okruženja!');
         setStatus('error');
-        setErrorMessage('Sistem za kontakt trenutno nije konfiguisan.');
+        setErrorMessage('Sistem za kontakt trenutno nije konfiguisan (nedostaje token bota).');
+        return;
+      }
+
+      if (!rawChatIds) {
+        console.error('VITE_TELEGRAM_CHAT_ID nije učitan iz okruženja!');
+        setStatus('error');
+        setErrorMessage('Sistem za kontakt trenutno nije konfiguisan (nedostaje Chat ID).');
         return;
       }
 
@@ -72,7 +72,6 @@ export const ContactPage: React.FC = () => {
         `📞 <b>Telefon:</b> ${cleanPhone}\n\n` +
         `💬 <b>Poruka:</b>\n${formData.message}`;
 
-      // Razdvajanje više Chat ID-ova odvojenih zarezom
       const chatIds = rawChatIds.split(',').map((id: string) => id.trim()).filter(Boolean);
       let anySuccess = false;
 
@@ -91,30 +90,8 @@ export const ContactPage: React.FC = () => {
         if (tgRes.ok && tgData.ok) {
           anySuccess = true;
         } else {
-          console.error(`Telegram Greška za ID ${chatId}:`, tgData);
+          console.error(`Telegram kontakt bot greška za ID ${chatId}:`, tgData);
         }
-      }
-
-      // 4. EmailJS poziv
-      try {
-        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            service_id: 'service_h4rxrv2',
-            template_id: 'template_atnmhpk',
-            user_id: 'mPKyquhWRcGkRq4gS',
-            template_params: {
-              from_name: formData.name,
-              from_email: formData.email,
-              from_phone: cleanPhone,
-              message: formData.message,
-              to_email: settings?.email || 'info@casualshop.ba',
-            },
-          }),
-        });
-      } catch (emailErr) {
-        console.warn('EmailJS slanje nije uspjelo:', emailErr);
       }
 
       if (anySuccess) {
@@ -122,7 +99,7 @@ export const ContactPage: React.FC = () => {
         setFormData({ name: '', email: '', phone: '', message: '', bot_field: '' });
       } else {
         setStatus('error');
-        setErrorMessage('Greška pri slanju na Telegram bot. Provjerite da li ste kliknuli START na @Casualshopbihkontakt_bot na oba naloga.');
+        setErrorMessage('Greška pri slanju na Telegram kontakt bot. Provjerite da li ste kliknuli /start na @Casualshopbihkontakt_bot.');
       }
     } catch (err) {
       console.error('Mrežna greška pri slanju:', err);
@@ -167,7 +144,6 @@ export const ContactPage: React.FC = () => {
                 </div>
               )}
 
-              {/* HONEYPOT NEVIDLJIVO POLJE */}
               <div className="hidden" aria-hidden="true">
                 <input
                   type="text"
