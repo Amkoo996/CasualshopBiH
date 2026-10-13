@@ -258,19 +258,14 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
     const cleanEmail = email.trim().toLowerCase();
     const nowISO = new Date().toISOString();
 
-    // 1. Upis u Firebase Firestore bazu (kolekcija 'subscribers')
+    // 1. Upis u Firebase Firestore bazu bez prethodnog getDocs čitanja (koje blokira pravila)
     const subscribersRef = collection(db, 'subscribers');
-    const q = query(subscribersRef, where('email', '==', cleanEmail));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      await addDoc(subscribersRef, {
-        email: cleanEmail,
-        subscribedAt: nowISO,
-        createdAt: nowISO,
-        consent: true,
-      });
-    }
+    await addDoc(subscribersRef, {
+      email: cleanEmail,
+      subscribedAt: nowISO,
+      createdAt: nowISO,
+      consent: true,
+    });
 
     // 2. Automatska sinhronizacija sa MailerLite-om preko Cloudflare funkcije
     fetch('/api/subscribe', {
