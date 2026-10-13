@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { initAnalytics } from '../lib/analytics';
+import { initAnalytics } from '../../lib/analytics';
 
 const KEY = 'casualshop_cookie_consent';
 
@@ -43,7 +43,7 @@ export const CookieConsent: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A] text-white p-4 sm:p-5 border-t-2 border-[#F7E97F] shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A] text-white p-4 sm:p-5 border-t-2 border-[#F7E97F] shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 font-['Inter']">
       <p className="text-xs text-neutral-300 max-w-3xl">
         Koristimo kolačiće za rad stranice, analitiku i prilagođavanje ponuda. Možete prihvatiti sve ili nastaviti samo sa neophodnim kolačićima.
       </p>
