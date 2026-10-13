@@ -289,13 +289,21 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
 export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]> => {
   try {
     const subscribersRef = collection(db, 'subscribers');
-    const q = query(subscribersRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(subscribersRef);
 
-    return snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    })) as NewsletterSubscriber[];
+    const subscribers = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        email: data.email || '',
+        createdAt: data.createdAt || data.subscribedAt || new Date().toISOString(),
+      } as NewsletterSubscriber;
+    });
+
+    // Sortiramo pretplatnike u memoriji po datumu od najnovijih prema najstarijim
+    return subscribers.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   } catch (error) {
     console.error('Greška pri dohvaćanju newsletter pretplatnika:', error);
     return [];
