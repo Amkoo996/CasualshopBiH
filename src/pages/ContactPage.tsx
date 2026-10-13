@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, MapPin, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { normalizePhone } from '../lib/validation';
 
 export const ContactPage: React.FC = () => {
   const { settings } = useCart();
@@ -14,14 +15,6 @@ export const ContactPage: React.FC = () => {
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-
-  // Validacija telefona (opcionalno polje, ali ako se unese mora biti validan BiH format ili međunarodni)
-  const validatePhone = (phoneStr: string) => {
-    if (!phoneStr.trim()) return true; // Telefon je opcionalan u kontakt formi
-    const cleaned = phoneStr.replace(/[\s\-\/\(\)]/g, '');
-    const bihPhoneRegex = /^(?:\+387|00387|0)(6[0-7]|3[0-9]|5[0-9])\d{6,7}\$/;
-    return bihPhoneRegex.test(cleaned);
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -37,19 +30,24 @@ export const ContactPage: React.FC = () => {
       return;
     }
 
-    // Validacija broja telefona ako je unesen
-    if (formData.phone && !validatePhone(formData.phone)) {
-      setStatus('error');
-      setErrorMessage('Molimo unesite ispravan broj telefona (npr. 061123456 ili +38761123456).');
-      return;
+    // Validacija broja telefona preko normalizePhone ako je unesen
+    let cleanPhone = '';
+    if (formData.phone.trim()) {
+      const normalized = normalizePhone(formData.phone);
+      if (!normalized) {
+        setStatus('error');
+        setErrorMessage('Molimo unesite ispravan broj telefona (npr. 061123456 ili +38761123456).');
+        return;
+      }
+      cleanPhone = normalized;
     }
 
     setStatus('submitting');
     setErrorMessage('');
 
     try {
-      // 1. Slanje notifikacije na POSEBAN TELEGRAM BOT ZA KONTAKT UPITE (Čisti env poziv)
-      const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+      // 1. Slanje notifikacije ISKLJUČIVO na Telegram kontakt bot
+      const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN;
       const contactChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
       if (contactBotToken && contactChatId) {
@@ -57,7 +55,7 @@ export const ContactPage: React.FC = () => {
 ----------------------------------
 👤 *Ime i prezime:* ${formData.name}
 📧 *Email:* ${formData.email}
-📞 *Telefon:* ${formData.phone || 'Nije navedeno'}
+📞 *Telefon:* ${cleanPhone || 'Nije navedeno'}
 
 💬 *Poruka:*
 ${formData.message}`;
@@ -71,6 +69,8 @@ ${formData.message}`;
             parse_mode: 'Markdown',
           }),
         }).catch((err) => console.error('Telegram contact bot error:', err));
+      } else {
+        console.warn('VITE_TELEGRAM_CONTACT_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID nedostaje u okruženju.');
       }
 
       // 2. EmailJS poziv za Kontakt formu (template_atnmhpk)
@@ -86,7 +86,7 @@ ${formData.message}`;
           template_params: {
             from_name: formData.name,
             from_email: formData.email,
-            from_phone: formData.phone || 'Nije navedeno',
+            from_phone: cleanPhone || 'Nije navedeno',
             message: formData.message,
             to_email: settings?.email || 'info@casualshop.ba',
           },
