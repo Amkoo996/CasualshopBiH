@@ -48,9 +48,9 @@ export const ContactPage: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // 1. Slanje notifikacije na POSEBAN TELEGRAM BOT ZA KONTAKT UPITE
+      // 1. Slanje notifikacije na POSEBAN TELEGRAM BOT ZA KONTAKT UPITE (Čisti env poziv)
       const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-      const contactChatId = import.meta.env.VITE_TELEGRAM_CONTACT_CHAT_ID || import.meta.env.VITE_TELEGRAM_CHAT_ID;
+      const contactChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
       if (contactBotToken && contactChatId) {
         const telegramMessage = `📩 *NOVA PORUKA SA KONTAKT FORME*
