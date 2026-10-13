@@ -1,6 +1,6 @@
 // Telefon: BiH formati (fiksni i mobilni) i međunarodni (dijaspora)
 export function normalizePhone(raw: string): string | null {
-  if (!raw) return null;
+  if (!raw || raw.trim().length < 8) return null;
 
   // Uklanjanje razmaka, crtica, kosih crta i zagrada
   let p = raw.replace(/[\s\-().\/]/g, '');
@@ -27,6 +27,7 @@ export function normalizePhone(raw: string): string | null {
 
 // Funkcija za brzu provjeru da li je uneseni telefon validan
 export const isValidPhone = (v: string): boolean => {
+  if (!v || v.trim().length < 8) return false;
   return normalizePhone(v) !== null;
 };
 
