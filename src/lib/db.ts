@@ -415,9 +415,10 @@ export async function sendOrderToTelegram(orderData: any) {
       return;
     }
 
-    const customerName = orderData.customer?.name || 
-      `${orderData.customer?.firstName || ''} ${orderData.customer?.lastName || ''}`.trim() || 
-      'Nije navedeno';
+    const customerName = (
+      orderData.customer?.name ||
+      `${orderData.customer?.firstName || ''} ${orderData.customer?.lastName || ''}`
+    ).trim() || 'Nije navedeno';
 
     const itemsText = (orderData.items || [])
       .map((item: any) => `• ${item.name} (${item.size || 'Univerzalna'}) x${item.quantity || 1} - ${item.price} KM`)
