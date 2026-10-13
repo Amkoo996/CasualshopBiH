@@ -90,7 +90,7 @@ export const updateProduct = async (id: string, productData: Partial<Product>): 
   }
 };
 
-// Aliased export za kompatibilnost sa Admin komponente
+// Aliased export za kompatibilnost sa Admin komponentama
 export const saveProduct = async (productData: Partial<Product> & { id?: string }): Promise<string> => {
   if (productData.id) {
     const { id, ...data } = productData;
