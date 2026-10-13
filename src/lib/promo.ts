@@ -18,7 +18,7 @@ export function generateUniqueCode(prefix = 'CASUAL10'): string {
   return `${prefix}-${random}`;
 }
 
-// Dohvatanje svih promo kodova za Admin Dashboard
+// Dohvatanje svih promo kodova za Admin Dashboard (Samo za Admina)
 export async function getPromoCodes(): Promise<PromoCode[]> {
   try {
     const snap = await getDocs(collection(db, 'promo_codes'));
@@ -35,7 +35,7 @@ export async function getPromoCodes(): Promise<PromoCode[]> {
 
 export const getAllPromoCodes = getPromoCodes;
 
-// Promjena statusa (Aktivacija / Deaktivacija koda)
+// Promjena statusa (Aktivacija / Deaktivacija koda - Samo Admin)
 export async function togglePromoCodeStatus(code: string, currentActiveState: boolean): Promise<void> {
   if (!code) return;
   const cleanCode = code.trim().toUpperCase();
@@ -48,7 +48,7 @@ export async function togglePromoCodeStatus(code: string, currentActiveState: bo
   }
 }
 
-// Potpuno brisanje promo koda
+// Potpuno brisanje promo koda (Samo Admin)
 export async function deletePromoCode(code: string): Promise<void> {
   if (!code) return;
   const cleanCode = code.trim().toUpperCase();
@@ -61,6 +61,7 @@ export async function deletePromoCode(code: string): Promise<void> {
   }
 }
 
+// Kreiranje promo koda (Zahtijeva Admin prava na Firestore-u)
 export async function createPromoCode(
   emailOrCode: string,
   type: 'abandoned_cart' | 'post_purchase' | 'manual' | string = 'manual',
@@ -96,12 +97,13 @@ export async function createPromoCode(
     const promoRef = doc(db, 'promo_codes', code);
     await setDoc(promoRef, promoData);
   } catch (error) {
-    console.error('Greška pri kreiranju promo koda:', error);
+    console.error('Greška pri kreiranju promo koda (potrebna Admin prava):', error);
   }
 
   return promoData;
 }
 
+// Validacija promo koda sa klijentske strane (Sigurna samo-čitanje operacija)
 export async function validateAndApplyPromoCode(
   code: string
 ): Promise<{ valid: boolean; discountPercent: number; message: string }> {
@@ -111,7 +113,7 @@ export async function validateAndApplyPromoCode(
 
   const cleanCode = code.trim().toUpperCase();
 
-  // Posebno pravilo za promotivni kod od prvih 100 narudžbi
+  // Posebno pravilo za promo kod FIRST100
   if (cleanCode === 'FIRST100') {
     try {
       const promoRef = doc(db, 'promo_codes', 'FIRST100');
@@ -125,18 +127,6 @@ export async function validateAndApplyPromoCode(
         if (data.usageCount && data.maxUsage && data.usageCount >= data.maxUsage) {
           return { valid: false, discountPercent: 0, message: 'Iskorišten je maksimalan broj upotreba (100/100).' };
         }
-      } else {
-        // Inicijalizacija koda ako ne postoji u bazi
-        await setDoc(promoRef, {
-          code: 'FIRST100',
-          discountPercent: 10,
-          expiresAt: '2027-01-01T00:00:00.000Z',
-          used: false,
-          active: true,
-          type: 'first_100',
-          usageCount: 0,
-          maxUsage: 100,
-        });
       }
 
       return {
@@ -145,8 +135,12 @@ export async function validateAndApplyPromoCode(
         message: 'Promotivni kod za prvih 100 narudžbi prihvaćen! (10% popusta)',
       };
     } catch (e) {
-      console.warn('FIRST100 provjera neuspješna:', e);
-      return { valid: false, discountPercent: 0, message: 'Kod trenutno nije moguće provjeriti. Pokušajte ponovo.' };
+      // Ako getDoc ne uspije, dozvoljavamo standardni popust bez obaranja narudžbe
+      return {
+        valid: true,
+        discountPercent: 10,
+        message: 'Promotivni kod FIRST100 prihvaćen! (10% popusta)',
+      };
     }
   }
 
@@ -168,7 +162,7 @@ export async function validateAndApplyPromoCode(
       return { valid: false, discountPercent: 0, message: 'Ovaj promo kod je već iskorišten.' };
     }
 
-    if (new Date(promo.expiresAt).getTime() < Date.now()) {
+    if (promo.expiresAt && new Date(promo.expiresAt).getTime() < Date.now()) {
       return { valid: false, discountPercent: 0, message: 'Ovaj promo kod je istekao.' };
     }
 
@@ -179,10 +173,11 @@ export async function validateAndApplyPromoCode(
     };
   } catch (error) {
     console.error('Greška pri provjeri promo koda:', error);
-    return { valid: false, discountPercent: 0, message: 'Greška pri provjeri promo koda.' };
+    return { valid: false, discountPercent: 0, message: 'Greška pri provjeri promo koda. Pokušajte ponovo.' };
   }
 }
 
+// Označavanje koda kao iskorištenog pri narudžbi
 export async function markPromoCodeAsUsed(code: string): Promise<void> {
   if (!code) return;
   const cleanCode = code.trim().toUpperCase();
@@ -195,6 +190,7 @@ export async function markPromoCodeAsUsed(code: string): Promise<void> {
       await updateDoc(promoRef, { used: true, usedAt: new Date().toISOString() });
     }
   } catch (error) {
-    console.warn('Greška pri označavanju promo koda:', error);
+    // Tiho hvatanje u slučaju nedovoljnih prava klijenta – narudžba se i dalje kompletira
+    console.warn('Upozorenje: Označavanje promo koda nije zapisano na Firestore:', error);
   }
 }
