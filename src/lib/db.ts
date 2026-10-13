@@ -256,6 +256,7 @@ export const saveCMSContent = async (cmsData: HomeCMSContent): Promise<void> => 
 export const subscribeNewsletter = async (email: string): Promise<void> => {
   try {
     const cleanEmail = email.trim().toLowerCase();
+    const nowISO = new Date().toISOString();
 
     // 1. Upis u Firebase Firestore bazu (kolekcija 'subscribers')
     const subscribersRef = collection(db, 'subscribers');
@@ -265,7 +266,9 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
     if (snapshot.empty) {
       await addDoc(subscribersRef, {
         email: cleanEmail,
-        createdAt: new Date().toISOString(),
+        subscribedAt: nowISO,
+        createdAt: nowISO,
+        consent: true,
       });
     }
 
@@ -293,16 +296,19 @@ export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]
 
     const subscribers = snapshot.docs.map((docSnap) => {
       const data = docSnap.data();
+      const dateVal = data.subscribedAt || data.createdAt || new Date().toISOString();
+
       return {
         id: docSnap.id,
         email: data.email || '',
-        createdAt: data.createdAt || data.subscribedAt || new Date().toISOString(),
+        subscribedAt: dateVal,
+        consent: data.consent ?? true,
       } as NewsletterSubscriber;
     });
 
     // Sortiramo pretplatnike u memoriji po datumu od najnovijih prema najstarijim
     return subscribers.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      (a, b) => new Date(b.subscribedAt).getTime() - new Date(a.subscribedAt).getTime()
     );
   } catch (error) {
     console.error('Greška pri dohvaćanju newsletter pretplatnika:', error);
