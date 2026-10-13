@@ -1,6 +1,9 @@
 export const onRequestPost = async (context: {
   request: Request;
-  env: { MAILERLITE_API_KEY?: string };
+  env: { 
+    MAILERLITE_API_KEY?: string;
+    MAILERLITE_GROUP_ID?: string;
+  };
 }) => {
   try {
     const { request, env } = context;
@@ -22,6 +25,18 @@ export const onRequestPost = async (context: {
       );
     }
 
+    // Priprema podataka za MailerLite API
+    const payload: Record<string, any> = {
+      email: email,
+      status: 'active',
+    };
+
+    // Ako je podešena grupa u Cloudflare varijablama, ubacujemo pretplatnika direktno u nju
+    const groupId = env.MAILERLITE_GROUP_ID;
+    if (groupId) {
+      payload.groups = [groupId];
+    }
+
     const mlResponse = await fetch('https://connect.mailerlite.com/api/subscribers', {
       method: 'POST',
       headers: {
@@ -29,10 +44,7 @@ export const onRequestPost = async (context: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        email: email,
-        status: 'active',
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!mlResponse.ok) {
