@@ -258,14 +258,19 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
     const cleanEmail = email.trim().toLowerCase();
     const nowISO = new Date().toISOString();
 
-    // 1. Upis u Firebase Firestore bazu bez prethodnog getDocs čitanja (koje blokira pravila)
-    const subscribersRef = collection(db, 'subscribers');
-    await addDoc(subscribersRef, {
-      email: cleanEmail,
-      subscribedAt: nowISO,
-      createdAt: nowISO,
-      consent: true,
-    });
+    // 1. Upis u Firebase Firestore bazu uz korištenje e-maila kao ID dokumenta
+    // 'setDoc' sa { merge: true } spriječava kreiranje duplikata ako e-mail već postoji
+    const subscriberDocRef = doc(db, 'subscribers', cleanEmail);
+    await setDoc(
+      subscriberDocRef,
+      {
+        email: cleanEmail,
+        subscribedAt: nowISO,
+        createdAt: nowISO,
+        consent: true,
+      },
+      { merge: true }
+    );
 
     // 2. Automatska sinhronizacija sa MailerLite-om preko Cloudflare funkcije
     fetch('/api/subscribe', {
@@ -284,6 +289,19 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
   }
 };
 
+export const unsubscribeNewsletter = async (email: string): Promise<void> => {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    
+    // Brisanje dokumenta pretplatnika iz Firebase baze
+    const subscriberDocRef = doc(db, 'subscribers', cleanEmail);
+    await deleteDoc(subscriberDocRef);
+  } catch (error) {
+    console.error('Greška pri odjavi sa newslettera:', error);
+    throw error;
+  }
+};
+
 export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]> => {
   try {
     const subscribersRef = collection(db, 'subscribers');
@@ -295,7 +313,7 @@ export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]
 
       return {
         id: docSnap.id,
-        email: data.email || '',
+        email: data.email || docSnap.id,
         subscribedAt: dateVal,
         consent: data.consent ?? true,
       } as NewsletterSubscriber;
