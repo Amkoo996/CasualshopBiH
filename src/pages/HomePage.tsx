@@ -24,6 +24,19 @@ const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
   'Dodaci (Accessories)': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
 };
 
+// Pomoćna funkcija za kreiranje optimizovanog Cloudinary URL-a za videozapise (smanjuje veličinu i popravlja TCF)
+const getOptimizedCloudinaryVideoUrl = (rawUrl?: string): string => {
+  const defaultVideo = 'https://res.cloudinary.com/rvlsak2u/video/upload/f_auto,q_auto,w_1280,vc_h264/v1791897813/hero-video.mp4';
+  const targetUrl = rawUrl || defaultVideo;
+
+  if (targetUrl.includes('res.cloudinary.com') && targetUrl.includes('/upload/')) {
+    if (targetUrl.includes('/f_auto,q_auto')) return targetUrl;
+    return targetUrl.replace('/upload/', '/upload/f_auto,q_auto,w_1280,vc_h264/');
+  }
+
+  return targetUrl;
+};
+
 export const HomePage: React.FC<HomePageProps> = ({
   products = [],
   onSelectProduct,
@@ -126,6 +139,8 @@ export const HomePage: React.FC<HomePageProps> = ({
     (p) => p.featured === true || String(p.featured) === 'true'
   ).slice(0, 4);
 
+  const heroVideoSrc = getOptimizedCloudinaryVideoUrl(cms.hero.videoUrl);
+
   return (
     <div className="pb-0 bg-[#0A0A0A] w-full font-['Inter']">
       {/* 1. TOP BANER SA SJAJNOM TRAKOM & AUTO-COPY PROMO KODA */}
@@ -170,26 +185,21 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* 2. HERO SEKCIJA */}
+      {/* 2. HERO SEKCIJA (OPTIMIZOVAN CLOUDINARY VIDEO DIRA TCF & PERFORMANCE) */}
       <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
-          {cms.hero.videoUrl.endsWith('.mp4') ? (
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover opacity-45 filter contrast-125 scale-105 transition-transform duration-10000 ease-out"
-            >
-              <source src={cms.hero.videoUrl} type="video/mp4" />
-            </video>
-          ) : (
-            <img
-              src={cms.hero.videoUrl || '/hero-video.mp4'}
-              alt="Hero Background"
-              className="w-full h-full object-cover opacity-45 filter contrast-125"
-            />
-          )}
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            poster={OPTIMIZED_FALLBACK_IMAGE}
+            className="w-full h-full object-cover opacity-45 filter contrast-125 scale-105 transition-transform duration-10000 ease-out"
+          >
+            <source src={heroVideoSrc} type="video/mp4" />
+          </video>
+
           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-80" />
         </div>
