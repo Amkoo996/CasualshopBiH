@@ -73,7 +73,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-1 flex-nowrap">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-1 flex-nowrap w-full overflow-hidden">
           {/* Lijeve akcije: Burger meni na mobilnim */}
           <div className="flex items-center lg:hidden shrink-0">
             <button
@@ -85,16 +85,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Logo u sredini / lijevo */}
+          {/* Logo u sredini / lijevo (sa zaštitom od širenja) */}
           <button
             onClick={() => handleNavClick('home')}
-            className="flex items-center focus:outline-none text-left py-1 cursor-pointer shrink-0"
+            className="flex items-center focus:outline-none text-left py-1 cursor-pointer shrink min-w-0 max-w-[150px] xs:max-w-[180px] sm:max-w-none overflow-hidden"
           >
-            <Logo className="w-9 h-9 sm:w-12 sm:h-12" />
+            <div className="scale-90 origin-left sm:scale-100 transition-transform">
+              <Logo />
+            </div>
           </button>
 
           {/* Desktop Navigacija */}
-          <nav className="hidden lg:flex items-center space-x-7">
+          <nav className="hidden lg:flex items-center space-x-7 shrink-0">
             {navLinks.map((link) => (
               <button
                 key={link.id}
@@ -134,11 +136,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </nav>
 
-          {/* Desne akcije: Pretraga, Instagram, Favoriti, Korpa */}
+          {/* Desne akcije: Pretraga, Instagram, Favoriti, Korpa (Striktno bez prelamanja) */}
           <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="p-1.5 text-neutral-300 hover:text-[#F7E97F] transition-colors cursor-pointer"
+              className="p-1 text-neutral-300 hover:text-[#F7E97F] transition-colors cursor-pointer"
               title="Pretraži artikle"
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -156,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => handleNavClick('wishlist')}
-              className="relative p-1.5 text-neutral-300 hover:text-[#F7E97F] transition-colors flex items-center justify-center cursor-pointer"
+              className="relative p-1 text-neutral-300 hover:text-[#F7E97F] transition-colors flex items-center justify-center cursor-pointer"
               title="Moji Favoriti"
             >
               <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -169,10 +171,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 bg-[#171717] text-white border border-neutral-700 hover:bg-[#F7E97F] hover:text-[#0A0A0A] hover:border-[#F7E97F] transition-all flex items-center gap-1.5 group active:scale-95 shadow-sm cursor-pointer shrink-0"
+              className="relative px-2 sm:px-3 py-1.5 sm:py-2.5 bg-[#171717] text-white border border-neutral-700 hover:bg-[#F7E97F] hover:text-[#0A0A0A] hover:border-[#F7E97F] transition-all flex items-center gap-1 group active:scale-95 shadow-sm cursor-pointer shrink-0"
               aria-label="Otvori korpu"
             >
-              <ShoppingBag className="w-4 h-4 transition-transform group-hover:scale-110 shrink-0" />
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110 shrink-0" />
               <span className="text-xs font-['Poppins'] font-black leading-none">
                 {totalCount}
               </span>
