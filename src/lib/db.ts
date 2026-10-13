@@ -138,7 +138,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       }
     }
 
-    // Automatsko slanje Telegram obavijesti
+    // Automatsko slanje Telegram obavijesti za narudžbu
     sendOrderToTelegram({ ...orderData, id: docRef.id }).catch((err) => {
       console.warn('Slanje Telegram obavijesti nije uspjelo:', err);
     });
@@ -402,15 +402,15 @@ export const getOrderByNumberAndPhone = async (
 };
 
 // ==========================================
-// TELEGRAM NOTIFIKACIJE (NARUDŽBE BOT)
+// TELEGRAM NOTIFIKACIJE (NARUDŽBE BOT - @Casualshopbihbot)
 // ==========================================
 
 export async function sendOrderToTelegram(orderData: any) {
   try {
     const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-    const CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+    const RAW_CHAT_IDS = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
-    if (!BOT_TOKEN || !CHAT_ID) {
+    if (!BOT_TOKEN || !RAW_CHAT_IDS) {
       console.warn('VITE_TELEGRAM_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID nisu konfigurisani.');
       return;
     }
@@ -431,15 +431,20 @@ export async function sendOrderToTelegram(orderData: any) {
       `🛒 <b>Artikli:</b>\n${itemsText}\n\n` +
       `💰 <b>Ukupno:</b> ${orderData.total || 0} KM`;
 
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: CHAT_ID,
-        text: message,
-        parse_mode: 'HTML',
-      }),
-    });
+    // Podrška za slanje na više Chat ID-ova odvojenih zarezom
+    const chatIds = RAW_CHAT_IDS.split(',').map((id: string) => id.trim()).filter(Boolean);
+
+    for (const chatId of chatIds) {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML',
+        }),
+      });
+    }
   } catch (error) {
     console.error('Greška pri slanju narudžbe na Telegram:', error);
   }
