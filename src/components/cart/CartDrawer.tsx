@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Trash2, ArrowRight, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { X, Trash2, ArrowRight, ShoppingBag, ShieldCheck, Truck } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
 interface CartDrawerProps {
@@ -25,9 +25,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
     subtotal,
     shippingFee,
     total,
+    settings,
   } = useCart();
 
   if (!isCartOpen) return null;
+
+  // Izračunavanje ukupnog broja komada (a ne samo stavki)
+  const totalItemPieces = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Prag za besplatnu dostavu
+  const freeShippingThreshold = settings?.freeShippingThreshold || 100;
+  const amountLeftForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
+  const freeShippingProgress = Math.min(100, (subtotal / freeShippingThreshold) * 100);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -41,21 +50,48 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
         <div className="w-screen max-w-md bg-white border-l-2 border-neutral-300 shadow-2xl flex flex-col justify-between">
           
           {/* Header korpe */}
-          <div className="p-4 sm:p-6 border-b-2 border-neutral-200 flex items-center justify-between bg-[#0A0A0A] text-white">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-[#F7E97F]" />
-              <h2 className="font-['Poppins'] text-sm sm:text-base font-black uppercase tracking-wider text-white">
-                Moja korpa ({items.length})
-              </h2>
+          <div className="p-4 sm:p-6 border-b-2 border-neutral-200 bg-[#0A0A0A] text-white space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-[#F7E97F]" />
+                <h2 className="font-['Poppins'] text-sm sm:text-base font-black uppercase tracking-wider text-white">
+                  Moja korpa ({totalItemPieces} kom)
+                </h2>
+              </div>
+              <button
+                onClick={() => setIsCartOpen(false)}
+                className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                title="Zatvori korpu"
+                aria-label="Zatvori korpu"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <button
-              onClick={() => setIsCartOpen(false)}
-              className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-              title="Zatvori korpu"
-              aria-label="Zatvori korpu"
-            >
-              <X className="w-6 h-6" />
-            </button>
+
+            {/* TRAKA NAPRETKA ZA BESPLATNU DOSTAVU */}
+            {items.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-[11px] font-['Poppins'] font-bold">
+                  {amountLeftForFreeShipping > 0 ? (
+                    <span className="text-neutral-300 flex items-center gap-1">
+                      <Truck className="w-3.5 h-3.5 text-[#F7E97F]" />
+                      <span>Još <strong className="text-[#F7E97F]">{amountLeftForFreeShipping.toFixed(2)} KM</strong> do besplatne dostave</span>
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400 font-black flex items-center gap-1">
+                      <Truck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>OSTVARIU/LA SI BESPLATNU DOSTAVU!</span>
+                    </span>
+                  )}
+                </div>
+                <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden border border-neutral-700">
+                  <div
+                    className="h-full bg-[#F7E97F] transition-all duration-500 ease-out"
+                    style={{ width: `${freeShippingProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Lista artikala */}
@@ -109,6 +145,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                         <p className="text-[11px] text-neutral-500 font-['Inter'] mt-0.5">
                           Veličina: <strong>{item.size}</strong>
                         </p>
+                        <p className="text-[10px] text-neutral-400 font-mono mt-0.5">
+                          {item.price.toFixed(2)} KM × {item.quantity} kom
+                        </p>
                       </div>
 
                       <div className="flex items-center justify-between pt-2">
@@ -150,11 +189,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
             <div className="p-4 sm:p-6 border-t-2 border-neutral-200 bg-[#F4F2EC] space-y-4">
               <div className="space-y-1.5 text-xs font-['Inter']">
                 <div className="flex justify-between text-neutral-600">
-                  <span>Iznos artikala:</span>
+                  <span>Iznos artikala ({totalItemPieces} kom):</span>
                   <span className="font-['Poppins'] font-bold text-black">{subtotal.toFixed(2)} KM</span>
                 </div>
                 <div className="flex justify-between text-neutral-600">
-                  <span>Dostava (Brza pošta BiH):</span>
+                  <span>Dostava (Brza pošta X Express):</span>
                   <span className="font-['Poppins'] font-bold text-black">
                     {shippingFee === 0 ? (
                       <span className="text-emerald-700 font-black">BESPLATNO</span>
@@ -164,7 +203,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                   </span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-black pt-2 border-t border-neutral-300 font-['Poppins']">
-                  <span>UKUPNO:</span>
+                  <span>UKUPNO ZA PLAĆANJE:</span>
                   <span className="text-base">{total.toFixed(2)} KM</span>
                 </div>
               </div>
