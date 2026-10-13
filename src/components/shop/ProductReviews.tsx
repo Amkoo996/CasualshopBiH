@@ -117,7 +117,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
             setShowForm(!showForm);
             setErrorMsg(null);
           }}
-          className="px-5 py-2.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-[#0A0A0A] self-start sm:self-auto flex items-center gap-2 active:scale-95"
+          className="px-5 py-2.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-[#0A0A0A] self-start sm:self-auto flex items-center gap-2 active:scale-95 cursor-pointer"
         >
           <Star className="w-4 h-4 fill-current" />
           <span>{showForm ? 'Zatvori obrazac' : 'Napiši recenziju'}</span>
@@ -166,7 +166,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
           <div className="flex items-center gap-3 text-[11px] text-neutral-500 pt-1">
             <span>👕 Veličina odgovara standardu</span>
             <span>•</span>
-            <span>⚡ Brza dostava 2-5 dana</span>
+            <span className="text-black font-bold">⚡ Brza dostava 48–72h</span>
           </div>
         </div>
       </div>
@@ -207,7 +207,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
                     onClick={() => setRating(starValue)}
                     onMouseEnter={() => setHoverRating(starValue)}
                     onMouseLeave={() => setHoverRating(0)}
-                    className="p-1 transition-transform hover:scale-125 focus:outline-none"
+                    className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
                     aria-label={`Ocjena ${starValue}`}
                   >
                     <Star
@@ -273,14 +273,14 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-4 py-2.5 text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-600 hover:text-black"
+              className="px-4 py-2.5 text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-600 hover:text-black cursor-pointer"
             >
               Odustani
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors disabled:opacity-50"
+              className="px-6 py-2.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors disabled:opacity-50 cursor-pointer"
             >
               <Send className="w-4 h-4" />
               <span>{submitting ? 'Spremanje...' : 'Objavi recenziju'}</span>
@@ -306,7 +306,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
             </p>
             <button
               onClick={() => setShowForm(true)}
-              className="px-4 py-2 bg-[#0A0A0A] text-[#F7E97F] text-xs font-['Poppins'] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 hover:bg-neutral-800"
+              className="px-4 py-2 bg-[#0A0A0A] text-[#F7E97F] text-xs font-['Poppins'] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 hover:bg-neutral-800 cursor-pointer"
             >
               <span>Napiši prvu recenziju</span>
             </button>
