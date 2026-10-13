@@ -17,8 +17,9 @@ export const onRequestPost = async (context: {
       );
     }
 
-    const apiKey = env.MAILERLITE_API_KEY;
+    const apiKey = env.MAILERLITE_API_KEY?.trim();
     if (!apiKey) {
+      console.error('MAILERLITE_API_KEY nije podešen u Cloudflare varijablama.');
       return new Response(
         JSON.stringify({ error: 'API ključ nije podešen na serveru' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -31,12 +32,13 @@ export const onRequestPost = async (context: {
       status: 'active',
     };
 
-    // Ako je podešena grupa u Cloudflare varijablama, ubacujemo pretplatnika direktno u nju
-    const groupId = env.MAILERLITE_GROUP_ID;
+    // Ako je podešena grupa u Cloudflare varijablama, dodajemo je
+    const groupId = env.MAILERLITE_GROUP_ID?.trim();
     if (groupId) {
       payload.groups = [groupId];
     }
 
+    // 1. Pokušaj dodavanja ili ažuriranja pretplatnika
     const mlResponse = await fetch('https://connect.mailerlite.com/api/subscribers', {
       method: 'POST',
       headers: {
@@ -47,20 +49,33 @@ export const onRequestPost = async (context: {
       body: JSON.stringify(payload),
     });
 
-    if (!mlResponse.ok) {
-      const errorText = await mlResponse.text();
-      return new Response(
-        JSON.stringify({ error: 'MailerLite greška', details: errorText }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+    const responseText = await mlResponse.text();
+
+    // 2. Ako MailerLite vrati 200 ili 201 (Uspješno)
+    if (mlResponse.ok) {
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // 3. Ako korisnik već postoji u bazi, MailerLite zna vratiti 422/400 – to tretiramo kao uspjeh
+    if (mlResponse.status === 422 || responseText.includes('already exists') || responseText.includes('member')) {
+      console.log('Subscriber već postoji u MailerLite bazi.');
+      return new Response(JSON.stringify({ success: true, message: 'Korisnik je već prijavljen' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.error('MailerLite odbio zahtjev:', mlResponse.status, responseText);
+    return new Response(
+      JSON.stringify({ error: 'MailerLite greška', details: responseText }),
+      { status: mlResponse.status, headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('Mrežna ili sistemska greška u Workeru:', err);
+    return new Response(JSON.stringify({ error: err.message || 'Server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
