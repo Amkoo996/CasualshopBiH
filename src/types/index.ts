@@ -128,7 +128,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   sellerName: '',
   sellerAddress: '',
   sellerIdNumber: '',
-  telegramChatId: '6333078744',
+  telegramChatId: import.meta.env.VITE_TELEGRAM_CHAT_ID || '',
   hiddenCategories: [
     'Duksevi i hoodice',
     'Pantalone i trenerke',
