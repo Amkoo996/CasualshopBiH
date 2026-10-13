@@ -90,7 +90,6 @@ export const updateProduct = async (id: string, productData: Partial<Product>): 
   }
 };
 
-// Aliased export za kompatibilnost sa Admin komponentama
 export const saveProduct = async (productData: Partial<Product> & { id?: string }): Promise<string> => {
   if (productData.id) {
     const { id, ...data } = productData;
@@ -403,7 +402,7 @@ export const getOrderByNumberAndPhone = async (
 };
 
 // ==========================================
-// TELEGRAM NOTIFIKACIJE (BEZBJEDNO PREKO ENV)
+// TELEGRAM NOTIFIKACIJE (NARUDŽBE BOT)
 // ==========================================
 
 export async function sendOrderToTelegram(orderData: any) {
@@ -412,15 +411,20 @@ export async function sendOrderToTelegram(orderData: any) {
     const CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
     if (!BOT_TOKEN || !CHAT_ID) {
+      console.warn('VITE_TELEGRAM_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID nisu konfigurisani.');
       return;
     }
+
+    const customerName = orderData.customer?.name || 
+      `${orderData.customer?.firstName || ''} ${orderData.customer?.lastName || ''}`.trim() || 
+      'Nije navedeno';
 
     const itemsText = (orderData.items || [])
       .map((item: any) => `• ${item.name} (${item.size || 'Univerzalna'}) x${item.quantity || 1} - ${item.price} KM`)
       .join('\n');
 
     const message = `🛍️ <b>NOVA NARUDŽBA!</b>\n\n` +
-      `👤 <b>Ime:</b> ${orderData.customer?.name || 'Nije navedeno'}\n` +
+      `👤 <b>Ime:</b> ${customerName}\n` +
       `📞 <b>Telefon:</b> ${orderData.customer?.phone || 'Nije navedeno'}\n` +
       `📍 <b>Adresa:</b> ${orderData.customer?.address || ''}, ${orderData.customer?.city || ''}\n\n` +
       `🛒 <b>Artikli:</b>\n${itemsText}\n\n` +
@@ -436,6 +440,6 @@ export async function sendOrderToTelegram(orderData: any) {
       }),
     });
   } catch (error) {
-    console.error('Greška pri slanju na Telegram:', error);
+    console.error('Greška pri slanju narudžbe na Telegram:', error);
   }
 }
