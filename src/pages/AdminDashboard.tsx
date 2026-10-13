@@ -136,7 +136,7 @@ export const AdminDashboard: React.FC = () => {
       setPromoCodes(promoData);
     } catch (e) {
       console.error('Failed to load admin data:', e);
-    } fontally {
+    } finally {
       setLoading(false);
     }
   };
