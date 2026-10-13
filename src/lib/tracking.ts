@@ -88,12 +88,12 @@ export async function recordAnalyticsEvent(
       });
     }
   } catch (error) {
-    console.error('Greška pri snimanju analitike:', error);
+    console.warn('Spremanje analitičkog događaja nije uspjelo:', error);
   }
 }
 
 // ------------------------------------------------------------------
-// POMOĆNE EXPORT FUNKCIJE SA STATISTIKOM ZA PROIZVODE I NAPUŠTENE KORPE
+// POMOĆNE EXPORT FUNKCIJE ZA STATISTIKU I NAPUŠTENE KORPE
 // ------------------------------------------------------------------
 
 export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
@@ -109,7 +109,7 @@ export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
   return DEFAULT_METRICS;
 }
 
-// 🛒 DOHVAĆANJE NAPUŠTENIH KORPI SA ČUVANJEM STATUSAS POSLANOG EMAILA
+// 🛒 DOHVAĆANJE NAPUŠTENIH KORPI SA ČUVANJEM STATUSAS POSLANOG EMAILA (Samo za Admina)
 export async function getAbandonedCarts(): Promise<any[]> {
   try {
     const cartsRef = collection(db, 'abandoned_carts');
@@ -163,7 +163,8 @@ export async function recordProductView(productOrId?: any) {
         }, { merge: true });
       });
     } catch (err) {
-      console.warn('Greška pri ažuriranju statistike proizvoda:', err);
+      // Tiho ignorisanje bez obaranja UI-ja ako klijent nema admin prava na product_stats
+      console.warn('Statistika pregleda proizvoda preskočena:', err);
     }
   }
 }
