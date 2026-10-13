@@ -1,4 +1,4 @@
-// Telefon: BiH formati i međunarodni (dijaspora)
+// Telefon: BiH formati (fiksni i mobilni) i međunarodni (dijaspora)
 export function normalizePhone(raw: string): string | null {
   if (!raw) return null;
 
@@ -8,15 +8,19 @@ export function normalizePhone(raw: string): string | null {
   // Pretvaranje 00 u +
   if (p.startsWith('00')) p = '+' + p.slice(2);
 
-  // Normalizacija BiH prefiksa u lokalni format (06x ili 03x/05x)
+  // Normalizacija BiH prefiksa u lokalni format (06x, 03x, 05x)
   if (p.startsWith('+387')) p = '0' + p.slice(4);
   else if (p.startsWith('387')) p = '0' + p.slice(3);
 
-  // BiH format (fiksni i mobilni brojevi sa 8 ili 9 cifara, npr. 061123456 ili 033123456)
-  if (/^0[3-7][0-9]{7,8}$/.test(p)) return p;
+  // Strog BiH format: Počinje sa 03, 05 ili 06, nakon čega slijedi 6 do 7 cifara (ukupno 8 ili 9 cifara)
+  if (/^0(3[0-9]|5[0-9]|6[0-7])[0-9]{6,7}$/.test(p)) {
+    return p;
+  }
 
-  // Međunarodni format za dijasporu (npr. +491512345678, +43660123456)
-  if (/^\+[1-9][0-9]{7,14}$/.test(p)) return p;
+  // Međunarodni format za dijasporu (mora počinjati sa + i imati od 8 do 15 cifara)
+  if (/^\+[1-9][0-9]{7,14}$/.test(p)) {
+    return p;
+  }
 
   return null;
 }
