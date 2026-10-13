@@ -7,24 +7,29 @@ service cloud.firestore {
       return isSignedIn() &&
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
+
     function validSize(k) {
       let o = resource.data.sizes.get(k, 0);
       let n = request.resource.data.sizes.get(k, 0);
       return n is int && n >= 0 && n <= o;
     }
 
+    // Defaultno sve zabranjeno
     match /{document=**} { allow read, write: if false; }
 
+    // Admini
     match /admins/{adminId} {
       allow read: if isSignedIn() && request.auth.uid == adminId;
       allow write: if false;
     }
 
+    // Postavke sajta
     match /settings/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
+    // Proizvodi - Čitanje svima, promjena zaliha pri kupovini, ostalo samo Admin
     match /products/{docId} {
       allow read: if true;
       allow create, delete: if isAdmin();
@@ -36,9 +41,9 @@ service cloud.firestore {
       );
     }
 
+    // Narudžbe - Kupac kreira i pretražuje po broju/telefonu, Admin ima puni pristup
     match /orders/{docId} {
       allow create: if request.resource.data.keys().hasAll(['orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 'total', 'paymentMethod', 'status'])
-        && request.resource.data.keys().hasOnly(['orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 'total', 'paymentMethod', 'status', 'createdAt', 'promoCode', 'discountAmount'])
         && request.resource.data.items is list
         && request.resource.data.items.size() > 0
         && request.resource.data.items.size() <= 20
@@ -51,25 +56,26 @@ service cloud.firestore {
         && request.resource.data.total < 10000
         && request.resource.data.paymentMethod == 'cash_on_delivery'
         && request.resource.data.status == 'Nova';
-      allow read, update, delete: if isAdmin();
+      
+      // Dozvoljavamo čitanje svima kako bi radila forma "Prati svoju narudžbu" na sajtu
+      allow read: if true; 
+      allow update, delete: if isAdmin();
     }
 
+    // Newsletter
     match /subscribers/{docId} {
       allow create: if request.resource.data.email is string
         && request.resource.data.email.size() <= 150;
       allow read, update, delete: if isAdmin();
     }
 
+    // Promo kodovi - Čitanje svima (provjera koda), kreiranje i izmjena SAMO Admin
     match /promo_codes/{docId} {
-      allow get: if true;
-      allow list, delete: if isAdmin();
-      allow create: if isAdmin() || (
-        request.resource.data.discountPercent == 10
-        && request.resource.data.used == false);
-      allow update: if isAdmin() ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedAt', 'usageCount']);
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
+    // Recenzije
     match /reviews/{docId} {
       allow read: if true;
       allow create: if request.resource.data.rating is number
@@ -79,10 +85,12 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Lista želja
     match /wishlists/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read, write: if true; // Prilagođeno za goste i korisnike
     }
 
+    // Kontakt poruke
     match /contact_messages/{docId} {
       allow create: if request.resource.data.size() <= 10
         && request.resource.data.message is string
@@ -90,6 +98,7 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // Analitika i napuštene korpe
     match /analytics_events/{docId} {
       allow create: if request.resource.data.size() <= 10;
       allow read, delete: if isAdmin();
