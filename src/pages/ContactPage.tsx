@@ -26,7 +26,7 @@ export const ContactPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. HONEYPOT PROVJERA (Spriječava botove)
+    // 1. HONEYPOT PROVJERA
     if (formData.bot_field) {
       setStatus('success');
       return;
@@ -53,72 +53,60 @@ export const ContactPage: React.FC = () => {
     setStatus('submitting');
     setErrorMessage('');
 
-    let telegramSuccess = false;
-
     try {
-      // 3. SLANJE STROGO I EKSPLICITNO NA KONTAKT BOT
+      // 3. TELEGRAM VARIJABLE (SAMO KONTAKT BOT)
       const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN;
-      const contactChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+      const rawChatIds = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
-      if (contactBotToken && contactChatId) {
-        const telegramMessage = `📩 <b>NOVI UPIT SA KONTAKT FORME</b>\n` +
-          `----------------------------------\n` +
-          `👤 <b>Ime i prezime:</b> ${formData.name}\n` +
-          `📧 <b>Email:</b> ${formData.email}\n` +
-          `📞 <b>Telefon:</b> ${cleanPhone}\n\n` +
-          `💬 <b>Poruka:</b>\n${formData.message}`;
+      if (!contactBotToken || !rawChatIds) {
+        console.error('Nedostaje VITE_TELEGRAM_CONTACT_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID!');
+        setStatus('error');
+        setErrorMessage('Sistem za slanje poruka trenutno nije konfigurisan na serveru.');
+        return;
+      }
 
+      const telegramMessage = `📩 <b>NOVI UPIT SA KONTAKT FORME</b>\n` +
+        `----------------------------------\n` +
+        `👤 <b>Ime i prezime:</b> ${formData.name}\n` +
+        `📧 <b>Email:</b> ${formData.email}\n` +
+        `📞 <b>Telefon:</b> ${cleanPhone}\n\n` +
+        `💬 <b>Poruka:</b>\n${formData.message}`;
+
+      // Podrška za jedan ili više Chat ID-ova odvojenih zarezom
+      const chatIds = rawChatIds.split(',').map((id: string) => id.trim());
+      let anySuccess = false;
+
+      for (const chatId of chatIds) {
+        if (!chatId) continue;
         const tgRes = await fetch(`https://api.telegram.org/bot${contactBotToken}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: contactChatId,
+            chat_id: chatId,
             text: telegramMessage,
             parse_mode: 'HTML',
           }),
         });
 
-        if (tgRes.ok) {
-          telegramSuccess = true;
+        const tgData = await tgRes.json();
+        if (tgRes.ok && tgData.ok) {
+          anySuccess = true;
         } else {
-          console.error('Telegram Kontakt Bot vratio grešku:', await tgRes.text());
+          console.error(`Telegram API Greška za Chat ID (${chatId}):`, tgData);
         }
-      } else {
-        console.warn('VITE_TELEGRAM_CONTACT_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID nedostaje u okruženju.');
       }
 
-      // 4. EmailJS poziv
-      try {
-        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            service_id: 'service_h4rxrv2',
-            template_id: 'template_atnmhpk',
-            user_id: 'mPKyquhWRcGkRq4gS',
-            template_params: {
-              from_name: formData.name,
-              from_email: formData.email,
-              from_phone: cleanPhone,
-              message: formData.message,
-              to_email: settings?.email || 'info@casualshop.ba',
-            },
-          }),
-        });
-      } catch (emailErr) {
-        console.warn('EmailJS slanje nije uspjelo:', emailErr);
-      }
-
-      if (telegramSuccess) {
+      if (anySuccess) {
         setStatus('success');
         setFormData({ name: '', email: '', phone: '', message: '', bot_field: '' });
       } else {
         setStatus('error');
-        setErrorMessage('Greška pri slanju poruke na Telegram bot. Provjerite da li ste pokrenuli bot na Telegramu.');
+        setErrorMessage('Greška pri slanju na Telegram bot. Provjerite da li ste kliknuli START na @Casualshopbihkontakt_bot.');
       }
-    } catch {
+    } catch (err) {
+      console.error('Mrežna greška pri slanju:', err);
       setStatus('error');
-      setErrorMessage('Mrežna greška. Provjerite vašu internet konekciju.');
+      setErrorMessage('Mrežna greška pri slanju poruke. Pokušajte ponovo.');
     }
   };
 
