@@ -1,6 +1,26 @@
 const CLOUD_NAME = 'rvlsak2u';
 const UPLOAD_PRESET = 'casual_preset'; 
 
+/**
+ * Pomoćna funkcija za automatsku optimizaciju, fiksno pretvaranje u WebP format i izmjenu dimenzija.
+ * Čak i ako korisnik učita PNG ili JPG sliku, Cloudinary će je isporučiti u brzom WebP formatu.
+ */
+export const optimizeImage = (url: string, width = 800): string => {
+  if (!url || !url.includes('res.cloudinary.com')) return url;
+
+  // Transformacija: f_webp (forsira webp format), q_auto (automatska kompresija bez vidljivog gubitka kvaliteta), w_width, c_limit (ne razvlači manje slike)
+  const transformation = `f_webp,q_auto,w_${width},c_limit`;
+
+  if (url.includes('/upload/')) {
+    return url.replace('/upload/', `/upload/${transformation}/`);
+  }
+
+  return url;
+};
+
+/**
+ * Upload slika na Cloudinary uz provjeru veličine i automatski povratak optimizovanog URL-a.
+ */
 export async function uploadImage(file: File): Promise<string> {
   // 1. Provjera veličine slike (limit 10 MB)
   if (file.size > 10 * 1024 * 1024) {
@@ -26,15 +46,12 @@ export async function uploadImage(file: File): Promise<string> {
     }
 
     const data = await res.json();
-    return data.secure_url as string;
+    const rawUrl = data.secure_url as string;
+
+    // Vraćamo odmah optimizirani URL sa f_webp i q_auto
+    return optimizeImage(rawUrl);
   } catch (error: any) {
     console.error('Greška pri slanju na Cloudinary:', error);
     throw new Error(error.message || 'Mrežna greška pri slanju slike.');
   }
 }
-
-// Pomoćna funkcija za automatsku optimizaciju i izmjenu dimenzija
-export const optimizeImage = (url: string, width = 800) =>
-  url && url.includes('res.cloudinary.com')
-    ? url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`)
-    : url;
