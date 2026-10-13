@@ -159,8 +159,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
               <form onSubmit={handleFooterNewsletter} className="space-y-2 text-xs">
                 <div className="flex">
                   <input
+                    id="footer-newsletter-email"
+                    name="footerEmail"
                     type="email"
                     required
+                    autoComplete="email"
                     value={footerEmail}
                     onChange={(e) => setFooterEmail(e.target.value)}
                     placeholder="Tvoj e-mail..."
@@ -175,8 +178,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
                   </button>
                 </div>
 
-                <label className="flex items-start gap-1.5 text-[10px] text-neutral-400 cursor-pointer">
+                <label htmlFor="footer-newsletter-consent" className="flex items-start gap-1.5 text-[10px] text-neutral-400 cursor-pointer">
                   <input
+                    id="footer-newsletter-consent"
+                    name="footerConsent"
                     type="checkbox"
                     checked={footerConsent}
                     onChange={(e) => setFooterConsent(e.target.checked)}
