@@ -431,7 +431,6 @@ export async function sendOrderToTelegram(orderData: any) {
       `🛒 <b>Artikli:</b>\n${itemsText}\n\n` +
       `💰 <b>Ukupno:</b> ${orderData.total || 0} KM`;
 
-    // Podrška za slanje na više Chat ID-ova odvojenih zarezom
     const chatIds = RAW_CHAT_IDS.split(',').map((id: string) => id.trim()).filter(Boolean);
 
     for (const chatId of chatIds) {
