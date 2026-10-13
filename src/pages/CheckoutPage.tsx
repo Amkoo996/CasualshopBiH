@@ -62,13 +62,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Funkcija za sinhronizaciju napuštene korpe na Firebase
+  // Sigurna sinhronizacija napuštene korpe na Firebase (samo ako su uneseni osnovni validni podaci)
   const syncAbandonedCart = (dataToSync = formData) => {
     const fullName = `${dataToSync.firstName} ${dataToSync.lastName}`.trim();
-    if (dataToSync.email || dataToSync.phone || fullName) {
+    const cleanPhone = normalizePhone(dataToSync.phone);
+
+    // GDPR & Spam zaštita: Šaljemo tek kad postoji barem validan telefon ili email
+    if (dataToSync.email && isValidEmail(dataToSync.email) || cleanPhone) {
       saveCartSession({
         email: dataToSync.email.trim(),
-        phone: normalizePhone(dataToSync.phone) || dataToSync.phone.trim(),
+        phone: cleanPhone || dataToSync.phone.trim(),
         customerName: fullName || 'Gost Kupac',
         items,
         subtotal: calculatedTotal,
@@ -76,11 +79,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
-  // Automatsko spašavanje sesije nakon neaktivnosti (Debounce 1.5s)
+  // Automatsko spašavanje sesije nakon neaktivnosti (Smanjena učestalost na 3s)
   useEffect(() => {
     const timer = setTimeout(() => {
       syncAbandonedCart();
-    }, 1500);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [formData.email, formData.phone, formData.firstName, formData.lastName, items, calculatedTotal]);
@@ -129,7 +132,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     if (!formData.phone.trim()) {
       newErrors.phone = 'Broj telefona je obavezan';
     } else if (!normalizePhone(formData.phone)) {
-      newErrors.phone = 'Unesite ispravan broj telefona, npr. 061 123 456';
+      newErrors.phone = 'Unesite ispravan broj telefona, npr. 061123456 ili +38761123456';
     }
 
     const mail = formData.email.trim();
@@ -253,11 +256,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
-      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOTA (Čisti env poziv)
+      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOTA (Slati na sve navedene Chat ID-ove)
       const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-      const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+      const RAW_CHAT_IDS = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
-      if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+      if (TELEGRAM_BOT_TOKEN && RAW_CHAT_IDS) {
         const itemsListMsg = items
           .map((i) => `• ${i.quantity}x ${i.name} (${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
           .join('\n');
@@ -286,14 +289,18 @@ ${itemsListMsg}${promoInfoText}
 💰 UKUPNO ZA NAPLATU: ${finalizedOrder.total.toFixed(2)} KM
         `.trim();
 
-        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: telegramText,
-          }),
-        }).catch((err) => console.warn(`Telegram notifikacija nije poslata:`, err));
+        const chatIds = RAW_CHAT_IDS.split(',').map((id: string) => id.trim()).filter(Boolean);
+
+        for (const chatId of chatIds) {
+          fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: telegramText,
+            }),
+          }).catch((err) => console.warn(`Telegram notifikacija nije poslata za Chat ID ${chatId}:`, err));
+        }
       }
 
       // 3. SLANJE E-MAIL OBAVIJESTI PREKO EMAILJS
