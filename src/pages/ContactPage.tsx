@@ -45,55 +45,64 @@ export const ContactPage: React.FC = () => {
     setStatus('submitting');
     setErrorMessage('');
 
+    let telegramSuccess = false;
+
     try {
-      // 1. Slanje notifikacije ISKLJUČIVO na Telegram kontakt bot
+      // 1. Slanje notifikacije na Telegram kontakt bot
       const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN;
       const contactChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
       if (contactBotToken && contactChatId) {
-        const telegramMessage = `📩 *NOVA PORUKA SA KONTAKT FORME*
-----------------------------------
-👤 *Ime i prezime:* ${formData.name}
-📧 *Email:* ${formData.email}
-📞 *Telefon:* ${cleanPhone || 'Nije navedeno'}
+        const telegramMessage = `📩 <b>NOVA PORUKA SA KONTAKT FORME</b>\n` +
+          `----------------------------------\n` +
+          `👤 <b>Ime i prezime:</b> ${formData.name}\n` +
+          `📧 <b>Email:</b> ${formData.email}\n` +
+          `📞 <b>Telefon:</b> ${cleanPhone || 'Nije navedeno'}\n\n` +
+          `💬 <b>Poruka:</b>\n${formData.message}`;
 
-💬 *Poruka:*
-${formData.message}`;
-
-        fetch(`https://api.telegram.org/bot${contactBotToken}/sendMessage`, {
+        const tgRes = await fetch(`https://api.telegram.org/bot${contactBotToken}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: contactChatId,
             text: telegramMessage,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
           }),
-        }).catch((err) => console.error('Telegram contact bot error:', err));
+        });
+
+        if (tgRes.ok) {
+          telegramSuccess = true;
+        }
       } else {
         console.warn('VITE_TELEGRAM_CONTACT_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID nedostaje u okruženju.');
       }
 
-      // 2. EmailJS poziv za Kontakt formu (template_atnmhpk)
-      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          service_id: 'service_h4rxrv2',
-          template_id: 'template_atnmhpk',
-          user_id: 'mPKyquhWRcGkRq4gS',
-          template_params: {
-            from_name: formData.name,
-            from_email: formData.email,
-            from_phone: cleanPhone || 'Nije navedeno',
-            message: formData.message,
-            to_email: settings?.email || 'info@casualshop.ba',
+      // 2. EmailJS poziv za Kontakt formu
+      try {
+        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        }),
-      });
+          body: JSON.stringify({
+            service_id: 'service_h4rxrv2',
+            template_id: 'template_atnmhpk',
+            user_id: 'mPKyquhWRcGkRq4gS',
+            template_params: {
+              from_name: formData.name,
+              from_email: formData.email,
+              from_phone: cleanPhone || 'Nije navedeno',
+              message: formData.message,
+              to_email: settings?.email || 'info@casualshop.ba',
+            },
+          }),
+        });
+      } catch (emailErr) {
+        console.warn('EmailJS slanje nije uspjelo:', emailErr);
+      }
 
-      if (res.ok) {
+      // Ako je poruka stigla barem na Telegram, smatramo da je slanje uspješno
+      if (telegramSuccess) {
         setStatus('success');
         setFormData({ name: '', email: '', phone: '', message: '', bot_field: '' });
       } else {
