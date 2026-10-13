@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, MapPin, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { normalizePhone } from '../lib/validation';
+import { normalizePhone, isValidPhone } from '../lib/validation';
 
 export const ContactPage: React.FC = () => {
   const { settings } = useCart();
@@ -15,49 +15,58 @@ export const ContactPage: React.FC = () => {
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (errorMessage) setErrorMessage('');
+    if (e.target.name === 'phone' && phoneError) setPhoneError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // HONEYPOT PROVJERA: Ako je bot popunio skriveno polje, odbaci slanje
+    // 1. HONEYPOT PROVJERA (spriječava botove)
     if (formData.bot_field) {
       setStatus('success');
       return;
     }
 
-    // Validacija broja telefona preko normalizePhone ako je unesen
-    let cleanPhone = '';
-    if (formData.phone.trim()) {
-      const normalized = normalizePhone(formData.phone);
-      if (!normalized) {
-        setStatus('error');
-        setErrorMessage('Molimo unesite ispravan broj telefona (npr. 061123456 ili +38761123456).');
-        return;
-      }
-      cleanPhone = normalized;
+    // 2. STROGA VALIDACIJA BROJA TELEFONA
+    const rawPhone = formData.phone.trim();
+    if (!rawPhone || !isValidPhone(rawPhone)) {
+      setStatus('error');
+      setPhoneError('Unesite ispravan broj telefona (npr. 061123456 ili +38761123456)');
+      setErrorMessage('Broj telefona nije u ispravnom formatu.');
+      return;
     }
 
+    const cleanPhone = normalizePhone(rawPhone);
+    if (!cleanPhone) {
+      setStatus('error');
+      setPhoneError('Neispravan format broja telefona.');
+      setErrorMessage('Molimo unesite validan bh. ili međunarodni broj.');
+      return;
+    }
+
+    setPhoneError('');
     setStatus('submitting');
     setErrorMessage('');
 
     let telegramSuccess = false;
 
     try {
-      // 1. Slanje notifikacije na Telegram kontakt bot
+      // 3. SLANJE ISKLJUČIVO NA KONTAKT TELEGRAM BOT (@Casualshopbihkontakt_bot)
       const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN;
-      const contactChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+      // Ako koristiš poseban Chat ID za kontakt bot, stavi VITE_TELEGRAM_CONTACT_CHAT_ID, inače VITE_TELEGRAM_CHAT_ID
+      const contactChatId = import.meta.env.VITE_TELEGRAM_CONTACT_CHAT_ID || import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
       if (contactBotToken && contactChatId) {
-        const telegramMessage = `📩 <b>NOVA PORUKA SA KONTAKT FORME</b>\n` +
+        const telegramMessage = `📩 <b>NOVI UPIT SA KONTAKT FORME</b>\n` +
           `----------------------------------\n` +
           `👤 <b>Ime i prezime:</b> ${formData.name}\n` +
           `📧 <b>Email:</b> ${formData.email}\n` +
-          `📞 <b>Telefon:</b> ${cleanPhone || 'Nije navedeno'}\n\n` +
+          `📞 <b>Telefon:</b> ${cleanPhone}\n\n` +
           `💬 <b>Poruka:</b>\n${formData.message}`;
 
         const tgRes = await fetch(`https://api.telegram.org/bot${contactBotToken}/sendMessage`, {
@@ -72,18 +81,18 @@ export const ContactPage: React.FC = () => {
 
         if (tgRes.ok) {
           telegramSuccess = true;
+        } else {
+          console.error('Telegram Kontakt Bot vratio grešku:', await tgRes.text());
         }
       } else {
-        console.warn('VITE_TELEGRAM_CONTACT_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID nedostaje u okruženju.');
+        console.warn('VITE_TELEGRAM_CONTACT_BOT_TOKEN ili Chat ID nedostaje u okruženju.');
       }
 
-      // 2. EmailJS poziv za Kontakt formu
+      // 4. EmailJS poziv za Kontakt formu (u try-catch bloku da ne blokira uspeh na Telegramu)
       try {
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             service_id: 'service_h4rxrv2',
             template_id: 'template_atnmhpk',
@@ -91,7 +100,7 @@ export const ContactPage: React.FC = () => {
             template_params: {
               from_name: formData.name,
               from_email: formData.email,
-              from_phone: cleanPhone || 'Nije navedeno',
+              from_phone: cleanPhone,
               message: formData.message,
               to_email: settings?.email || 'info@casualshop.ba',
             },
@@ -101,13 +110,12 @@ export const ContactPage: React.FC = () => {
         console.warn('EmailJS slanje nije uspjelo:', emailErr);
       }
 
-      // Ako je poruka stigla barem na Telegram, smatramo da je slanje uspješno
       if (telegramSuccess) {
         setStatus('success');
         setFormData({ name: '', email: '', phone: '', message: '', bot_field: '' });
       } else {
         setStatus('error');
-        setErrorMessage('Greška pri slanju poruke. Molimo pokušajte ponovo.');
+        setErrorMessage('Greška pri slanju poruke na Telegram bot. Provjerite da li ste pokrenuli bot na Telegramu.');
       }
     } catch {
       setStatus('error');
@@ -144,7 +152,7 @@ export const ContactPage: React.FC = () => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-3">
-              {status === 'error' && (
+              {status === 'error' && errorMessage && (
                 <div className="p-2.5 bg-red-50 border border-red-500 text-red-800 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
                   <span>{errorMessage}</span>
@@ -164,8 +172,11 @@ export const ContactPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase mb-1">Ime i prezime *</label>
+                <label htmlFor="contact-name" className="block text-xs font-bold uppercase mb-1">
+                  Ime i prezime *
+                </label>
                 <input
+                  id="contact-name"
                   type="text"
                   name="name"
                   required
@@ -177,8 +188,11 @@ export const ContactPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase mb-1">E-mail *</label>
+                <label htmlFor="contact-email" className="block text-xs font-bold uppercase mb-1">
+                  E-mail *
+                </label>
                 <input
+                  id="contact-email"
                   type="email"
                   name="email"
                   required
@@ -190,22 +204,34 @@ export const ContactPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase mb-1">Broj telefona</label>
+                <label htmlFor="contact-phone" className="block text-xs font-bold uppercase mb-1">
+                  Broj telefona *
+                </label>
                 <input
+                  id="contact-phone"
                   type="tel"
                   name="phone"
+                  required
                   inputMode="tel"
                   autoComplete="tel"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="npr. 061123456"
-                  className="w-full bg-[#F4F2EC] border border-neutral-300 p-2 text-xs focus:outline-none focus:border-black"
+                  placeholder="npr. 061123456 ili +38761123456"
+                  className={`w-full bg-[#F4F2EC] border ${
+                    phoneError ? 'border-red-500 bg-red-50' : 'border-neutral-300'
+                  } p-2 text-xs focus:outline-none focus:border-black`}
                 />
+                {phoneError && (
+                  <p className="text-red-600 text-[11px] mt-1 font-semibold">{phoneError}</p>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase mb-1">Poruka *</label>
+                <label htmlFor="contact-message" className="block text-xs font-bold uppercase mb-1">
+                  Poruka *
+                </label>
                 <textarea
+                  id="contact-message"
                   name="message"
                   required
                   rows={4}
