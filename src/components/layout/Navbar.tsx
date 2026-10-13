@@ -67,7 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0A0A0A] text-white border-b border-neutral-800">
+    <header className="relative z-40 bg-[#0A0A0A] text-white border-b border-neutral-800">
       <div className="bg-[#0A0A0A] text-[#F7E97F] text-[11px] font-['Poppins'] font-bold tracking-widest uppercase py-1.5 px-4 text-center border-b border-neutral-900 flex items-center justify-center gap-3">
         <span>{settings.topBarText || 'Plaćanje pouzećem • Dostava širom BiH'}</span>
       </div>
@@ -199,8 +199,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 top-[102px] bg-black/80 backdrop-blur-sm z-50 flex">
-          <div className="bg-[#0A0A0A] border-r-2 border-[#F7E97F] w-4/5 max-w-sm h-full p-6 flex flex-col justify-between shadow-2xl animate-slideRight">
+        <div className="lg:hidden absolute top-full left-0 right-0 bg-black/80 backdrop-blur-sm z-50 flex min-h-screen">
+          <div className="bg-[#0A0A0A] border-r-2 border-[#F7E97F] w-4/5 max-w-sm p-6 flex flex-col justify-between shadow-2xl animate-slideRight">
             <div className="space-y-6 overflow-y-auto">
               <div className="border-b border-neutral-800 pb-4">
                 <Logo />
@@ -240,7 +240,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </nav>
             </div>
 
-            <div className="border-t border-neutral-800 pt-4 text-xs text-neutral-400 space-y-2">
+            <div className="border-t border-neutral-800 pt-4 text-xs text-neutral-400 space-y-2 mt-6">
               <a
                 href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
                 target="_blank"
