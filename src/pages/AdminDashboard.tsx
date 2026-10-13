@@ -107,15 +107,36 @@ export const AdminDashboard: React.FC = () => {
         getProductViewStats().catch(() => ({})),
         getAllPromoCodes().catch(() => []),
       ]);
+
+      // Deduplikacija pretplatnika po e-mail adresi (ostavljamo najnoviji zapis po datumu)
+      const uniqueSubscribersMap = new Map<string, NewsletterSubscriber>();
+      subsData.forEach((sub) => {
+        const cleanEmail = sub.email.trim().toLowerCase();
+        if (!cleanEmail) return;
+
+        if (!uniqueSubscribersMap.has(cleanEmail)) {
+          uniqueSubscribersMap.set(cleanEmail, sub);
+        } else {
+          const existing = uniqueSubscribersMap.get(cleanEmail)!;
+          if (new Date(sub.subscribedAt).getTime() > new Date(existing.subscribedAt).getTime()) {
+            uniqueSubscribersMap.set(cleanEmail, sub);
+          }
+        }
+      });
+
+      const uniqueSubscribers = Array.from(uniqueSubscribersMap.values()).sort(
+        (a, b) => new Date(b.subscribedAt).getTime() - new Date(a.subscribedAt).getTime()
+      );
+
       setProducts(prodsData);
       setOrders(ordersData);
-      setSubscribers(subsData);
+      setSubscribers(uniqueSubscribers);
       setStoreSettings(settingsData);
       setProductViewsMap(viewsData);
       setPromoCodes(promoData);
     } catch (e) {
       console.error('Failed to load admin data:', e);
-    } finally {
+    } fontally {
       setLoading(false);
     }
   };
@@ -378,7 +399,6 @@ export const AdminDashboard: React.FC = () => {
   const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
     const targetOrder = orders.find((o) => o.id === orderId);
 
-    // Ako se prelazi u status "Poslana", otvaramo modal za unos broja pošiljke
     if (status === 'Poslana' && targetOrder) {
       setTrackingModalOrder(targetOrder);
       setTrackingNumberInput(targetOrder.trackingNumber || '');
@@ -1202,7 +1222,7 @@ export const AdminDashboard: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-neutral-200 font-['Inter']">
                 {subscribers.map((sub, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-50">
+                  <tr key={sub.id || idx} className="hover:bg-neutral-50">
                     <td className="p-3 text-neutral-400 font-mono">{idx + 1}</td>
                     <td className="p-3 font-semibold text-neutral-900">{sub.email}</td>
                     <td className="p-3 text-neutral-600">
@@ -1326,7 +1346,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* TRACKING MODAL (PRESLANJE NARUDŽBE SA KODOM ZA PRAĆENJE) */}
+      {/* TRACKING MODAL */}
       {trackingModalOrder && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 font-['Inter']">
           <div className="bg-white max-w-md w-full p-6 border-2 border-[#F7E97F] shadow-2xl space-y-4">
