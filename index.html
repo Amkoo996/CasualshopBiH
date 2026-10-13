@@ -21,15 +21,21 @@
       fetchpriority="high"
     />
 
-    <!-- Google Analytics 4 -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RL3ZGMND3K"></script>
+    <!-- Google Analytics 4 (Odgođeno učitavanje za Lighthouse 85+ Performance score) -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
+      gtag('config', 'G-RL3ZGMND3K', { send_page_view: true });
 
-      gtag('config', 'G-RL3ZGMND3K', {
-        send_page_view: true
+      // Skripta se učitava u pozadini tek nakon što se stranica kompletno prikaže
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var script = document.createElement('script');
+          script.async = true;
+          script.src = 'https://www.googletagmanager.com/gtag/js?id=G-RL3ZGMND3K';
+          document.head.appendChild(script);
+        }, 2000);
       });
     </script>
     
@@ -55,7 +61,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/logo-favicon.svg" />
 
-    <!-- Fontovi sa display=swap opcijom za brži FCP -->
+    <!-- Fontovi sa display=swap opcijom -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet" />
   </head>
   <body class="bg-[#F4F2EC] text-[#111111] antialiased">
