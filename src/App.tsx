@@ -14,6 +14,7 @@ import { ProductDetailPage } from './pages/ProductDetailPage';
 import { WishlistPage } from './pages/WishlistPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderSuccessPage } from './pages/OrderSuccessPage';
+import { ContactPage } from './pages/ContactPage';
 import { StaticPages } from './pages/StaticPages';
 import { Product, Order } from './types';
 import { getProducts, getStoreSettings } from './lib/db';
@@ -230,7 +231,11 @@ export function AppContent() {
           />
         )}
 
-        {['about', 'contact', 'shipping', 'terms', 'privacy'].includes(currentTab) && (
+        {/* POSEBNO RENDERUJEMO KONTAKT STRANICU SA STROGO VALIDIRANOM FORMICOM */}
+        {currentTab === 'contact' && <ContactPage />}
+
+        {/* OSTALE STATIČNE STRANICE (BEZ CONTACT) */}
+        {['about', 'shipping', 'terms', 'privacy'].includes(currentTab) && (
           <StaticPages page={currentTab as any} />
         )}
 
