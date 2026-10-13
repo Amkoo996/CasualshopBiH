@@ -139,6 +139,11 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       }
     }
 
+    // Automatsko slanje Telegram obavijesti
+    sendOrderToTelegram({ ...orderData, id: docRef.id }).catch((err) => {
+      console.warn('Slanje Telegram obavijesti nije uspjelo:', err);
+    });
+
     return docRef.id;
   } catch (error) {
     console.error('Greška pri kreiranju narudžbe:', error);
@@ -258,8 +263,6 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
     const cleanEmail = email.trim().toLowerCase();
     const nowISO = new Date().toISOString();
 
-    // 1. Upis u Firebase Firestore bazu uz korištenje e-maila kao ID dokumenta
-    // 'setDoc' sa { merge: true } spriječava kreiranje duplikata ako e-mail već postoji
     const subscriberDocRef = doc(db, 'subscribers', cleanEmail);
     await setDoc(
       subscriberDocRef,
@@ -272,7 +275,6 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
       { merge: true }
     );
 
-    // 2. Automatska sinhronizacija sa MailerLite-om preko Cloudflare funkcije
     fetch('/api/subscribe', {
       method: 'POST',
       headers: {
@@ -293,7 +295,6 @@ export const unsubscribeNewsletter = async (email: string): Promise<void> => {
   try {
     const cleanEmail = email.trim().toLowerCase();
     
-    // Brisanje dokumenta pretplatnika iz Firebase baze
     const subscriberDocRef = doc(db, 'subscribers', cleanEmail);
     await deleteDoc(subscriberDocRef);
   } catch (error) {
@@ -319,7 +320,6 @@ export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]
       } as NewsletterSubscriber;
     });
 
-    // Sortiramo pretplatnike u memoriji po datumu od najnovijih prema najstarijim
     return subscribers.sort(
       (a, b) => new Date(b.subscribedAt).getTime() - new Date(a.subscribedAt).getTime()
     );
@@ -401,3 +401,41 @@ export const getOrderByNumberAndPhone = async (
     return null;
   }
 };
+
+// ==========================================
+// TELEGRAM NOTIFIKACIJE (BEZBJEDNO PREKO ENV)
+// ==========================================
+
+export async function sendOrderToTelegram(orderData: any) {
+  try {
+    const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+    const CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+
+    if (!BOT_TOKEN || !CHAT_ID) {
+      return;
+    }
+
+    const itemsText = (orderData.items || [])
+      .map((item: any) => `• ${item.name} (${item.size || 'Univerzalna'}) x${item.quantity || 1} - ${item.price} KM`)
+      .join('\n');
+
+    const message = `🛍️ <b>NOVA NARUDŽBA!</b>\n\n` +
+      `👤 <b>Ime:</b> ${orderData.customer?.name || 'Nije navedeno'}\n` +
+      `📞 <b>Telefon:</b> ${orderData.customer?.phone || 'Nije navedeno'}\n` +
+      `📍 <b>Adresa:</b> ${orderData.customer?.address || ''}, ${orderData.customer?.city || ''}\n\n` +
+      `🛒 <b>Artikli:</b>\n${itemsText}\n\n` +
+      `💰 <b>Ukupno:</b> ${orderData.total || 0} KM`;
+
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: message,
+        parse_mode: 'HTML',
+      }),
+    });
+  } catch (error) {
+    console.error('Greška pri slanju na Telegram:', error);
+  }
+}
