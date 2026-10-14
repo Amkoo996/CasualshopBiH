@@ -1,4 +1,7 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Truck,
@@ -21,13 +24,10 @@ import { trackViewItem } from '../lib/analytics';
 import { recordProductView } from '../lib/tracking';
 import { ProductReviews } from '../components/shop/ProductReviews';
 import { ProductCard } from '../components/shop/ProductCard';
-import { getProductShareUrl } from '../utils/seo';
+import { getProducts } from '../lib/db';
 
 interface ProductDetailPageProps {
   product: Product;
-  allProducts?: Product[];
-  onBack: () => void;
-  onSelectProduct?: (product: Product) => void;
 }
 
 const SIZE_ORDER: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
@@ -40,16 +40,14 @@ const optimizeCloudinaryUrl = (url: string, width: number = 1000) => {
   return url;
 };
 
-export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
-  product,
-  allProducts = [],
-  onBack,
-  onSelectProduct,
-}) => {
+export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product }) => {
+  const router = useRouter(); // Next.js router za navigaciju
+  
   const { addToCart, settings, setIsCartOpen } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isSaved = isInWishlist(product.id);
 
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -66,6 +64,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   );
 
   useEffect(() => {
+    // Dohvaćamo ostale proizvode za "Moglo bi ti se svidjeti" sekciju
+    getProducts().then(data => setAllProducts(data));
+
     trackViewItem(product);
     recordProductView(product);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -121,9 +122,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setTimeout(() => setAddedSuccess(false), 3500);
   };
 
-  // PRAVI DIREKTNI LINK NA ARTIKAL PRI DIJELJENJU
+  // PRAVI DIREKTNI LINK NA ARTIKAL PRI DIJELJENJU (Automatski čita URL)
   const handleShareClick = async () => {
-    const productUrl = getProductShareUrl(product.id);
+    const productUrl = typeof window !== 'undefined' ? window.location.href : '';
     const shareData = {
       title: `${product.name} | Casual Shop BiH`,
       text: `Pogledaj ${product.name} na Casual Shop BiH po cijeni od ${product.price.toFixed(2)} KM!`,
@@ -229,8 +230,9 @@ Podaci za dostavu:
         </div>
       )}
 
+      {/* NOVI NEXT.JS ROUTER ZA POVRATAK */}
       <button
-        onClick={onBack}
+        onClick={() => router.push('/shop')}
         className="inline-flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-600 hover:text-black mb-6 sm:mb-8 transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -579,8 +581,8 @@ Podaci za dostavu:
                 key={relProd.id}
                 product={relProd}
                 onSelect={(p) => {
-                  if (onSelectProduct) onSelectProduct(p);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  // NOVI NEXT.JS ROUTER ZA POVEZANE PROIZVODE
+                  router.push(`/proizvod/${p.id}`);
                 }}
               />
             ))}
