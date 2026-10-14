@@ -170,13 +170,14 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* 2. HERO SEKCIJA (SA BRZOM, OPTIMIZOVANOM SLIKOM /hero-streetwear.webp) */}
-      <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
+      {/* 2. HERO SEKCIJA - POBOLJŠAN PRIKAZ SLIKE I ČITLJIVOST TEKSTA */}
+      <section className="relative bg-[#0A0A0A] text-white w-full min-h-[80vh] lg:min-h-[88vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
+        {/* Pozadinska slika sa ublaženim zatamnjenjem */}
         <div className="absolute inset-0 z-0">
           <img
             src="/hero-streetwear.webp"
             alt="Casual Shop BiH Streetwear Kolekcija"
-            className="w-full h-full object-cover object-center opacity-45 filter contrast-125 scale-105 transition-transform duration-1000 ease-out"
+            className="w-full h-full object-cover object-[65%_center] sm:object-center opacity-80 filter brightness-90 contrast-105"
             fetchPriority="high"
             decoding="async"
             onError={(e) => {
@@ -184,32 +185,33 @@ export const HomePage: React.FC<HomePageProps> = ({
             }}
           />
 
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-80" />
+          {/* Suptilni lijevi gradijent koji daje čitljivost tekstu bez gušenja slike */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/90 via-[#0A0A0A]/60 to-transparent w-full md:w-3/4" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-60" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-12 sm:py-20">
-          <div className="max-w-2xl space-y-6">
-            <div className="space-y-3">
-              <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.92] text-white">
+          <div className="max-w-xl space-y-6 bg-[#0A0A0A]/40 backdrop-blur-[2px] p-6 sm:p-8 border-l-4 border-[#F7E97F] rounded-r-sm">
+            <div className="space-y-2">
+              <h1 className="font-['Poppins'] text-4xl sm:text-6xl lg:text-6xl font-black uppercase tracking-tight leading-[0.95] text-white">
                 {cms.hero.titleLine1} <br />
-                <span className="text-[#F7E97F] drop-shadow-[0_2px_10px_rgba(247,233,127,0.15)]">
+                <span className="text-[#F7E97F] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
                   {cms.hero.titleLine2}
                 </span>
               </h1>
-              <p className="font-['Poppins'] text-base sm:text-lg font-bold uppercase tracking-widest text-neutral-300">
+              <p className="font-['Poppins'] text-sm sm:text-base font-extrabold uppercase tracking-widest text-neutral-200">
                 {cms.hero.subtitle}
               </p>
             </div>
 
-            <p className="text-xs sm:text-sm text-neutral-300/90 max-w-lg leading-relaxed font-['Inter'] font-normal">
+            <p className="text-xs sm:text-sm text-neutral-200 max-w-md leading-relaxed font-['Inter'] font-normal drop-shadow-sm">
               {cms.hero.description}
             </p>
 
-            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
               <button
                 onClick={() => onNavigateToShop('Sve')}
-                className="px-8 py-4 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#ebd965] hover:shadow-[0_0_20px_rgba(247,233,127,0.3)] transition-all flex items-center justify-center gap-2.5 group active:scale-95 cursor-pointer rounded-xs"
+                className="px-7 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.18em] text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(247,233,127,0.4)] transition-all flex items-center justify-center gap-2.5 group active:scale-95 cursor-pointer rounded-xs border-2 border-[#F7E97F]"
               >
                 <span>{cms.hero.ctaPrimaryText}</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5" />
@@ -219,7 +221,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-4 bg-[#141414]/90 backdrop-blur-md border border-neutral-700 text-white font-['Poppins'] font-bold uppercase tracking-[0.15em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2 group cursor-pointer rounded-xs"
+                className="px-5 py-3.5 bg-[#0A0A0A]/80 backdrop-blur-md border border-neutral-600 text-white font-['Poppins'] font-bold uppercase tracking-[0.12em] text-xs hover:border-[#F7E97F] hover:text-[#F7E97F] transition-all flex items-center justify-center gap-2 group cursor-pointer rounded-xs"
               >
                 <Instagram className="w-4 h-4 text-[#F7E97F] group-hover:scale-110 transition-transform" />
                 <span>{cms.hero.ctaSecondaryText}</span>
