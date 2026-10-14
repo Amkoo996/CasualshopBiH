@@ -11,7 +11,16 @@ import {
   runTransaction
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Product, Order, NewsletterSubscriber, StoreSettings, OrderStatus, DEFAULT_STORE_SETTINGS } from '../types';
+import {
+  Product,
+  Order,
+  NewsletterSubscriber,
+  StoreSettings,
+  OrderStatus,
+  DEFAULT_STORE_SETTINGS,
+  HomeCMSContent,
+  DEFAULT_CMS_CONTENT
+} from '../types';
 
 // ==========================================
 // 1. UPRAVLJANJE PROIZVODIMA (PRODUCTS)
@@ -75,7 +84,6 @@ export const getOrders = async (): Promise<Order[]> => {
       orders.push({ ...(docSnap.data() as Order), id: docSnap.id });
     });
 
-    // Sortiranje po datumu (najnovije na vrhu)
     orders.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     return orders;
   } catch (error) {
@@ -84,16 +92,38 @@ export const getOrders = async (): Promise<Order[]> => {
   }
 };
 
-/**
- * Kreiranje narudžbe sa Firestore transakcijom:
- * RJEŠENJE ZA: "Firestore transactions require all reads to be executed before all writes"
- */
+export const getOrderByNumberAndPhone = async (orderNumber: string, phone: string): Promise<Order | null> => {
+  try {
+    const cleanNum = orderNumber.trim().replace(/^#/, '').toLowerCase();
+    const cleanPhone = phone.trim().replace(/[\s\-().\/]/g, '');
+
+    const snap = await getDocs(collection(db, 'orders'));
+    let found: Order | null = null;
+
+    snap.forEach((d) => {
+      const data = { ...(d.data() as Order), id: d.id };
+      const oNum = (data.orderNumber || data.id || '').replace(/^#/, '').trim().toLowerCase();
+      const c = (data.customer as any) || {};
+      const oPhone = (c.phone || (data as any).phone || '').replace(/[\s\-().\/]/g, '');
+
+      if (oNum === cleanNum && (oPhone.includes(cleanPhone) || cleanPhone.includes(oPhone))) {
+        found = data;
+      }
+    });
+
+    return found;
+  } catch (error) {
+    console.error('Greška pri traženju narudžbe:', error);
+    return null;
+  }
+};
+
 export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
   const newOrderRef = doc(collection(db, 'orders'));
   const orderId = newOrderRef.id;
 
   await runTransaction(db, async (transaction) => {
-    // 1. FAZA: SVA ČITANJA MORAJU BITI IZVRŠENA PRIJE BILO KAKVOG UPISA
+    // 1. FAZA: Sva čitanja prije pisanja
     const productReads = [];
     for (const item of orderData.items) {
       const prodRef = doc(db, 'products', item.id);
@@ -101,7 +131,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       productReads.push({ item, prodRef, prodSnap });
     }
 
-    // 2. FAZA: SVA PISANJA NAKON ŠTO SU PODACI PROČITANI
+    // 2. FAZA: Sva pisanja
     for (const { item, prodRef, prodSnap } of productReads) {
       if (prodSnap.exists()) {
         const prodData = prodSnap.data() as any;
@@ -113,7 +143,6 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       }
     }
 
-    // Upis nove narudžbe
     transaction.set(newOrderRef, {
       ...orderData,
       id: orderId,
@@ -122,7 +151,6 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
     });
   });
 
-  // 3. Slanje Telegram notifikacije o novoj narudžbi
   try {
     const c = (orderData as any).customer || {};
     const buyerName = c.fullName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.name || 'Kupac';
@@ -145,7 +173,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       body: JSON.stringify({ text: telegramText, type: 'order' }),
     }).catch(() => {});
   } catch (err) {
-    console.error('Greška pri slanju notifikacije za narudžbu:', err);
+    console.error('Greška pri slanju notifikacije:', err);
   }
 
   return orderId;
@@ -173,10 +201,6 @@ export const updateOrderStatus = async (
 // 3. RECENZIJE PROIZVODA (REVIEWS)
 // ==========================================
 
-/**
- * Dohvatanje recenzija uz sortiranje u memoriji:
- * RJEŠENJE ZA: "FirebaseError: The query requires an index"
- */
 export const getProductReviews = async (productId: string) => {
   try {
     const q = query(collection(db, 'reviews'), where('productId', '==', productId));
@@ -187,7 +211,6 @@ export const getProductReviews = async (productId: string) => {
       reviews.push({ id: d.id, ...d.data() });
     });
 
-    // Sortiranje u JavaScript memoriji uklanja potrebu za kompozitnim indeksom
     reviews.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     return reviews;
   } catch (err) {
@@ -196,7 +219,7 @@ export const getProductReviews = async (productId: string) => {
   }
 };
 
-export const addReview = async (reviewData: {
+export const submitProductReview = async (reviewData: {
   productId: string;
   author: string;
   rating: number;
@@ -210,6 +233,8 @@ export const addReview = async (reviewData: {
     createdAt: reviewData.createdAt || new Date().toISOString(),
   });
 };
+
+export const addReview = submitProductReview;
 
 // ==========================================
 // 4. NEWSLETTER PRETPLATA
@@ -236,7 +261,7 @@ export const getSubscribers = async (): Promise<NewsletterSubscriber[]> => {
   }
 };
 
-export const subscribeToNewsletter = async (email: string): Promise<boolean> => {
+export const subscribeNewsletter = async (email: string): Promise<boolean> => {
   try {
     const cleanEmail = email.trim().toLowerCase();
     const docRef = doc(db, 'newsletter', cleanEmail);
@@ -246,13 +271,15 @@ export const subscribeToNewsletter = async (email: string): Promise<boolean> => 
     }, { merge: true });
     return true;
   } catch (error) {
-    console.error('Greška pri prijavi na newsletter:', error);
+    console.error('Greška pri newsletter prijavi:', error);
     return false;
   }
 };
 
+export const subscribeToNewsletter = subscribeNewsletter;
+
 // ==========================================
-// 5. POSTAVKE TRGOVINE (STORE SETTINGS)
+// 5. POSTAVKE TRGOVINE I CMS
 // ==========================================
 
 export const getStoreSettings = async (): Promise<StoreSettings> => {
@@ -273,4 +300,24 @@ export const getStoreSettings = async (): Promise<StoreSettings> => {
 export const saveStoreSettings = async (settings: StoreSettings): Promise<void> => {
   const docRef = doc(db, 'settings', 'general');
   await setDoc(docRef, settings, { merge: true });
+};
+
+export const getCMSContent = async (): Promise<HomeCMSContent> => {
+  try {
+    const docRef = doc(db, 'settings', 'cms');
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return { ...DEFAULT_CMS_CONTENT, ...(docSnap.data() as HomeCMSContent) };
+    }
+    return DEFAULT_CMS_CONTENT;
+  } catch (error) {
+    console.error('Greška pri dohvatanju CMS sadržaja:', error);
+    return DEFAULT_CMS_CONTENT;
+  }
+};
+
+export const saveCMSContent = async (content: HomeCMSContent): Promise<void> => {
+  const docRef = doc(db, 'settings', 'cms');
+  await setDoc(docRef, content, { merge: true });
 };
