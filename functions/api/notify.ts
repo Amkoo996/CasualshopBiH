@@ -1,13 +1,16 @@
 interface Env {
+  // Varijable tačno usklađene sa tvojim Cloudflare dashboardom
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_IDS?: string;
   TELEGRAM_CONTACT_BOT_TOKEN?: string;
-  NEXT_PUBLIC_TELEGRAM_BOT_TOKEN?: string;
-  NEXT_PUBLIC_TELEGRAM_CHAT_IDS?: string;
-  NEXT_PUBLIC_TELEGRAM_CONTACT_BOT_TOKEN?: string;
   EMAILJS_SERVICE_ID?: string;
   EMAILJS_TEMPLATE_ID?: string;
   EMAILJS_PUBLIC_KEY?: string;
+  
+  // Fallback opcije ako si ih spasio sa NEXT_PUBLIC_ prefiksom
+  NEXT_PUBLIC_TELEGRAM_BOT_TOKEN?: string;
+  NEXT_PUBLIC_TELEGRAM_CHAT_IDS?: string;
+  NEXT_PUBLIC_TELEGRAM_CONTACT_BOT_TOKEN?: string;
   NEXT_PUBLIC_EMAILJS_SERVICE_ID?: string;
   NEXT_PUBLIC_EMAILJS_TEMPLATE_ID?: string;
   NEXT_PUBLIC_EMAILJS_PUBLIC_KEY?: string;
@@ -44,10 +47,10 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     const type = body.type || 'order';
 
     if (!text) {
-      return new Response(JSON.stringify({ success: false, error: 'Prazan tekst' }), { status: 400, headers });
+      return new Response(JSON.stringify({ success: false, error: 'Prazan tekst poruke.' }), { status: 400, headers });
     }
 
-    // 1. TELEGRAM SLANJE SA SVIM FALLBACK OPCIJAMA
+    // 1. TELEGRAM SLANJE
     const orderBotToken = env.TELEGRAM_BOT_TOKEN || env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN;
     const contactBotToken = env.TELEGRAM_CONTACT_BOT_TOKEN || env.NEXT_PUBLIC_TELEGRAM_CONTACT_BOT_TOKEN || orderBotToken;
     const rawChatIds = env.TELEGRAM_CHAT_IDS || env.NEXT_PUBLIC_TELEGRAM_CHAT_IDS;
@@ -75,6 +78,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       const results = await Promise.all(
         chatIds.map(async (chatId) => {
           let res = await sendTelegram(activeBotToken!, chatId);
+          // Ako kontakt bot padne, pokušaj sa glavnim (order) botom
           if (!res.ok && activeBotToken !== orderBotToken && orderBotToken) {
             res = await sendTelegram(orderBotToken, chatId);
           }
@@ -83,10 +87,10 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       );
       telegramSent = results.some(Boolean);
     } else {
-      telegramError = 'Nedostaje Telegram konfiguracija.';
+      telegramError = 'Nedostaju TELEGRAM varijable u Cloudflareu.';
     }
 
-    // 2. EMAILJS SLANJE (OSIGURAN 'message' PARAMETAR DA NE BUDE PRAZAN)
+    // 2. EMAILJS SLANJE POTVRDE NARUDŽBE KUPCU
     let emailSent = false;
     let emailError = '';
 
@@ -100,6 +104,11 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         const customer = order.customer || {};
         const fullName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Kupac';
 
+        // Osiguravanje da nijedno polje ne ostane prazno
+        const itemsFormatted = (order.items || [])
+          .map((i: any) => `• ${i.quantity}x ${i.name} (${i.size}) - ${(i.price * i.quantity).toFixed(2)} KM`)
+          .join('\n');
+
         const emailPayload = {
           service_id: serviceId,
           template_id: templateId,
@@ -110,9 +119,13 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
             to_name: fullName,
             customer_name: fullName,
             order_number: order.orderNumber,
-            message: text, // OVO RJEŠAVA PRAZAN EMAIL
+            message: text, // OVO OSIGURAVA DA MAIL NE BUDE PRAZAN
+            items: itemsFormatted,
             items_summary: (order.items || []).map((i: any) => `${i.quantity}x ${i.name} (${i.size})`).join(', '),
             total: `${Number(order.total || 0).toFixed(2)} KM`,
+            total_amount: `${Number(order.total || 0).toFixed(2)} KM`,
+            shipping_fee: Number(order.shippingFee || 0) === 0 ? 'Besplatno' : `${Number(order.shippingFee).toFixed(2)} KM`,
+            delivery_method: customer.address?.includes('Lično') ? 'Lično preuzimanje (Sarajevo)' : 'Brza pošta X Express',
           },
         };
 
@@ -123,9 +136,14 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
             body: JSON.stringify(emailPayload),
           });
           emailSent = emailRes.ok;
+          if (!emailRes.ok) {
+            emailError = await emailRes.text().catch(() => 'EmailJS odbio zahtjev.');
+          }
         } catch (e: any) {
-          emailError = e?.message || 'EmailJS Greška';
+          emailError = e?.message || 'Greška pri konekciji sa EmailJS.';
         }
+      } else {
+        emailError = 'Nedostaju EMAILJS_SERVICE_ID ili EMAILJS_PUBLIC_KEY u Cloudflareu.';
       }
     }
 
@@ -134,6 +152,8 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         success: telegramSent || emailSent,
         telegramSent,
         emailSent,
+        telegramError: telegramSent ? null : telegramError,
+        emailError: emailSent ? null : emailError,
       }),
       { status: 200, headers }
     );
