@@ -238,6 +238,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         ...(appliedPromoCode ? { promoCode: appliedPromoCode, discountAmount } : {}),
       };
 
+      // createOrder unutar db.ts se poziva i samostalno šalje JEDINSTVENU obavijest na Telegram
       const docId = await createOrder(orderData);
       const finalizedOrder: Order = {
         ...orderData,
@@ -256,55 +257,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
-      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOTA
-      const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-      const RAW_CHAT_IDS = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-
-      if (TELEGRAM_BOT_TOKEN && RAW_CHAT_IDS) {
-        const itemsListMsg = items
-          .map((i) => `• ${i.quantity}x ${i.name} (${i.size}) = ${(i.price * i.quantity).toFixed(2)} KM`)
-          .join('\n');
-
-        const promoInfoText = appliedPromoCode 
-          ? `\nIskorišten Promo Kod: ${appliedPromoCode} (-${discountAmount.toFixed(2)} KM / ${promoDiscountPercent}%)` 
-          : '';
-
-        const shippingText = activeShippingFee === 0 
-          ? '0.00 KM (Lično preuzimanje / Gratis)' 
-          : `${activeShippingFee.toFixed(2)} KM`;
-
-        const telegramText = `
-🛒 <b>NOVA NARUDŽBA ${finalizedOrder.orderNumber}</b>
-
-👤 <b>Kupac:</b> ${formData.firstName} ${formData.lastName}
-📞 <b>Telefon:</b> ${cleanPhone}
-📧 <b>Email:</b> ${cleanEmail || 'Nije navedeno'}
-📍 <b>Adresa:</b> ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
-📝 <b>Napomena:</b> ${noteDetails || 'Nema napomene'}
-
-📦 <b>Artikli:</b>
-${itemsListMsg}${promoInfoText}
-
-💳 <b>Dostava:</b> ${shippingText}
-💰 <b>UKUPNO ZA NAPLATU:</b> ${finalizedOrder.total.toFixed(2)} KM
-        `.trim();
-
-        const chatIds = RAW_CHAT_IDS.split(',').map((id: string) => id.trim()).filter(Boolean);
-
-        for (const chatId of chatIds) {
-          fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: telegramText,
-              parse_mode: 'HTML',
-            }),
-          }).catch((err) => console.warn(`Telegram notifikacija nije poslata za Chat ID ${chatId}:`, err));
-        }
-      }
-
-      // 3. SLANJE E-MAIL OBAVIJESTI PREKO EMAILJS
+      // 2. SLANJE E-MAIL OBAVIJESTI PREKO EMAILJS
       const fallbackSellerEmail = settings?.email || 'info@casualshop.ba';
       try {
         const itemsSummary = items
@@ -873,30 +826,3 @@ Casual Shop BiH
                   ) : activeShippingFee === 0 ? (
                     <span className="text-emerald-700 font-black">BESPLATNO</span>
                   ) : (
-                    `${activeShippingFee.toFixed(2)} KM`
-                  )}
-                </span>
-              </div>
-
-              <div className="flex justify-between text-base font-black text-black pt-3 border-t-2 border-neutral-200 font-['Poppins']">
-                <span className="uppercase tracking-wider">UKUPNO:</span>
-                <span className="text-xl">{calculatedTotal.toFixed(2)} KM</span>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.99] border-2 border-[#0A0A0A] cursor-pointer"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>
-                {submitting ? 'KREIRANJE NARUDŽBE...' : 'POTVRDI NARUDŽBU'}
-              </span>
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  );
-};
