@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ClientLayout from "./ClientLayout";
 
 export const metadata: Metadata = {
   title: "Casualshop BiH | Streetwear",
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="bs">
       <body className="antialiased bg-gray-50 text-gray-900">
-        {children}
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );
