@@ -11,7 +11,6 @@ import {
   Clock, 
   CheckCircle2, 
   Truck, 
-  AlertTriangle, 
   Search, 
   Printer, 
   ShieldCheck, 
@@ -24,6 +23,16 @@ import {
 import { jsPDF } from 'jspdf';
 import { getOrders, getProducts, updateOrderStatus } from '../lib/db';
 import { Order, Product } from '../types';
+
+// Normalizacija statusa: prepoznaje sve formate i sprječava TS greške pri poređenju
+const getStatusNormalized = (statusRaw?: any): string => {
+  const s = String(statusRaw || '').toLowerCase();
+  if (['delivered', 'dostavljeno', 'isporuceno', 'isporučeno', 'zavrseno'].includes(s)) return 'delivered';
+  if (['shipped', 'poslano', 'poslato', 'u_dostavi'].includes(s)) return 'shipped';
+  if (['confirmed', 'potvrdjeno', 'potvrđeno', 'u_obradi'].includes(s)) return 'confirmed';
+  if (['cancelled', 'otkazano', 'stornirano', 'returned', 'vraceno', 'vraćeno'].includes(s)) return 'cancelled';
+  return 'pending';
+};
 
 export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'inventory' | 'settings'>('orders');
@@ -61,11 +70,11 @@ export const AdminDashboard: React.FC = () => {
   // 1. KPI Metrike
   const stats = useMemo(() => {
     const totalRevenue = orders
-      .filter(o => o.status === 'delivered' || o.status === 'shipped')
+      .filter(o => ['delivered', 'shipped'].includes(getStatusNormalized(o.status)))
       .reduce((sum, o) => sum + (o.total || 0), 0);
 
-    const pendingOrders = orders.filter(o => o.status === 'pending' || !o.status).length;
-    const deliveredOrders = orders.filter(o => o.status === 'delivered').length;
+    const pendingOrders = orders.filter(o => getStatusNormalized(o.status) === 'pending').length;
+    const deliveredOrders = orders.filter(o => getStatusNormalized(o.status) === 'delivered').length;
     const aov = orders.length > 0 ? (totalRevenue / (deliveredOrders || 1)) : 0;
 
     return { totalRevenue, pendingOrders, deliveredOrders, aov };
@@ -79,8 +88,9 @@ export const AdminDashboard: React.FC = () => {
       if (!phone) return;
       const current = map.get(phone) || { total: 0, delivered: 0, returned: 0 };
       current.total += 1;
-      if (order.status === 'delivered') current.delivered += 1;
-      if (order.status === 'cancelled' || order.status === 'returned') current.returned += 1;
+      const norm = getStatusNormalized(order.status);
+      if (norm === 'delivered') current.delivered += 1;
+      if (norm === 'cancelled') current.returned += 1;
       map.set(phone, current);
     });
     return map;
@@ -116,15 +126,20 @@ export const AdminDashboard: React.FC = () => {
         orderNum.includes(searchQuery.toLowerCase()) ||
         city.includes(searchQuery.toLowerCase());
 
-      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      const norm = getStatusNormalized(order.status);
+      const matchesStatus = statusFilter === 'all' || norm === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [orders, searchQuery, statusFilter]);
 
-  // 4. Promjena statusa narudžbe
-  const handleStatusChange = async (orderId: string, newStatus: Order['status'], trackingNum?: string) => {
+  // 4. Promjena statusa narudžbe s ispravnim tracking objektom
+  const handleStatusChange = async (orderId: string, newStatus: any, trackingNum?: string) => {
     try {
-      await updateOrderStatus(orderId, newStatus, trackingNum);
+      await updateOrderStatus(
+        orderId, 
+        newStatus, 
+        trackingNum ? { trackingNumber: trackingNum, courierName: 'X Express' } : undefined
+      );
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, trackingNumber: trackingNum || o.trackingNumber } : o));
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(prev => prev ? { ...prev, status: newStatus, trackingNumber: trackingNum || prev.trackingNumber } : null);
@@ -139,7 +154,7 @@ export const AdminDashboard: React.FC = () => {
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: [105, 148] // Format A6 za termo printere
+      format: [105, 148] // A6 termo format
     });
 
     const c = order.customer || (order as any);
@@ -149,12 +164,10 @@ export const AdminDashboard: React.FC = () => {
     const buyerCity = `${c.postalCode || ''} ${c.city || ''}`.trim();
     const buyerNote = c.note || 'Nema napomene';
 
-    // Okvir
     doc.setDrawColor(30, 30, 30);
     doc.setLineWidth(0.4);
     doc.rect(4, 4, 97, 140);
 
-    // Zaglavlje
     doc.setFillColor(15, 15, 15);
     doc.rect(4, 4, 97, 16, 'F');
     doc.setTextColor(247, 233, 127);
@@ -166,7 +179,6 @@ export const AdminDashboard: React.FC = () => {
     doc.setTextColor(200, 200, 200);
     doc.text(`NARUDŽBA #${order.orderNumber || order.id?.slice(0, 7)}`, 8, 17);
 
-    // Pošiljalac
     doc.setTextColor(80, 80, 80);
     doc.setFontSize(7);
     doc.text('POŠILJALAC:', 8, 25);
@@ -177,10 +189,8 @@ export const AdminDashboard: React.FC = () => {
     doc.setFont('helvetica', 'normal');
     doc.text('Tel: +387 61 000 000 | info@casualshop.ba', 8, 33);
 
-    // Linija razdvajanja
     doc.line(8, 36, 97, 36);
 
-    // Primalac
     doc.setTextColor(80, 80, 80);
     doc.setFontSize(7);
     doc.text('PRIMALAC (KUPAC):', 8, 42);
@@ -194,13 +204,11 @@ export const AdminDashboard: React.FC = () => {
     doc.text(`Grad: ${buyerCity}`, 8, 59);
     doc.text(`Telefon: ${buyerPhone}`, 8, 64);
 
-    // Napomena
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(8);
     doc.setTextColor(80, 80, 80);
     doc.text(`Napomena: ${buyerNote}`, 8, 70);
 
-    // Otkupnina Box
     doc.setFillColor(245, 245, 245);
     doc.rect(8, 75, 89, 18, 'F');
     doc.setDrawColor(0, 0, 0);
@@ -213,7 +221,6 @@ export const AdminDashboard: React.FC = () => {
     doc.setFontSize(14);
     doc.text(`${(order.total || 0).toFixed(2)} KM`, 12, 90);
 
-    // Sadržaj paketa
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(80, 80, 80);
@@ -228,7 +235,6 @@ export const AdminDashboard: React.FC = () => {
       y += 5;
     });
 
-    // Uputstvo za kurira
     doc.setFillColor(254, 249, 195);
     doc.rect(8, 126, 89, 13, 'F');
     doc.setFont('helvetica', 'bold');
@@ -243,10 +249,9 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-neutral-100 flex flex-col md:flex-row font-['Inter']">
       
-      {/* 1. LIJEVA BOČNA TRAKA (SIDEBAR) */}
+      {/* 1. LIJEVA BOČNA TRAKA */}
       <aside className="w-full md:w-64 bg-[#121212] border-r border-neutral-800 flex flex-col justify-between shrink-0">
         <div>
-          {/* Logo i Brand */}
           <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
             <div>
               <span className="font-['Poppins'] font-black text-lg tracking-wider text-white">CASUAL</span>
@@ -263,7 +268,6 @@ export const AdminDashboard: React.FC = () => {
             </Link>
           </div>
 
-          {/* Meni */}
           <nav className="p-4 space-y-1.5">
             <button
               onClick={() => setActiveTab('orders')}
@@ -317,12 +321,11 @@ export const AdminDashboard: React.FC = () => {
               }`}
             >
               <SettingsIcon className="w-4 h-4" />
-              <span>Podešavanja & Banner</span>
+              <span>Podešavanja</span>
             </button>
           </nav>
         </div>
 
-        {/* Info na dnu */}
         <div className="p-4 border-t border-neutral-800">
           <div className="flex items-center gap-3 p-2 bg-neutral-900/60 rounded-lg border border-neutral-800">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
@@ -336,8 +339,6 @@ export const AdminDashboard: React.FC = () => {
 
       {/* 2. GLAVNI RADNI PROSTOR */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        
-        {/* Top bar sa brzim metrikama */}
         <header className="p-6 border-b border-neutral-800 bg-[#0F0F0F] flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="font-['Poppins'] font-black text-xl text-white uppercase tracking-wide">
@@ -351,19 +352,17 @@ export const AdminDashboard: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="px-4 py-2 border border-neutral-700 hover:border-[#F7E97F] text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-300 hover:text-[#F7E97F] transition-all rounded"
-            >
-              ← Nazad u Shop
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="px-4 py-2 border border-neutral-700 hover:border-[#F7E97F] text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-300 hover:text-[#F7E97F] transition-all rounded"
+          >
+            ← Nazad u Shop
+          </Link>
         </header>
 
         <div className="p-6 space-y-6 flex-1">
 
-          {/* KARTICE STATISTIKE (UVIJEK VIDLJIVE ZA BRZI PREGLED) */}
+          {/* STATISTIČKE KARTICE */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-[#141414] border border-neutral-800 p-4 rounded-xl flex items-center justify-between">
               <div>
@@ -417,7 +416,6 @@ export const AdminDashboard: React.FC = () => {
           {/* TAB 1: NARUDŽBE */}
           {activeTab === 'orders' && (
             <div className="space-y-4">
-              {/* Filteri & Pretraga */}
               <div className="bg-[#141414] border border-neutral-800 p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
                 <div className="relative flex-1 min-w-[240px]">
                   <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -516,9 +514,9 @@ export const AdminDashboard: React.FC = () => {
 
                               <td className="py-3.5 px-4">
                                 <select
-                                  value={order.status || 'pending'}
+                                  value={getStatusNormalized(order.status)}
                                   onChange={(e) => {
-                                    const val = e.target.value as Order['status'];
+                                    const val = e.target.value;
                                     if (val === 'shipped') {
                                       setTrackingModalOrder(order);
                                       setTrackingNumberInput(order.trackingNumber || '');
@@ -564,7 +562,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 2: ZALIHE & PROIZVODI */}
+          {/* TAB 2: ZALIHE & PROIZVODI (S PODRŠKOM ZA SIZESTOCK OBJEKAT) */}
           {activeTab === 'inventory' && (
             <div className="bg-[#141414] border border-neutral-800 rounded-xl p-4 space-y-4">
               <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
@@ -576,7 +574,22 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {products.map(product => {
-                  const hasSizes = product.sizes && product.sizes.length > 0;
+                  // Pretvaranje SizeStock objekta u listu veličina
+                  const sizeList: { size: string; stock: any }[] = [];
+                  if (product.sizes) {
+                    if (Array.isArray(product.sizes)) {
+                      product.sizes.forEach((s: any) => {
+                        if (typeof s === 'string') sizeList.push({ size: s, stock: 'Dostupno' });
+                        else if (typeof s === 'object' && s) sizeList.push({ size: s.size || 'Univerzalno', stock: s.stock ?? 'Dostupno' });
+                      });
+                    } else if (typeof product.sizes === 'object') {
+                      Object.entries(product.sizes).forEach(([sizeKey, stockVal]) => {
+                        sizeList.push({ size: sizeKey, stock: stockVal });
+                      });
+                    }
+                  }
+                  const hasSizes = sizeList.length > 0;
+
                   return (
                     <div key={product.id} className="p-4 bg-[#1A1A1A] border border-neutral-800 rounded-lg flex flex-col justify-between space-y-3">
                       <div className="flex gap-3">
@@ -600,15 +613,11 @@ export const AdminDashboard: React.FC = () => {
                         </span>
                         <div className="flex flex-wrap gap-1.5">
                           {hasSizes ? (
-                            product.sizes.map((s: any) => {
-                              const sizeName = typeof s === 'string' ? s : s.size;
-                              const stock = typeof s === 'object' ? s.stock : 'Dostupno';
-                              return (
-                                <span key={sizeName} className="px-2 py-0.5 bg-neutral-800 border border-neutral-700 rounded text-[11px] font-mono text-neutral-200">
-                                  {sizeName}: <strong className="text-[#F7E97F]">{stock}</strong>
-                                </span>
-                              );
-                            })
+                            sizeList.map((s) => (
+                              <span key={s.size} className="px-2 py-0.5 bg-neutral-800 border border-neutral-700 rounded text-[11px] font-mono text-neutral-200">
+                                {s.size}: <strong className="text-[#F7E97F]">{s.stock}</strong>
+                              </span>
+                            ))
                           ) : (
                             <span className="text-xs text-neutral-500 italic">Univerzalna veličina</span>
                           )}
@@ -708,7 +717,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setTrackingModalOrder(null)}
-                className="px-3 py-1.5 text-xs text-neutral-400 hover:text-white"
+                className="px-3 py-1.5 text-xs text-neutral-400 hover:text-white cursor-pointer"
               >
                 Odustani
               </button>
@@ -717,7 +726,7 @@ export const AdminDashboard: React.FC = () => {
                   handleStatusChange(trackingModalOrder.id, 'shipped', trackingNumberInput.trim());
                   setTrackingModalOrder(null);
                 }}
-                className="px-4 py-1.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-bold text-xs uppercase rounded hover:bg-[#ebd965]"
+                className="px-4 py-1.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-bold text-xs uppercase rounded hover:bg-[#ebd965] cursor-pointer"
               >
                 Spremi & Označi kao poslan
               </button>
@@ -734,7 +743,7 @@ export const AdminDashboard: React.FC = () => {
               <h3 className="font-['Poppins'] font-black uppercase text-sm tracking-wide text-white">
                 Detalji narudžbe #{selectedOrder.orderNumber || selectedOrder.id?.slice(0, 7)}
               </h3>
-              <button onClick={() => setSelectedOrder(null)} className="text-neutral-400 hover:text-white text-xs">
+              <button onClick={() => setSelectedOrder(null)} className="text-neutral-400 hover:text-white text-xs cursor-pointer">
                 ✕ Zatvori
               </button>
             </div>
@@ -770,14 +779,14 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex justify-between items-center pt-2 border-t border-neutral-800">
               <button
                 onClick={() => generateShippingSlip(selectedOrder)}
-                className="px-3 py-1.5 bg-neutral-800 hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-bold rounded flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 bg-neutral-800 hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-bold rounded flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Štampaj Adresnicu
               </button>
               <button
                 onClick={() => setSelectedOrder(null)}
-                className="px-4 py-1.5 bg-neutral-800 text-white text-xs rounded hover:bg-neutral-700"
+                className="px-4 py-1.5 bg-neutral-800 text-white text-xs rounded hover:bg-neutral-700 cursor-pointer"
               >
                 Zatvori
               </button>
