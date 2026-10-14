@@ -8,22 +8,30 @@ export const onRequestPost = async (context: {
   try {
     const { request, env } = context;
 
-    // 1. ORIGIN PROVJERA (CORS ZAŠTITA)
+    // 1. STROGA ORIGIN / REFERER ZAŠTITA (K4 Fix)
     const origin = request.headers.get('Origin') || '';
+    const referer = request.headers.get('Referer') || '';
     const allowedOrigins = ['https://casualshopbih.pages.dev', 'https://casualshop.ba'];
 
-    if (origin && !allowedOrigins.some((d) => origin.startsWith(d))) {
-      return new Response('Forbidden', { status: 403 });
+    const isValidOrigin = allowedOrigins.some(
+      (d) => origin === d || origin === `${d}/` || referer.startsWith(`${d}/`)
+    );
+
+    if (!isValidOrigin) {
+      return new Response(JSON.stringify({ error: 'Pristup odbijen.' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    // 2. PARSIRANJE I POJAČANA VALIDACIJA EMAIL-A
+    // 2. PARSIRANJE I VALIDACIJA EMAIL-A
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
-    const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(email);
 
     if (!isValidEmail) {
       return new Response(
-        JSON.stringify({ error: 'Neispravna email adresa' }),
+        JSON.stringify({ error: 'Neispravna email adresa.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -32,12 +40,11 @@ export const onRequestPost = async (context: {
     if (!apiKey) {
       console.error('BREVO_API_KEY nije konfigurisana u Cloudflare varijablama.');
       return new Response(
-        JSON.stringify({ error: 'BREVO_API_KEY fali na serveru' }),
+        JSON.stringify({ error: 'Sistemska greška na serveru.' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // ID liste u Brevo (podrazumijevano 2 ili iz varijable)
     const listId = parseInt(env.BREVO_LIST_ID?.trim() || '2', 10);
 
     const payload = {
@@ -59,14 +66,14 @@ export const onRequestPost = async (context: {
     const responseText = await res.text();
 
     if (res.ok || res.status === 201 || res.status === 204) {
-      return new Response(JSON.stringify({ success: true, provider: 'Brevo' }), {
+      return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
     if (responseText.includes('duplicate_parameter') || responseText.includes('already exists')) {
-      return new Response(JSON.stringify({ success: true, message: 'Korisnik je već u bazi' }), {
+      return new Response(JSON.stringify({ success: true, message: 'Korisnik je već prijavljen.' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -74,13 +81,13 @@ export const onRequestPost = async (context: {
 
     console.error('Brevo API error:', res.status, responseText);
     return new Response(
-      JSON.stringify({ error: 'Brevo API greška', details: responseText }),
-      { status: res.status, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Došlo je do greške pri prijavi na newsletter.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
 
   } catch (err: any) {
     console.error('Sistemska greška u Brevo Workeru:', err);
-    return new Response(JSON.stringify({ error: err.message || 'Server error' }), {
+    return new Response(JSON.stringify({ error: 'Greška na serveru.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
