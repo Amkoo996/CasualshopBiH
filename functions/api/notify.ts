@@ -4,10 +4,16 @@ interface Env {
 }
 
 export const onRequestPost = async ({ request, env }: { request: Request; env: Env }) => {
+  // 1. STROGA ORIGIN / REFERER ZAŠTITA (K4 Fix)
   const origin = request.headers.get('Origin') || '';
-  const allowed = ['https://casualshopbih.pages.dev', 'https://casualshop.ba']; // Dodane vaše domene
+  const referer = request.headers.get('Referer') || '';
+  const allowed = ['https://casualshopbih.pages.dev', 'https://casualshop.ba'];
 
-  if (origin && !allowed.some(d => origin.startsWith(d))) {
+  const isValidOrigin = allowed.some(
+    (d) => origin === d || origin === `${d}/` || referer.startsWith(`${d}/`)
+  );
+
+  if (!isValidOrigin) {
     return new Response('Forbidden', { status: 403 });
   }
 
@@ -32,7 +38,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: E
       fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id, text }), // Bez parse_mode radi izbjegavanja sintaksnih grešaka
+        body: JSON.stringify({ chat_id, text }),
       })
     )
   );
