@@ -17,6 +17,7 @@ interface StockManagementTabProps {
 }
 
 const SIZE_LIST: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
+const DEFAULT_PLACEHOLDER_IMAGE = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f4f2ec"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%23a3a3a3">Casual Shop</text></svg>';
 
 export const StockManagementTab: React.FC<StockManagementTabProps> = ({
   products,
@@ -141,7 +142,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
                   '3XL': parseInt(xxxl) || 0,
                   'One size': parseInt(oneSize) || 0,
                 },
-                images: ['/images/sarajevo_geo_tee.jpg'],
+                images: [DEFAULT_PLACEHOLDER_IMAGE],
                 isNew: true,
                 isHidden: false,
               };
@@ -210,7 +211,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
           <button
             onClick={handleSaveChanges}
             disabled={!hasUnsavedChanges || isSaving}
-            className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors disabled:opacity-40 cursor-pointer"
+            className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-[#Poppins] text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors disabled:opacity-40 cursor-pointer"
           >
             <Save className="w-4 h-4" />
             <span>{isSaving ? 'Spremanje...' : `Spremi izmjene (${Object.keys(stockChanges).length})`}</span>
@@ -283,7 +284,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
                   <td className="p-3">
                     <div className="flex items-center gap-3">
                       <img
-                        src={p.images?.[0] || '/images/sarajevo_geo_tee.jpg'}
+                        src={p.images?.[0] || DEFAULT_PLACEHOLDER_IMAGE}
                         alt={p.name}
                         className="w-9 h-11 object-cover bg-neutral-100 border border-neutral-300 shrink-0"
                       />
