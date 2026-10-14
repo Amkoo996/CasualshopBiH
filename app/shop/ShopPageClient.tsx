@@ -1,16 +1,16 @@
 "use client";
 
-import React, { Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Product } from '../../src/types';
 import { ShopPage } from '../../src/views/ShopPage';
+import { getProducts } from '../../src/lib/db';
 
-export function ShopPageClient({ initialProducts }: { initialProducts: Product[] }) {
+export function ShopPageClient({ initialProducts = [] }: { initialProducts?: Product[] }) {
   const router = useRouter();
   
-  // Da bismo koristili useSearchParams, Next.js traži da to bude omotano u Suspense
   return (
-    <Suspense fallback={<div className="min-h-screen pt-24 text-center">Učitavanje...</div>}>
+    <Suspense fallback={<div className="min-h-screen pt-24 text-center">Učitavanje kolekcije...</div>}>
       <ShopPageContent initialProducts={initialProducts} router={router} />
     </Suspense>
   );
@@ -18,19 +18,26 @@ export function ShopPageClient({ initialProducts }: { initialProducts: Product[]
 
 function ShopPageContent({ initialProducts, router }: { initialProducts: Product[], router: any }) {
   const searchParams = useSearchParams();
-  
-  // Čitamo URL parametre (npr. ako netko klikne na kategoriju u Navbaru)
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+
+  useEffect(() => {
+    getProducts().then((data) => {
+      if (data && data.length > 0) {
+        setProducts(data);
+      }
+    });
+  }, []);
+
   const categoryParam = searchParams.get('category') || 'Sve';
   const searchParam = searchParams.get('search') || '';
 
-  // Ovdje koristimo tvoju originalnu ShopPage komponentu!
   return (
     <ShopPage 
-      products={initialProducts} 
+      key={categoryParam + searchParam}
+      products={products} 
       initialCategory={categoryParam}
       searchTerm={searchParam}
       onSelectProduct={(product) => {
-        // Kada korisnik klikne na proizvod, šaljemo ga na novu dinamičku rutu!
         router.push(`/proizvod/${product.id}`);
       }}
     />

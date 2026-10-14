@@ -23,7 +23,7 @@ export default function RootLayout({
         />
         <link rel="icon" type="image/svg+xml" href="/logo-favicon.svg" />
       </head>
-      <body className="antialiased bg-[#0A0A0A] text-white">
+      <body className="antialiased bg-[#F4F2EC] text-[#111111]">
         <ClientLayout>
           {children}
         </ClientLayout>

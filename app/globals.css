@@ -1,19 +1,16 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@700;800;900&display=swap');
 
-/* 1. Definicija teme preko CSS varijabli */
 :root {
-  --bg-color: #0A0A0A;
-  --text-color: #FFFFFF;
+  --bg-color: #F4F2EC;
+  --text-color: #111111;
   --yellow-brand: #F7E97F;
-  --scroll-track: #0A0A0A;
-  --scroll-thumb: #F7E97F;
+  --scroll-track: #F4F2EC;
+  --scroll-thumb: #0A0A0A;
   
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: 'Poppins', sans-serif;
   --base-font-size: 16px;
-  
-  --bg-image: none;
 }
 
 @layer base {
@@ -24,11 +21,6 @@
   body {
     font-family: var(--font-body);
     background-color: var(--bg-color);
-    background-image: var(--bg-image);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
     color: var(--text-color);
   }
 
@@ -38,7 +30,6 @@
   }
 }
 
-/* Animacije */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -66,7 +57,6 @@
   animation: slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Brand utility klase */
 .border-yellow-brand {
   border-color: var(--yellow-brand);
 }
@@ -75,7 +65,6 @@
   background-color: var(--yellow-brand);
 }
 
-/* Prilagođeni scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
