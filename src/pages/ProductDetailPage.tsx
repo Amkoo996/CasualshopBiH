@@ -21,6 +21,7 @@ import { trackViewItem } from '../lib/analytics';
 import { recordProductView } from '../lib/tracking';
 import { ProductReviews } from '../components/shop/ProductReviews';
 import { ProductCard } from '../components/shop/ProductCard';
+import { getProductShareUrl } from '../utils/seo';
 
 interface ProductDetailPageProps {
   product: Product;
@@ -58,7 +59,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [shareCopied, setShareCopied] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
-  // Touch Swipe State
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const availableSizes = SIZE_ORDER.filter(
@@ -121,8 +121,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setTimeout(() => setAddedSuccess(false), 3500);
   };
 
+  // PRAVI DIREKTNI LINK NA ARTIKAL PRI DIJELJENJU
   const handleShareClick = async () => {
-    const productUrl = `${window.location.origin}/?product=${product.id}`;
+    const productUrl = getProductShareUrl(product.id);
     const shareData = {
       title: `${product.name} | Casual Shop BiH`,
       text: `Pogledaj ${product.name} na Casual Shop BiH po cijeni od ${product.price.toFixed(2)} KM!`,
@@ -190,7 +191,6 @@ Podaci za dostavu:
   const hasDiscount = Boolean(product.originalPrice && product.originalPrice > product.price);
   const currentImageUrl = product.images?.[selectedImageIndex] || product.images?.[0] || '/images/sarajevo_geo_tee.jpg';
 
-  // Cross-selling: Pronalazak 4 srodna artikla
   const relatedProducts = allProducts
     .filter((p) => p.id !== product.id && !p.isHidden)
     .filter((p) => p.category === product.category || p.featured)
@@ -198,8 +198,6 @@ Podaci za dostavu:
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 font-['Inter'] relative">
-      
-      {/* ELEGANTNA TOAST NOTIFIKACIJA PRI DODAVANJU U KORPU */}
       {addedSuccess && (
         <div className="fixed top-20 right-4 sm:right-8 z-50 bg-[#0A0A0A] text-white border-2 border-[#F7E97F] p-4 shadow-2xl max-w-sm w-full animate-bounce space-y-2">
           <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
@@ -258,7 +256,6 @@ Podaci za dostavu:
               className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105 select-none"
             />
 
-            {/* Strelice */}
             {product.images && product.images.length > 1 && (
               <>
                 <button
@@ -486,7 +483,6 @@ Podaci za dostavu:
                 <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
               </button>
 
-              {/* DUGME ZA DIJELJENJE (SHARE) */}
               <button
                 type="button"
                 onClick={handleShareClick}
@@ -501,14 +497,12 @@ Podaci za dostavu:
               </button>
             </div>
 
-            {/* OBAVIJEST KAD JE LINK KOPIRAN NA DESKTOPU */}
             {shareCopied && (
               <div className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 p-2 text-center animate-fadeIn font-['Inter']">
                 ✓ Link artikla je kopiran u međuspremnik!
               </div>
             )}
 
-            {/* DUGME ZA INSTAGRAM BRZU NARUDŽBU */}
             <div className="pt-1">
               <button
                 type="button"
@@ -522,13 +516,9 @@ Podaci za dostavu:
                     : 'BRZA NARUDŽBA PREKO INSTAGRAMA'}
                 </span>
               </button>
-              <p className="text-[10px] text-neutral-500 text-center font-['Inter'] mt-1">
-                * Klikom se detalji artikla kopiraju u poruku i otvara direktan chat na Instagramu.
-              </p>
             </div>
           </div>
 
-          {/* OPIS I NJEGA */}
           <div className="space-y-4 pt-3 border-t-2 border-neutral-200">
             {product.material && (
               <div className="bg-white p-3 border border-neutral-200">
@@ -574,7 +564,6 @@ Podaci za dostavu:
 
       <ProductReviews productId={product.id} productName={product.name} />
 
-      {/* CROSS-SELLING: SRODNI ARTIKLI (MOGLO BI TI SE SVIDJETI) */}
       {relatedProducts.length > 0 && (
         <section className="mt-16 pt-10 border-t-2 border-neutral-200 space-y-6">
           <div className="flex items-center gap-2">
@@ -599,7 +588,6 @@ Podaci za dostavu:
         </section>
       )}
 
-      {/* MODAL ZA UVEĆANJE SLIKE */}
       {isZoomed && (
         <div 
           onClick={() => setIsZoomed(false)}
@@ -627,7 +615,6 @@ Podaci za dostavu:
         </div>
       )}
 
-      {/* TABELA VELIČINA MODAL */}
       {sizeChartOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 font-['Inter']">
           <div className="bg-white max-w-lg w-full p-6 sm:p-8 space-y-5 border-2 border-[#F7E97F] shadow-2xl relative">
