@@ -123,7 +123,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
   const orderId = newOrderRef.id;
 
   await runTransaction(db, async (transaction) => {
-    // 1. FAZA: Sva čitanja prije pisanja
+    // 1. FAZA: Sva čitanja prije bilo kojeg upisa
     const productReads = [];
     for (const item of orderData.items) {
       const prodRef = doc(db, 'products', item.id);
@@ -131,7 +131,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       productReads.push({ item, prodRef, prodSnap });
     }
 
-    // 2. FAZA: Sva pisanja
+    // 2. FAZA: Sva pisanja nakon što su podaci pročitani
     for (const { item, prodRef, prodSnap } of productReads) {
       if (prodSnap.exists()) {
         const prodData = prodSnap.data() as any;
@@ -219,19 +219,17 @@ export const getProductReviews = async (productId: string) => {
   }
 };
 
-export const submitProductReview = async (reviewData: {
-  productId: string;
-  author: string;
-  rating: number;
-  comment: string;
-  createdAt?: string;
-}): Promise<void> => {
+export const submitProductReview = async (reviewData: any): Promise<string> => {
   const newReviewRef = doc(collection(db, 'reviews'));
+  const reviewId = newReviewRef.id;
+
   await setDoc(newReviewRef, {
     ...reviewData,
-    id: newReviewRef.id,
+    id: reviewId,
     createdAt: reviewData.createdAt || new Date().toISOString(),
   });
+
+  return reviewId;
 };
 
 export const addReview = submitProductReview;
@@ -251,7 +249,8 @@ export const getSubscribers = async (): Promise<NewsletterSubscriber[]> => {
         id: d.id,
         email: data.email || d.id,
         subscribedAt: data.subscribedAt || data.createdAt || new Date().toISOString(),
-      });
+        consent: data.consent !== undefined ? Boolean(data.consent) : true,
+      } as NewsletterSubscriber);
     });
 
     return subs;
@@ -268,6 +267,7 @@ export const subscribeNewsletter = async (email: string): Promise<boolean> => {
     await setDoc(docRef, {
       email: cleanEmail,
       subscribedAt: new Date().toISOString(),
+      consent: true,
     }, { merge: true });
     return true;
   } catch (error) {
