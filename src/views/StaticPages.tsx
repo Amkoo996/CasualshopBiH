@@ -1,9 +1,27 @@
+"use client";
+
 import React, { useState } from 'react';
-import { Mail, MapPin, Instagram, ShieldCheck, Truck, RefreshCw, Send, CheckCircle2, AlertCircle, Loader2, PackageCheck, Search } from 'lucide-react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import Link from 'next/link';
+import { 
+  Truck, 
+  ShieldCheck, 
+  CheckCircle2, 
+  AlertCircle, 
+  Search, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Clock, 
+  Send,
+  Package,
+  RotateCcw,
+  HelpCircle,
+  Instagram
+} from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getOrderByNumberAndPhone } from '../lib/db';
+import { isValidPhone, isValidEmail } from '../lib/validation';
+import { Order } from '../types';
 
 interface StaticPageProps {
   page: 'about' | 'contact' | 'terms' | 'shipping' | 'privacy';
@@ -11,612 +29,527 @@ interface StaticPageProps {
 
 export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
   const { settings } = useCart();
-  const [contactSubmitted, setContactSubmitted] = useState(false);
+
+  // Stanja za kontakt formu
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
+  });
   const [contactSending, setContactSending] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
   const [contactError, setContactError] = useState('');
-  const [honeypot, setHoneypot] = useState('');
-  const [contactData, setContactData] = useState({ name: '', email: '', phone: '', message: '' });
 
-  // Tracking State
-  const [orderNumber, setOrderNumber] = useState('');
-  const [trackPhone, setTrackPhone] = useState('');
-  const [trackLoading, setTrackLoading] = useState(false);
-  const [foundOrder, setFoundOrder] = useState<{ orderNumber: string; status: string; createdAt: string } | null>(null);
-  const [trackError, setTrackError] = useState('');
+  // Stanja za praćenje narudžbe
+  const [trackingOrderNumber, setTrackingOrderNumber] = useState('');
+  const [trackingPhone, setTrackingPhone] = useState('');
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
+  const [trackingError, setTrackingError] = useState('');
 
-  const sellerNameDisplay = settings.sellerName?.trim() || 'Casual Shop BiH';
-  const sellerAddressDisplay = settings.sellerAddress?.trim() || 'Bosna i Hercegovina';
-  const sellerEmailDisplay = settings.email?.trim() || 'info@casualshop.ba';
-
-  const handleTrackSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orderNumber.trim() || !trackPhone.trim()) return;
-
-    setTrackLoading(true);
-    setTrackError('');
-    setFoundOrder(null);
-
-    try {
-      const order = await getOrderByNumberAndPhone(orderNumber.trim(), trackPhone.trim());
-      if (order) {
-        setFoundOrder(order);
-      } else {
-        setTrackError('Narudzba nije pronađena. Provjerite broj narudzbe i telefon.');
-      }
-    } catch {
-      setTrackError('DoSlo je do greSke pri pretrazi. PokuSajte ponovo.');
-    } finally {
-      setTrackLoading(false);
-    }
-  };
-
+  // Slanje kontakt forme sa Telegram i Email integracijom
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setContactError('');
 
-    if (honeypot) {
-      setContactSubmitted(true);
+    if (!contactForm.name.trim() || !contactForm.message.trim()) {
+      setContactError('Molimo unesite vaše ime i poruku.');
       return;
     }
 
-    const lastSent = Number(localStorage.getItem('cs_contact_last') || 0);
-    if (Date.now() - lastSent < 60000) {
-      setContactError('Poruka je upravo poslana. PokuSajte ponovo za minut.');
+    if (contactForm.email && !isValidEmail(contactForm.email)) {
+      setContactError('Molimo unesite ispravnu e-mail adresu.');
       return;
     }
 
-    if (!contactData.name.trim() || !contactData.message.trim()) {
-      setContactError('Molimo popunite vaSa obavezna polja (Ime i Poruku).');
+    if (contactForm.phone && !isValidPhone(contactForm.phone)) {
+      setContactError('Molimo unesite ispravan broj telefona (npr. 061 123 456).');
       return;
     }
 
     setContactSending(true);
 
-    // 1. SPREMANJE U FIREBASE BAZU
-    try {
-      await addDoc(collection(db, 'contact_messages'), {
-        name: contactData.name,
-        email: contactData.email || 'Nije uneseno',
-        phone: contactData.phone || 'Nije uneseno',
-        message: contactData.message,
-        createdAt: new Date().toISOString(),
-        read: false,
-      });
-    } catch (dbErr) {
-      console.warn('Spremanje u bazu nije uspjelo, nastavljam slanje obavijesti:', dbErr);
-    }
-
-    // 2. INSTANT NOTIFIKACIJA PREKO SERVERLESS ENDPOINTA
     try {
       const telegramText =
-        `NOVI UPIT SA KONTAKT FORME\n\n` +
-        `Ime i prezime: ${contactData.name}\n` +
-        `Email: ${contactData.email || 'Nije uneseno'}\n` +
-        `Telefon: ${contactData.phone || 'Nije uneseno'}\n\n` +
-        `Poruka:\n"${contactData.message}"`;
+        `📩 NOVI UPIT SA KONTAKT FORME\n` +
+        `━━━━━━━━━━━━━━━━━━\n` +
+        `👤 Ime: ${contactForm.name}\n` +
+        `📞 Telefon: ${contactForm.phone || 'Nije uneseno'}\n` +
+        `✉️ E-mail: ${contactForm.email || 'Nije uneseno'}\n` +
+        `━━━━━━━━━━━━━━━━━━\n` +
+        `💬 Poruka:\n${contactForm.message}`;
 
       await fetch('/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: telegramText }),
-      });
-    } catch (err) {
-      console.warn('Telegram kontakt notifikacija nije poslata:', err);
-    }
-
-    // 3. SLANJE E-MAIL OBAVIJESTI PREKO EMAILJS
-    try {
-      const userContactEmail = contactData.email.trim() || 'nepoznato@casualshop.ba';
-
-      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: 'service_h4rxrv2',
-          template_id: 'template_b7r6ees',
-          user_id: 'mPKyquhWRcGkRq4gS',
-          template_params: {
-          to_email: sellerEmailDisplay || 'info@casualshop.ba',
-          email: sellerEmailDisplay || 'info@casualshop.ba',
-          to_name: sellerNameDisplay || 'Casual Shop BiH',
-          order_number: 'UPIT SA KONTAKT FORME',
-          customer_name: contactData.name,
-          customer_phone: contactData.phone || 'Nije uneseno',
-          customer_email: userContactEmail,
-          customer_address: 'Kontakt Forma na Sajtu',
-          customer_note: contactData.message,
-          items_summary: `Upit od kupca (${contactData.name}):\n\n${contactData.message}`,
-          total_amount: '0.00 KM',
-          shipping_fee: '0.00 KM',
-          reply_to: userContactEmail,
-        },
-        }),
+        body: JSON.stringify({ text: telegramText, type: 'contact' }),
       });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.warn('EmailJS opomena:', errorText);
-      }
-
-      localStorage.setItem('cs_contact_last', String(Date.now()));
-      setContactSubmitted(true);
-      setContactData({ name: '', email: '', phone: '', message: '' });
-    } catch (err: any) {
-      console.error('Kontakt forma slanje e-maila zakazalo:', err);
-      setContactSubmitted(true);
-      setContactData({ name: '', email: '', phone: '', message: '' });
+      setContactSuccess(true);
+      setContactForm({ name: '', email: '', phone: '', message: '' });
+    } catch {
+      setContactError('Došlo je do greške prilikom slanja. Možete nam se javiti i putem Instagrama.');
     } finally {
       setContactSending(false);
     }
   };
 
-  if (page === 'about') {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
-        <div className="text-center space-y-2">
-          <span className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.25em] text-neutral-500">
-            NASA PRIcA
-          </span>
-          <h1 className="font-['Poppins'] text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#0A0A0A]">
-            O NAMA
-          </h1>
-        </div>
+  // Pretraga pošiljke za kupce
+  const handleTrackOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTrackingError('');
+    setTrackedOrder(null);
 
-        <div className="bg-white border-2 border-[#F7E97F] p-8 sm:p-12 shadow-sm space-y-6">
-          <blockquote className="font-['Poppins'] text-lg sm:text-xl font-bold text-[#0A0A0A] leading-relaxed border-l-4 border-[#F7E97F] pl-4 italic">
-            "Casual Shop BiH je brend za one koji vole udobnu i stilsku odjecu za svaki dan.
-            Poceli smo na Instagramu, a sada smo tu i online. Biramo komade koje ceS voljeti nositi i koji se uklapaju u svaku priliku.
-            Hvala Sto si dio naSe price."
-          </blockquote>
+    if (!trackingOrderNumber.trim() || !trackingPhone.trim()) {
+      setTrackingError('Molimo unesite broj narudžbe i broj telefona koji ste naveli pri kupovini.');
+      return;
+    }
 
-          <div className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-6 font-['Inter'] text-xs">
-            <div className="p-4 bg-[#F4F2EC] border border-neutral-300">
-              <h4 className="font-['Poppins'] font-bold text-sm uppercase text-black mb-1">Streetwear kroj</h4>
-              <p className="text-neutral-600">
-                Pazljivo birani boxy krojevi i prirodni pamuk stvoreni za ugodno cjelodnevno noSenje.
+    setTrackingLoading(true);
+
+    try {
+      const order = await getOrderByNumberAndPhone(trackingOrderNumber, trackingPhone);
+      if (order) {
+        setTrackedOrder(order);
+      } else {
+        setTrackingError('Nismo pronašli narudžbu sa navedenim podacima. Provjerite broj narudžbe i telefon.');
+      }
+    } catch {
+      setTrackingError('Trenutno nije moguće provjeriti status. Pokušajte ponovo za nekoliko trenutaka.');
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-[#FAF9F5] text-neutral-900 min-h-screen py-10 sm:py-16 font-['Inter']">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* 1. STRANICA: DOSTAVA I POVRAT + PRAĆENJE POŠILJKE */}
+        {page === 'shipping' && (
+          <div className="space-y-10 animate-fadeIn">
+            <div className="text-center space-y-2">
+              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-2.5 py-1">
+                INFORMACIJE ZA KUPCE
+              </span>
+              <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-black">
+                DOSTAVA, PLAĆANJE I POVRAT
+              </h1>
+              <p className="text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto">
+                Brza pošta širom Bosne i Hercegovine sa mogućnošću pregleda paketa prije plaćanja.
               </p>
             </div>
-            <div className="p-4 bg-[#F4F2EC] border border-neutral-300">
-              <h4 className="font-['Poppins'] font-bold text-sm uppercase text-black mb-1">Dostava Sirom BiH</h4>
-              <p className="text-neutral-600">
-                Svaki grad i naselje u BiH, rok 48 do 72 sata uz mogucnost pregleda paketa i placanje kuriru.
-              </p>
-            </div>
-            <div className="p-4 bg-[#F4F2EC] border border-neutral-300">
-              <h4 className="font-['Poppins'] font-bold text-sm uppercase text-black mb-1">Instagram korijeni</h4>
-              <p className="text-neutral-600">
-                Pratite naS profil <strong>@casualshop.bih</strong> za najnovije dropove i ponude.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  if (page === 'shipping') {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
-        <div className="text-center space-y-2">
-          <span className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.25em] text-neutral-500">
-            PRAVILA TRGOVINE
-          </span>
-          <h1 className="font-['Poppins'] text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#0A0A0A]">
-            DOSTAVA I POVRAT
-          </h1>
-        </div>
-
-        {/* MODUL ZA PRAcENJE NARUDzBE */}
-        <div className="bg-white border-2 border-[#0A0A0A] p-6 shadow-md max-w-lg mx-auto space-y-4">
-          <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-2">
-            <PackageCheck className="w-5 h-5 text-[#0A0A0A]" />
-            <h2 className="font-['Poppins'] text-sm font-black uppercase tracking-wider text-black">
-              Provjera statusa narudzbe
-            </h2>
-          </div>
-
-          <form onSubmit={handleTrackSubmit} className="space-y-3 font-['Inter']">
-            <div>
-              <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj narudzbe *</label>
-              <input
-                type="text"
-                required
-                value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
-                placeholder="npr. CS-1012-AB12"
-                className="w-full border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none uppercase bg-[#F4F2EC]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj telefona *</label>
-              <input
-                type="tel"
-                required
-                value={trackPhone}
-                onChange={(e) => setTrackPhone(e.target.value)}
-                placeholder="npr. 061123456"
-                className="w-full border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none bg-[#F4F2EC]"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={trackLoading}
-              className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#0A0A0A] cursor-pointer"
-            >
-              {trackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-              <span>{trackLoading ? 'PRETRAzIVANJE...' : 'PRONAĐI NARUDzBU'}</span>
-            </button>
-          </form>
-
-          {trackError && (
-            <div className="p-3 bg-red-50 border border-red-300 text-red-700 text-xs flex items-center gap-2 font-['Inter']">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{trackError}</span>
-            </div>
-          )}
-
-          {foundOrder && (
-            <div className="p-4 bg-[#F4F2EC] border-2 border-[#F7E97F] space-y-3 text-xs animate-fadeIn font-['Inter']">
-              <div className="flex justify-between items-center border-b border-neutral-300 pb-2">
-                <span className="font-['Poppins'] font-bold text-black">Status narudzbe:</span>
-                <span className={`px-2.5 py-1 font-['Poppins'] font-black uppercase text-[10px] tracking-wider ${
-                  foundOrder.status === 'Nova' ? 'bg-amber-400 text-black' :
-                  foundOrder.status === 'Potvrđena' ? 'bg-blue-600 text-white' :
-                  foundOrder.status === 'Poslana' ? 'bg-purple-600 text-white' :
-                  foundOrder.status === 'Dostavljena' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
-                }`}>
-                  {foundOrder.status}
-                </span>
-              </div>
-
-              <div className="space-y-1.5 text-neutral-800">
-                <p><strong>Broj narudzbe:</strong> <span className="font-mono">{foundOrder.orderNumber}</span></p>
-                <p><strong>Datum kreiranja:</strong> {new Date(foundOrder.createdAt).toLocaleDateString('bs-BA')}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white border-2 border-neutral-200 p-6 sm:p-10 shadow-sm space-y-8 font-['Inter'] text-xs sm:text-sm text-neutral-800 leading-relaxed">
-          <section className="space-y-2.5">
-            <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black flex items-center gap-2 border-b pb-2 border-neutral-200">
-              <Truck className="w-5 h-5 text-[#0A0A0A]" />
-              <span>Dostava</span>
-            </h2>
-            <ul className="list-disc list-inside space-y-1.5 text-neutral-700 pl-2">
-              <li>Dostava se vrSi na cijeloj teritoriji Bosne i Hercegovine putem X Express brze poSte.</li>
-              <li>Rok isporuke je <strong>48 do 72 sata</strong> od potvrde narudzbe.</li>
-              <li>Broj za pracenje poSiljke stize vam u <strong>Viber / SMS poruci</strong> direktno od X Expressa cim kurir preuzme paket.</li>
-              <li>Moguce je <strong>otvaranje i pregled paketa prije preuzimanja</strong> od kurira.</li>
-              <li>Cijena standardne dostave iznosi <strong>12 KM</strong>. Za sve narudzbe preko <strong>{settings.freeShippingThreshold || 100} KM</strong>, dostava je <strong>BESPLATNA</strong>. Moguce je i licno preuzimanje u Sarajevu (0 KM).</li>
-            </ul>
-          </section>
-
-          <section className="space-y-2.5">
-            <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black flex items-center gap-2 border-b pb-2 border-neutral-200">
-              <ShieldCheck className="w-5 h-5 text-[#0A0A0A]" />
-              <span>Placanje</span>
-            </h2>
-            <p className="text-neutral-700">
-              Placanje se vrSi iskljucivo <strong>pouzecem, gotovinom prilikom preuzimanja poSiljke</strong> od kurira ili gotovinom pri licnom preuzimanju u Sarajevu.
-            </p>
-          </section>
-
-          <section className="space-y-2.5">
-            <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black flex items-center gap-2 border-b pb-2 border-neutral-200">
-              <RefreshCw className="w-5 h-5 text-[#0A0A0A]" />
-              <span>Povrat robe</span>
-            </h2>
-            <ul className="list-disc list-inside space-y-1.5 text-neutral-700 pl-2">
-              <li>Rok za povrat robe je <strong>7 dana</strong> od dana prijema poSiljke.</li>
-              <li>Artikal mora biti u potpunosti nenoSen, neopran i u originalnom stanju s neoStecenom etiketom.</li>
-              <li>Zahtjev za povrat podnosi se putem e-maila (<strong>{sellerEmailDisplay}</strong>) ili naSeg Instagram profila <strong>@casualshop.bih</strong> uz navođenje broja narudzbe.</li>
-              <li>Povrat novca ili zamjena vrSi se nakon prijema i pregleda vracene robe.</li>
-            </ul>
-          </section>
-
-          <section className="space-y-2.5">
-            <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black border-b pb-2 border-neutral-200">
-              <span>Zamjena velicine</span>
-            </h2>
-            <p className="text-neutral-700">
-              Ukoliko vam velicina ne odgovara, potrebno je da nam se javite sa brojem narudzbe. Zamjenu vrSimo u dogovoru s kupcem u zavisnosti od trenutne dostupnosti zaliha zeljene velicine.
-            </p>
-          </section>
-        </div>
-      </div>
-    );
-  }
-
-  if (page === 'terms') {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
-        <div className="text-center space-y-2">
-          <span className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.25em] text-neutral-500">
-            PRAVNI DOKUMENT
-          </span>
-          <h1 className="font-['Poppins'] text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#0A0A0A]">
-            USLOVI KORISTENJA
-          </h1>
-          <p className="text-xs text-neutral-500">Datum azuriranja: {new Date().toLocaleDateString('bs-BA')}</p>
-        </div>
-
-        <div className="bg-white border-2 border-neutral-200 p-6 sm:p-10 shadow-sm space-y-8 font-['Inter'] text-xs sm:text-sm text-neutral-800 leading-relaxed">
-          <section className="space-y-2 bg-[#F4F2EC] p-4 border border-neutral-300">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">1. Podaci o prodavcu</h2>
-            <p><strong>Naziv brenda:</strong> {sellerNameDisplay}</p>
-            <p><strong>Lokacija:</strong> {sellerAddressDisplay}</p>
-            <p><strong>Kontakt e-mail:</strong> {sellerEmailDisplay}</p>
-            <p><strong>Instagram:</strong> @casualshop.bih</p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">2. Opce odredbe</h2>
-            <p>
-              Ovi uslovi koriStenja propisuju pravila kupovine odjece i dodataka putem online trgovine Casual Shop BiH. Pristupom i narudzbom sa ove web stranice, kupac potvrđuje da je upoznat sa ovim uslovima i da ih prihvata.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">3. Proizvodi i cijene</h2>
-            <p>
-              Sve cijene na web stranici izrazene su u Konvertibilnim markama (KM). Fotografije na stranici vjerodostojno prikazuju boju i detalje ponuđenih artikala.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">4. Narudzba i dostava</h2>
-            <p>
-              Narudzba se obavlja putem checkout forme. Dostava se vrSi brzam poStom u roku 48 do 72 sata. Cijena dostave iznosi 12 KM. Kupac ima pravo otvaranja i pregleda paketa prije preuzimanja i placanja kuriru. Moguce je i licno preuzimanje u Sarajevu.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">5. Placanje</h2>
-            <p>
-              Placanje se vrSi pouzecem gotovinom kuriru brze poSte pri preuzimanju paketa ili gotovinom pri licnom preuzimanju u Sarajevu.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">6. Povrat i zamjene</h2>
-            <p>
-              Kupac ima pravo na povrat ili zamjenu robe u roku od 7 dana od dana prijema poSiljke, pod uslovom da artikal nije noSen, opran ili oStecen i posjeduje originalne etikete.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">7. Intelektualno vlasniStvo</h2>
-            <p>
-              Svi dizajni, logotip Casual Shop BiH i grafike zaSticeni su autorskim pravima. Zabranjeno je neovlaSteno kopiranje bez izricitog odobrenja.
-            </p>
-          </section>
-        </div>
-      </div>
-    );
-  }
-
-  if (page === 'privacy') {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
-        <div className="text-center space-y-2">
-          <span className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.25em] text-neutral-500">
-            ZASTITA LIcNIH PODATAKA
-          </span>
-          <h1 className="font-['Poppins'] text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#0A0A0A]">
-            POLITIKA PRIVATNOSTI
-          </h1>
-          <p className="text-xs text-neutral-500">Datum azuriranja: {new Date().toLocaleDateString('bs-BA')}</p>
-        </div>
-
-        <div className="bg-white border-2 border-neutral-200 p-6 sm:p-10 shadow-sm space-y-8 font-['Inter'] text-xs sm:text-sm text-neutral-800 leading-relaxed">
-          <section className="space-y-2 bg-[#F4F2EC] p-4 border border-neutral-300">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">1. Rukovalac podacima</h2>
-            <p>Rukovalac licnim podacima je <strong>{sellerNameDisplay}</strong>, kontakt e-mail: {sellerEmailDisplay}.</p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">2. Koje podatke prikupljamo</h2>
-            <ul className="list-disc list-inside space-y-1 text-neutral-700 pl-2">
-              <li><strong>Podaci pri narudzbi:</strong> ime, prezime, adresa dostave, grad, poStanski broj, broj telefona i opciono e-mail adresa.</li>
-              <li><strong>Newsletter:</strong> e-mail adresa prijavljenog korisnika uz izricitu saglasnost.</li>
-            </ul>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="font-['Poppins'] text-sm font-bold uppercase text-black">3. Dijeljenje podataka</h2>
-            <p>
-              Podaci o kupcu dijele se iskljucivo sa ugovorenom kurirskom sluzbom radi fizicke dostave narudzbe. VaSi licni podaci se <strong>nikada ne prodaju</strong> niti ustupaju trecim licima.
-            </p>
-          </section>
-        </div>
-      </div>
-    );
-  }
-
-  if (page === 'contact') {
-    return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
-        <div className="text-center space-y-2">
-          <span className="font-['Poppins'] text-xs font-bold uppercase tracking-[0.25em] text-neutral-500">
-            PODRSKA KUPCIMA
-          </span>
-          <h1 className="font-['Poppins'] text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#0A0A0A]">
-            KONTAKTIRAJTE NAS
-          </h1>
-          <p className="text-xs sm:text-sm text-neutral-600 max-w-lg mx-auto font-['Inter']">
-            Imate pitanje o velicinama, statusu poSiljke ili zamjeni? Javite nam se direktno.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div className="space-y-6">
-            <div className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm font-['Inter']">
-              <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-black">
-                Direktni kontakti
-              </h3>
-
-              <div className="space-y-3.5 text-xs text-neutral-800">
-                <a
-                  href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3.5 bg-[#F4F2EC] border border-neutral-300 hover:border-black transition-colors"
-                >
-                  <Instagram className="w-5 h-5 text-pink-600 shrink-0" />
-                  <div>
-                    <span className="font-['Poppins'] font-bold uppercase block text-black">Instagram DM</span>
-                    <span className="text-neutral-500">@casualshop.bih (Najbrzi odgovor)</span>
-                  </div>
-                </a>
-
-                <div className="flex items-center gap-3 p-3.5 bg-[#F4F2EC] border border-neutral-300">
-                  <Mail className="w-5 h-5 text-neutral-800 shrink-0" />
-                  <div>
-                    <span className="font-['Poppins'] font-bold uppercase block text-black">E-mail adresa</span>
-                    <span className="text-neutral-500">{sellerEmailDisplay}</span>
-                  </div>
+            {/* Forma za praćenje narudžbe */}
+            <div className="bg-white border-2 border-[#0A0A0A] p-6 sm:p-8 shadow-xl space-y-5">
+              <div className="flex items-center gap-3 border-b-2 border-neutral-100 pb-4">
+                <div className="p-2.5 bg-[#F7E97F] text-[#0A0A0A] rounded">
+                  <Package className="w-5 h-5" />
                 </div>
-
-                <div className="flex items-center gap-3 p-3.5 bg-[#F4F2EC] border border-neutral-300">
-                  <MapPin className="w-5 h-5 text-neutral-800 shrink-0" />
-                  <div>
-                    <span className="font-['Poppins'] font-bold uppercase block text-black">Isporuka / Preuzimanje</span>
-                    <span className="text-neutral-500">Brza poSta u sve gradove BiH ili licno preuzimanje u Sarajevu</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-[#0A0A0A] text-white text-xs space-y-1 border-2 border-[#F7E97F]">
-              <p className="font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F]">Radno vrijeme:</p>
-              <p className="text-neutral-200">Ponedjeljak - Subota: 09:00 - 20:00h</p>
-              <p className="text-neutral-400 text-[11px]">Dostupni smo na Instagram DM i vikendom.</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 sm:p-8 border-2 border-neutral-300 space-y-4 shadow-sm">
-            <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-black">
-              PoSalji brzi upit
-            </h3>
-
-            {contactSubmitted ? (
-              <div className="bg-white border-2 border-[#F7E97F] p-6 text-center space-y-2 animate-fadeIn">
-                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-                <h4 className="font-['Poppins'] font-bold text-sm uppercase tracking-wider">Poruka je poslana!</h4>
-                <p className="text-xs text-neutral-600 font-['Inter']">
-                  Hvala na javljanju. Odgovorit cemo u najkracem mogucem roku.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setContactSubmitted(false)}
-                  className="px-4 py-2 bg-[#0A0A0A] text-white font-['Poppins'] text-xs uppercase tracking-wider cursor-pointer mt-2"
-                >
-                  PoSalji novu poruku
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleContactSubmit} className="space-y-4 text-xs font-['Inter']">
-                <input
-                  type="text"
-                  name="website"
-                  tabIndex={-1}
-                  autoComplete="off"
-                  value={honeypot}
-                  onChange={(e) => setHoneypot(e.target.value)}
-                  className="hidden"
-                  aria-hidden="true"
-                />
-
-                {contactError && (
-                  <p className="text-[11px] text-red-600 font-bold border border-red-300 bg-red-50 p-2.5">
-                    {contactError}
-                  </p>
-                )}
-
                 <div>
-                  <label className="block font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                    VaSe ime i prezime *
+                  <h2 className="font-['Poppins'] font-black text-sm uppercase tracking-wider text-black">
+                    Gdje je moja pošiljka?
+                  </h2>
+                  <p className="text-xs text-neutral-500">
+                    Unesite broj narudžbe i vaš broj telefona kako biste provjerili status paketa.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleTrackOrder} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                    Broj narudžbe *
                   </label>
                   <input
                     type="text"
                     required
-                    value={contactData.name}
-                    onChange={(e) => setContactData({ ...contactData, name: e.target.value })}
-                    className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:bg-white focus:border-black focus:outline-none"
-                    placeholder="npr. Haris Hodzic"
+                    placeholder="npr. CS-1014-4R03"
+                    value={trackingOrderNumber}
+                    onChange={(e) => setTrackingOrderNumber(e.target.value)}
+                    className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none"
                   />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                      E-mail adresa *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={contactData.email}
-                      onChange={(e) => setContactData({ ...contactData, email: e.target.value })}
-                      className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:bg-white focus:border-black focus:outline-none"
-                      placeholder="npr. haris@gmail.com"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                      Telefon (opciono)
-                    </label>
-                    <input
-                      type="tel"
-                      value={contactData.phone}
-                      onChange={(e) => setContactData({ ...contactData, phone: e.target.value })}
-                      className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:bg-white focus:border-black focus:outline-none"
-                      placeholder="npr. 061 234 567"
-                    />
-                  </div>
                 </div>
 
                 <div>
-                  <label className="block font-['Poppins'] font-bold uppercase text-neutral-700 mb-1">
-                    VaSa poruka *
+                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                    Broj telefona *
                   </label>
-                  <textarea
-                    rows={4}
+                  <input
+                    type="tel"
                     required
-                    value={contactData.message}
-                    onChange={(e) => setContactData({ ...contactData, message: e.target.value })}
-                    className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:bg-white focus:border-black focus:outline-none"
-                    placeholder="Pitanje u vezi artikla, narudzbe ili zamjene velicine..."
+                    placeholder="npr. 061 123 456"
+                    value={trackingPhone}
+                    onChange={(e) => setTrackingPhone(e.target.value)}
+                    className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs font-bold focus:border-black focus:outline-none"
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={contactSending}
-                  className="w-full py-3.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 border-2 border-[#0A0A0A] disabled:opacity-50 cursor-pointer"
-                >
-                  {contactSending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>SLANJE PORUKE...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-3.5 h-3.5" />
-                      <span>PoSalji poruku</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    disabled={trackingLoading}
+                    className="w-full py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider border-2 border-[#0A0A0A] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Search className="w-4 h-4" />
+                    <span>{trackingLoading ? 'Traženje...' : 'Provjeri status'}</span>
+                  </button>
+                </div>
               </form>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  return null;
+              {trackingError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{trackingError}</span>
+                </div>
+              )}
+
+              {trackedOrder && (
+                <div className="p-4 bg-[#FAF9F5] border-2 border-[#F7E97F] space-y-3 animate-fadeIn text-xs">
+                  <div className="flex justify-between items-center border-b border-neutral-200 pb-2">
+                    <span className="font-['Poppins'] font-black uppercase text-black text-sm">
+                      Narudžba #{trackedOrder.orderNumber.replace(/^#/, '')}
+                    </span>
+                    <span className="px-2.5 py-1 bg-[#0A0A0A] text-[#F7E97F] font-['Poppins'] font-bold text-[10px] uppercase">
+                      Status: {trackedOrder.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-neutral-700">
+                    <div>
+                      <p><strong>Kupac:</strong> {trackedOrder.customer.firstName} {trackedOrder.customer.lastName}</p>
+                      <p><strong>Grad dostave:</strong> {trackedOrder.customer.city}</p>
+                    </div>
+                    <div>
+                      <p><strong>Iznos narudžbe:</strong> {trackedOrder.total.toFixed(2)} KM (Pouzećem)</p>
+                      {trackedOrder.trackingNumber ? (
+                        <p className="text-purple-900 font-bold">
+                          X Express kod: <span className="font-mono">{trackedOrder.trackingNumber}</span>
+                        </p>
+                      ) : (
+                        <p className="text-neutral-500 italic">Paket je u pripremi za slanje kurirskoj službi.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Informacije o dostavi */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 border-2 border-neutral-200 space-y-2">
+                <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center font-bold mb-3">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <h3 className="font-['Poppins'] font-black text-sm uppercase text-black">
+                  Rok isporuke 24–48h
+                </h3>
+                <p className="text-xs text-neutral-600 leading-relaxed">
+                  Sve narudžbe zaprimljene radnim danom do 14:00h otpremaju se isti dan putem brze pošte <strong>X Express</strong>.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 border-2 border-neutral-200 space-y-2">
+                <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center font-bold mb-3">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <h3 className="font-['Poppins'] font-black text-sm uppercase text-black">
+                  Pregled prije plaćanja
+                </h3>
+                <p className="text-xs text-neutral-600 leading-relaxed">
+                  Dozvoljeno je otvoriti paket u prisustvu kurira i uvjeriti se u ispravnost i veličinu artikla prije davanja novca.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 border-2 border-neutral-200 space-y-2">
+                <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center font-bold mb-3">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <h3 className="font-['Poppins'] font-black text-sm uppercase text-black">
+                  Zamjena veličine
+                </h3>
+                <p className="text-xs text-neutral-600 leading-relaxed">
+                  Ukoliko vam veličina ne odgovara, vršimo brzu zamjenu. Dovoljno je da nam se javite putem Instagrama ili kontakt forme.
+                </p>
+              </div>
+            </div>
+
+            {/* Uslovi povrata */}
+            <div className="bg-white p-6 sm:p-8 border-2 border-neutral-200 space-y-4 text-xs text-neutral-700 leading-relaxed">
+              <h3 className="font-['Poppins'] font-black text-base uppercase text-black">
+                Pravila zamjene i povrata artikala
+              </h3>
+              <p>
+                Kupac ima pravo na zamjenu artikla ili povrat novca unutar <strong>14 dana</strong> od dana prijema pošiljke, pod uslovom da artikal nije nošen, opran ili oštećen, te da posjeduje originalne etikete.
+              </p>
+              <p>
+                Troškove povrata kod zamjene veličine snosi kupac, osim u slučaju kada je greškom poslat pogrešan model ili artikal sa fabričkim oštećenjem — u tom slučaju sve troškove snosi Casual Shop BiH.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 2. STRANICA: KONTAKT */}
+        {page === 'contact' && (
+          <div className="space-y-10 animate-fadeIn">
+            <div className="text-center space-y-2">
+              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-2.5 py-1">
+                PODRŠKA ZA KUPCE
+              </span>
+              <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-black">
+                KONTAKTIRAJTE NAS
+              </h1>
+              <p className="text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto">
+                Tu smo za sva pitanja u vezi narudžbi, dostupnosti veličina i saradnje.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Kontakt podaci */}
+              <div className="space-y-4">
+                <div className="bg-white p-5 border-2 border-neutral-200 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-black" />
+                    <div>
+                      <p className="text-[10px] uppercase font-['Poppins'] font-bold text-neutral-400">Telefon / Viber / WhatsApp</p>
+                      <p className="text-xs font-bold text-black">{settings?.contactPhone || '+387 61 000 000'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-4 h-4 text-black" />
+                    <div>
+                      <p className="text-[10px] uppercase font-['Poppins'] font-bold text-neutral-400">E-mail adresa</p>
+                      <p className="text-xs font-bold text-black">{settings?.contactEmail || 'info@casualshop.ba'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Instagram className="w-4 h-4 text-black" />
+                    <div>
+                      <p className="text-[10px] uppercase font-['Poppins'] font-bold text-neutral-400">Instagram DM</p>
+                      <a 
+                        href={settings?.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-bold text-black hover:text-amber-700 underline"
+                      >
+                        @casualshop.bih
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-4 h-4 text-black" />
+                    <div>
+                      <p className="text-[10px] uppercase font-['Poppins'] font-bold text-neutral-400">Radno vrijeme podrške</p>
+                      <p className="text-xs font-bold text-black">Pon – Sub: 09:00 – 20:00h</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-[#F7E97F] border-2 border-[#0A0A0A] text-black text-xs space-y-1">
+                  <p className="font-['Poppins'] font-black uppercase">Najbrži odgovor:</p>
+                  <p className="text-[11px] leading-relaxed">
+                    Za brza pitanja u vezi mjera i preuzimanja paketa, pišite nam direktno u <strong>Instagram DM</strong>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Kontakt formular */}
+              <div className="md:col-span-2 bg-white border-2 border-[#0A0A0A] p-6 sm:p-8 shadow-xl">
+                {contactSuccess ? (
+                  <div className="text-center py-12 space-y-3">
+                    <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
+                    <h3 className="font-['Poppins'] font-black uppercase text-base text-black">
+                      Vaša poruka je uspješno poslana!
+                    </h3>
+                    <p className="text-xs text-neutral-600 max-w-sm mx-auto">
+                      Hvala vam na javljanju. Naš tim će vam odgovoriti u najkraćem mogućem roku.
+                    </p>
+                    <button
+                      onClick={() => setContactSuccess(false)}
+                      className="px-5 py-2 bg-[#0A0A0A] text-white text-xs font-['Poppins'] font-bold uppercase tracking-wider hover:bg-[#F7E97F] hover:text-[#0A0A0A] transition-colors mt-2"
+                    >
+                      Pošalji novu poruku
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleContactSubmit} className="space-y-4 text-xs">
+                    <h3 className="font-['Poppins'] font-black text-sm uppercase text-black mb-2">
+                      Pošaljite nam poruku
+                    </h3>
+
+                    {contactError && (
+                      <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs">
+                        {contactError}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                          Vaše ime i prezime *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={contactForm.name}
+                          onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                          placeholder="npr. Amar Hadžić"
+                          className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 focus:border-black focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                          Broj telefona
+                        </label>
+                        <input
+                          type="tel"
+                          value={contactForm.phone}
+                          onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                          placeholder="npr. 061 123 456"
+                          className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 focus:border-black focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                        E-mail adresa
+                      </label>
+                      <input
+                        type="email"
+                        value={contactForm.email}
+                        onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                        placeholder="npr. amar@gmail.com"
+                        className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 focus:border-black focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                        Vaša poruka *
+                      </label>
+                      <textarea
+                        rows={5}
+                        required
+                        value={contactForm.message}
+                        onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                        placeholder="Navedite artikal, veličinu ili pitanje koje vas zanima..."
+                        className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 focus:border-black focus:outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={contactSending}
+                      className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider border-2 border-[#0A0A0A] transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{contactSending ? 'Slanje poruke...' : 'Pošalji upit'}</span>
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3. STRANICA: O NAMA */}
+        {page === 'about' && (
+          <div className="space-y-8 animate-fadeIn text-neutral-800 leading-relaxed text-xs sm:text-sm">
+            <div className="text-center space-y-2">
+              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-2.5 py-1">
+                NAŠA PRIČA
+              </span>
+              <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-black">
+                O BRENDU CASUAL SHOP BIH
+              </h1>
+            </div>
+
+            <div className="bg-white p-6 sm:p-10 border-2 border-neutral-200 space-y-5">
+              <p className="font-medium text-neutral-900 leading-relaxed">
+                <strong>Casual Shop BiH</strong> nastao je iz ljubavi prema autentičnoj urbanoj i casual supkulturi. Naš cilj je ponuditi streetwear komade vrhunskog kroja i materijala koji savršeno spajaju udobnost, izdržljivost i upečatljiv vizuelni identitet.
+              </p>
+
+              <h2 className="font-['Poppins'] font-black text-base uppercase text-black pt-2">
+                Beskompromisan kvalitet materijala
+              </h2>
+              <p>
+                Svi naši artikli izrađeni su od 100% češljanog pamuka visoke gramature (240 GSM za majice, 350+ GSM za dukserice). Posebnu pažnju posvećujemo tehnologiji štampe i vezu kako bi boje i motivi ostali postojani i nakon velikog broja pranja.
+              </p>
+
+              <h2 className="font-['Poppins'] font-black text-base uppercase text-black pt-2">
+                Kupovina bez ikakvog rizika
+              </h2>
+              <p>
+                Kao domaći brend, svjesni smo važnosti povjerenja. Zato poslujemo isključivo po modelu <strong>plaćanja pouzećem</strong> sa ugovorenom brzom poštom koja omogućava otvaranje i pregled paketa prije preuzimanja.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 4. STRANICA: USLOVI KORIŠTENJA */}
+        {page === 'terms' && (
+          <div className="space-y-8 animate-fadeIn text-neutral-800 leading-relaxed text-xs sm:text-sm">
+            <div className="text-center space-y-2">
+              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-2.5 py-1">
+                PRAVNI USLOVI
+              </span>
+              <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-black">
+                USLOVI KORIŠTENJA WEBSHOPA
+              </h1>
+            </div>
+
+            <div className="bg-white p-6 sm:p-10 border-2 border-neutral-200 space-y-5">
+              <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">1. Opšte odredbe</h2>
+              <p>
+                Korištenjem web stranice <strong>Casual Shop BiH</strong> prihvatate važeće uslove korištenja. Zadržavamo pravo izmjene asortimana, cijena i uslova poslovanja u bilo kojem trenutku bez prethodne najave.
+              </p>
+
+              <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">2. Narudžbe i sklapanje ugovora</h2>
+              <p>
+                Narudžba se smatra prihvaćenom u trenutku kada kupac popuni i potvrdi narudžbeni obrazac na webshopu. Sve cijene su izražene u konvertibilnim markama (KM) i uključuju pripadajući porez.
+              </p>
+
+              <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">3. Plaćanje i dostava</h2>
+              <p>
+                Plaćanje se vrši isključivo gotovinski kuriru prilikom preuzimanja pošiljke (plaćanje pouzećem). Kupac je dužan osigurati tačnost navedenih kontakt podataka i adrese za dostavu.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 5. STRANICA: POLITIKA PRIVATNOSTI */}
+        {page === 'privacy' && (
+          <div className="space-y-8 animate-fadeIn text-neutral-800 leading-relaxed text-xs sm:text-sm">
+            <div className="text-center space-y-2">
+              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-2.5 py-1">
+                ZAŠTITA PODATAKA
+              </span>
+              <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-black">
+                POLITIKA PRIVATNOSTI
+              </h1>
+            </div>
+
+            <div className="bg-white p-6 sm:p-10 border-2 border-neutral-200 space-y-5">
+              <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">1. Sigurnost vaših podataka</h2>
+              <p>
+                Casual Shop BiH poštuje privatnost svojih korisnika. Podaci koje unesete prilikom naručivanja (ime, adresa, broj telefona i e-mail) koriste se isključivo u svrhu realizacije isporuke i obavještavanja o statusu narudžbe.
+              </p>
+
+              <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">2. Dijeljenje sa trećim stranama</h2>
+              <p>
+                Vaši podaci se dijele isključivo sa ugovorenom kurirskom službom (X Express) radi dostave pošiljke na vašu adresu. Podatke nikada ne prodajemo niti ustupamo trećim licima za marketinške svrhe bez vaše saglasnosti.
+              </p>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
 };
