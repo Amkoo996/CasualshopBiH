@@ -19,6 +19,34 @@ interface StockManagementTabProps {
 const SIZE_LIST: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 const DEFAULT_PLACEHOLDER_IMAGE = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f4f2ec"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%23a3a3a3">Casual Shop</text></svg>';
 
+/**
+ * Robusni CSV parser koji rukuje navodnicima i podržava i komu (,) i tačka-zarez (;)
+ */
+function parseCSVLine(text: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let cur = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQuotes && text[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (c === delimiter && !inQuotes) {
+      result.push(cur.trim());
+      cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
 export const StockManagementTab: React.FC<StockManagementTabProps> = ({
   products,
   onRefreshData,
@@ -82,7 +110,8 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
     const rows = products
       .map((p) => {
         const total = Object.values(p.sizes || {}).reduce((sum, v) => sum + (v || 0), 0);
-        return `"${p.id}","${p.name}","${p.category}","${p.price.toFixed(2)}",${p.sizes?.S || 0},${p.sizes?.M || 0},${p.sizes?.L || 0},${p.sizes?.XL || 0},${p.sizes?.XXL || 0},${p.sizes?.['3XL'] || 0},${p.sizes?.['One size'] || 0},${total}`;
+        const cleanName = p.name.replace(/"/g, '""');
+        return `"${p.id}","${cleanName}","${p.category}","${p.price.toFixed(2)}",${p.sizes?.S || 0},${p.sizes?.M || 0},${p.sizes?.L || 0},${p.sizes?.XL || 0},${p.sizes?.XXL || 0},${p.sizes?.['3XL'] || 0},${p.sizes?.['One size'] || 0},${total}`;
       })
       .join('\n');
 
@@ -114,40 +143,62 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
           return;
         }
 
+        // Automatska detekcija delimiter-a ( ; ili , )
+        const firstLine = lines[0];
+        const delimiter = firstLine.includes(';') ? ';' : ',';
+
         let importedCount = 0;
 
         for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split(',').map((c) => c.replace(/^"|"\$/g, '').trim());
+          const cols = parseCSVLine(lines[i], delimiter);
           if (cols.length >= 4) {
-            const [id, name, category, priceStr, s, m, l, xl, xxl, xxxl, oneSize] = cols;
+            const [rawId, rawName, rawCategory, priceStr, s, m, l, xl, xxl, xxxl, oneSize] = cols;
+
+            // Čišćenje potencijalnih navodnika
+            const cleanId = rawId ? rawId.replace(/^"|"\$/g, '').trim() : '';
+            const name = rawName ? rawName.replace(/^"|"\$/g, '').trim() : '';
+            const category = rawCategory ? rawCategory.replace(/^"|"\$/g, '').trim() : '';
 
             if (name && priceStr) {
-              const price = parseFloat(priceStr) || 0;
-              const catValid = (CATEGORIES.includes(category as Category) ? category : 'Majice') as Category;
+              const price = parseFloat(priceStr.replace(',', '.')) || 0;
+              if (price <= 0) continue; // Odbijamo artikle sa neispravnom cijenom
 
-              const payload: Partial<Product> = {
-                id: id && id.length > 3 ? id : undefined,
-                name,
-                category: catValid,
-                price,
-                color: 'Standardna',
-                material: '100% češljani pamuk 240 GSM',
-                description: '',
-                sizes: {
-                  S: parseInt(s) || 0,
-                  M: parseInt(m) || 0,
-                  L: parseInt(l) || 0,
-                  XL: parseInt(xl) || 0,
-                  XXL: parseInt(xxl) || 0,
-                  '3XL': parseInt(xxxl) || 0,
-                  'One size': parseInt(oneSize) || 0,
-                },
-                images: [DEFAULT_PLACEHOLDER_IMAGE],
-                isNew: true,
-                isHidden: false,
+              const catValid = (CATEGORIES.includes(category as Category) ? category : 'Majice') as Category;
+              const existingProd = cleanId ? products.find((p) => p.id === cleanId) : undefined;
+
+              const importedSizes: SizeStock = {
+                S: parseInt(s) || 0,
+                M: parseInt(m) || 0,
+                L: parseInt(l) || 0,
+                XL: parseInt(xl) || 0,
+                XXL: parseInt(xxl) || 0,
+                '3XL': parseInt(xxxl) || 0,
+                'One size': parseInt(oneSize) || 0,
               };
 
-              await saveProduct(payload as any);
+              // SIGURNA NADOGRADNJA: Ako proizvod postoji, čuvamo njegove slike, opis i boju (K5 Fix)
+              const payload: Partial<Product> & { id?: string } = existingProd
+                ? {
+                    id: existingProd.id,
+                    name,
+                    category: catValid,
+                    price,
+                    sizes: importedSizes,
+                  }
+                : {
+                    name,
+                    category: catValid,
+                    price,
+                    color: 'Standardna',
+                    material: '100% češljani pamuk 240 GSM',
+                    description: '',
+                    sizes: importedSizes,
+                    images: [DEFAULT_PLACEHOLDER_IMAGE],
+                    isNew: true,
+                    isHidden: false,
+                  };
+
+              await saveProduct(payload);
               importedCount++;
             }
           }
@@ -211,7 +262,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
           <button
             onClick={handleSaveChanges}
             disabled={!hasUnsavedChanges || isSaving}
-            className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-[#Poppins] text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors disabled:opacity-40 cursor-pointer"
+            className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-2 border-[#0A0A0A] transition-colors disabled:opacity-40 cursor-pointer"
           >
             <Save className="w-4 h-4" />
             <span>{isSaving ? 'Spremanje...' : `Spremi izmjene (${Object.keys(stockChanges).length})`}</span>
