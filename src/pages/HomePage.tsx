@@ -1,18 +1,15 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // NOVO: Next.js ruter
 import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, ArrowUpRight, Copy, Check } from 'lucide-react';
 import { Product, CATEGORIES, Category, HomeCMSContent, DEFAULT_CMS_CONTENT } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { NewsletterSection } from '../components/common/NewsletterSection';
 import { useCart } from '../context/CartContext';
-import { getCMSContent } from '../lib/db';
+import { getCMSContent, getProducts } from '../lib/db'; // Dodan getProducts
 
-interface HomePageProps {
-  products: Product[];
-  onSelectProduct: (product: Product) => void;
-  onNavigateToShop: (category?: string) => void;
-}
-
-// Optimizovani Cloudinary URL-ovi za brže učitavanje na mobilnim mrežama bez gubitka oštrine
+// Optimizovani Cloudinary URL-ovi
 const OPTIMIZED_FALLBACK_IMAGE = 'https://res.cloudinary.com/rvlsak2u/image/upload/f_auto,q_auto,w_800/v1791551969/xpzi3atps6zrnkflak3c.jpg';
 
 const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
@@ -25,25 +22,30 @@ const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
   'Dodaci (Accessories)': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
 };
 
-export const HomePage: React.FC<HomePageProps> = ({
-  products = [],
-  onSelectProduct,
-  onNavigateToShop,
-}) => {
+// UKLONJENI su stari propovi za navigaciju, komponenta sada radi samostalno
+export const HomePage: React.FC = () => {
+  const router = useRouter(); // Inicijalizacija routera
   const { settings } = useCart();
+  
+  const [products, setProducts] = useState<Product[]>([]);
   const [cms, setCms] = useState<HomeCMSContent>(DEFAULT_CMS_CONTENT);
   const [bannerCopied, setBannerCopied] = useState(false);
 
+  // Dohvaćamo podatke samo za početnu stranicu
   useEffect(() => {
-    const loadCMS = async () => {
+    const loadData = async () => {
       try {
-        const data = await getCMSContent();
-        setCms(data);
+        const [cmsData, productsData] = await Promise.all([
+          getCMSContent(),
+          getProducts()
+        ]);
+        setCms(cmsData);
+        setProducts(productsData);
       } catch (e) {
-        console.error('Greška pri učitavanju CMS koda:', e);
+        console.error('Greška pri učitavanju podataka:', e);
       }
     };
-    loadCMS();
+    loadData();
   }, []);
 
   const targetDate = new Date(cms.topBar.targetDate || '2026-11-01T12:00:00+02:00').getTime();
@@ -96,7 +98,6 @@ export const HomePage: React.FC<HomePageProps> = ({
     const firstProduct = activeProducts.find((p) => p.images?.[0]);
     const rawImage = firstProduct?.images[0] || FALLBACK_CATEGORY_IMAGES[cat] || OPTIMIZED_FALLBACK_IMAGE;
 
-    // Automatska transformacija Cloudinary slika ako nisu prethodno formatirane
     const image = rawImage.includes('res.cloudinary.com') && !rawImage.includes('f_auto')
       ? rawImage.replace('/upload/', '/upload/f_auto,q_auto,w_800/')
       : rawImage;
@@ -134,7 +135,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="pb-0 bg-[#0A0A0A] w-full font-['Inter']">
-      {/* 1. TOP BANER */}
+      {/* TOP BANER */}
       {cms.topBar.enabled && (
         <section 
           onClick={handleBannerCopy}
@@ -176,9 +177,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* 2. HERO SEKCIJA - SAVRŠENO PODEŠENA VIDLJIVOST SLIKE I ČITLJIVOST TEKSTA */}
+      {/* HERO SEKCIJA */}
       <section className="relative bg-[#0A0A0A] text-white w-full min-h-[80vh] lg:min-h-[88vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
-        {/* Pozadinska slika sa optimalnim osvjetljenjem */}
         <div className="absolute inset-0 z-0">
           <img
             src="/hero-streetwear.webp"
@@ -190,8 +190,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               (e.target as HTMLImageElement).src = OPTIMIZED_FALLBACK_IMAGE;
             }}
           />
-
-          {/* Gradijent preklop koji daje kontrast tekstu bez pretamnjivanja lica na slici */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/90 via-[#0A0A0A]/60 to-transparent w-full md:w-3/4" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-60" />
         </div>
@@ -216,7 +214,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
               <button
-                onClick={() => onNavigateToShop('Sve')}
+                onClick={() => router.push('/shop')} // NOVO: Next.js routing
                 className="px-7 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.18em] text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(247,233,127,0.4)] transition-all flex items-center justify-center gap-2.5 group active:scale-95 cursor-pointer rounded-xs border-2 border-[#F7E97F]"
               >
                 <span>{cms.hero.ctaPrimaryText}</span>
@@ -237,7 +235,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 3. OSTALI SADRŽAJ */}
+      {/* OSTALI SADRŽAJ */}
       <div className="bg-[#F4F2EC] pt-12 pb-0 w-full">
         <div className="space-y-14 sm:space-y-20 pb-14">
           
@@ -292,7 +290,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
                 {visibleCategoryNames.length > displayCategories.length && (
                   <button
-                    onClick={() => onNavigateToShop('Sve')}
+                    onClick={() => router.push('/shop')} // NOVO
                     className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 cursor-pointer group"
                   >
                     <span>Vidi sve kategorije</span>
@@ -305,7 +303,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {displayCategories.map((cat) => (
                   <div
                     key={cat.title}
-                    onClick={() => onNavigateToShop(cat.category)}
+                    onClick={() => router.push(`/shop?category=${encodeURIComponent(cat.category)}`)} // NOVO
                     className="group relative h-56 sm:h-72 overflow-hidden bg-[#0A0A0A] cursor-pointer border-2 border-neutral-300 hover:border-[#F7E97F] transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 rounded-xs"
                   >
                     <img
@@ -347,7 +345,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
 
                 <button
-                  onClick={() => onNavigateToShop('Sve')}
+                  onClick={() => router.push('/shop')} // NOVO
                   className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer group"
                 >
                   <span>Pogledaj sve novitete</span>
@@ -360,7 +358,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onSelect={onSelectProduct}
+                    onSelect={(p) => router.push(`/proizvod/${p.id}`)} // NOVO: Redirekcija na proizvod
                   />
                 ))}
               </div>
@@ -372,7 +370,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 pb-3 border-b-2 border-neutral-300 gap-4">
                 <div>
-                  <div className="flex items-center gap-2 text-xs font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500 mb-1">
+                  <div className="flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1">
                     <TrendingUp className="w-3.5 h-3.5 text-[#0A0A0A]" />
                     <span>Preporučujemo</span>
                   </div>
@@ -382,7 +380,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
 
                 <button
-                  onClick={() => onNavigateToShop('Sve')}
+                  onClick={() => router.push('/shop')} // NOVO
                   className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer group"
                 >
                   <span>Pregledaj sve</span>
@@ -395,7 +393,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onSelect={onSelectProduct}
+                    onSelect={(p) => router.push(`/proizvod/${p.id}`)} // NOVO: Redirekcija na proizvod
                   />
                 ))}
               </div>
