@@ -1,7 +1,6 @@
 "use client";
+import { StaticPages } from '../../src/pages/StaticPages'; // Promijenjeno na StaticPages jer je kontakt unutar nje
 
-import { ContactPage } from '../../src/pages/ContactPage';
-
-export default function Contact() {
-  return <ContactPage />;
+export default function Contact() { 
+  return <StaticPages page="contact" />; 
 }
