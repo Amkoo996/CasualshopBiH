@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { Truck, ShieldCheck, Clock, CreditCard, Search, AlertCircle, PackageCheck } from 'lucide-react';
 import { getOrderByNumberAndPhone } from '../lib/db';
-import { Order } from '../types';
 
 export const ShippingPage: React.FC = () => {
   const [orderNumber, setOrderNumber] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
-  const [foundOrder, setFoundOrder] = useState<Order | null>(null);
+  const [foundOrder, setFoundOrder] = useState<{
+    orderNumber: string;
+    status: string;
+    createdAt: string;
+  } | null>(null);
   const [error, setError] = useState('');
 
   const handleTrack = async (e: React.FormEvent) => {
@@ -110,9 +113,7 @@ export const ShippingPage: React.FC = () => {
 
             <div className="space-y-1.5 text-neutral-800">
               <p><strong>Broj narudžbe:</strong> <span className="font-mono">{foundOrder.orderNumber}</span></p>
-              <p><strong>Primalac:</strong> {foundOrder.customer.firstName} {foundOrder.customer.lastName}</p>
-              <p><strong>Adresa dostave:</strong> {foundOrder.customer.address}, {foundOrder.customer.city}</p>
-              <p><strong>Ukupno za plaćanje:</strong> <strong className="text-black font-['Poppins']">{foundOrder.total.toFixed(2)} KM</strong></p>
+              <p><strong>Datum kreiranja:</strong> {new Date(foundOrder.createdAt).toLocaleDateString('bs-BA')}</p>
             </div>
           </div>
         )}
@@ -130,7 +131,11 @@ export const ShippingPage: React.FC = () => {
               alt="X Express Brza Pošta" 
               className="h-9 object-contain bg-white px-3 py-1 border border-neutral-300 rounded"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/images/logo-xexpress.webp';
+                const target = e.target as HTMLImageElement;
+                if (!target.dataset.failedOnce) {
+                  target.dataset.failedOnce = 'true';
+                  target.src = 'https://placehold.co/140x36/ffffff/000000?text=X+EXPRESS';
+                }
               }}
             />
             <span className="font-['Poppins'] font-black text-xs text-black border-2 border-black px-3 py-1.5 uppercase tracking-wider">
@@ -219,7 +224,7 @@ export const ShippingPage: React.FC = () => {
             Svu dostavu paketa na vašu adresu realizujemo putem X Express brze pošte, pouzdanog partnera za brzu i sigurnu dostavu unutar Bosne i Hercegovine.
           </p>
           <ul className="text-xs text-neutral-800 space-y-1.5 list-disc pl-4 font-['Inter']">
-            <li><strong>Vrsta dostave:</strong> Ekstrepna brza pošta sa omogućenim otvaranjem paketa</li>
+            <li><strong>Vrsta dostave:</strong> Ekspresna brza pošta sa omogućenim otvaranjem paketa</li>
             <li><strong>Vrijeme isporuke:</strong> 48 do 72 sata</li>
             <li><strong>Praćenje pošiljke:</strong> Obavijest i praćenje pošiljke</li>
             <li><strong>Isporuka:</strong> Na vašu kućnu adresu radnim danima</li>
