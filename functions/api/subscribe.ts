@@ -7,10 +7,21 @@ export const onRequestPost = async (context: {
 }) => {
   try {
     const { request, env } = context;
-    const body = (await request.json()) as { email?: string };
-    const email = body.email?.trim().toLowerCase();
 
-    if (!email || !email.includes('@')) {
+    // 1. ORIGIN PROVJERA (CORS ZAŠTITA)
+    const origin = request.headers.get('Origin') || '';
+    const allowedOrigins = ['https://casualshopbih.pages.dev', 'https://casualshop.ba'];
+
+    if (origin && !allowedOrigins.some((d) => origin.startsWith(d))) {
+      return new Response('Forbidden', { status: 403 });
+    }
+
+    // 2. PARSIRANJE I POJAČANA VALIDACIJA EMAIL-A
+    const body = (await request.json().catch(() => ({}))) as { email?: string };
+    const email = body.email?.trim().toLowerCase();
+    const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+
+    if (!isValidEmail) {
       return new Response(
         JSON.stringify({ error: 'Neispravna email adresa' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -32,7 +43,7 @@ export const onRequestPost = async (context: {
     const payload = {
       email: email,
       listIds: [listId],
-      updateEnabled: true, // Automatski ažurira ako kontakt već postoji
+      updateEnabled: true,
     };
 
     const res = await fetch('https://api.brevo.com/v3/contacts', {
@@ -54,7 +65,6 @@ export const onRequestPost = async (context: {
       });
     }
 
-    // Ako pretplatnik već postoji u Brevo bazi
     if (responseText.includes('duplicate_parameter') || responseText.includes('already exists')) {
       return new Response(JSON.stringify({ success: true, message: 'Korisnik je već u bazi' }), {
         status: 200,
