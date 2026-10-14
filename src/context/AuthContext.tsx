@@ -8,8 +8,7 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -20,13 +19,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function checkAdmin(uid: string): Promise<boolean> {
-  try {
-    const snap = await getDoc(doc(db, 'admins', uid));
-    return snap.exists();
-  } catch {
-    return false;
-  }
+// Lista dozvoljenih admin UID-ova i e-mail adresa
+const ADMIN_UIDS = [
+  'Jt35lHyxq1feiEyi1exOKRA9xJl2',
+  'NSgdcTOFwXRW3nVfHa9mvgfXsDC3'
+];
+
+const ADMIN_EMAILS = [
+  'reddemption19@gmail.com',
+  'tarik.dizdar@gmail.com',
+  'info@casualshop.ba'
+];
+
+function checkIsAdmin(user: User | null): boolean {
+  if (!user) return false;
+  const matchUid = ADMIN_UIDS.includes(user.uid);
+  const matchEmail = user.email ? ADMIN_EMAILS.includes(user.email.toLowerCase().trim()) : false;
+  return matchUid || matchEmail;
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -42,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
         return;
       }
-      const ok = await checkAdmin(currentUser.uid);
+      const ok = checkIsAdmin(currentUser);
       if (ok) {
         setUser(currentUser);
         setIsAdmin(true);
@@ -63,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       remember ? browserLocalPersistence : browserSessionPersistence
     );
     const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
-    const ok = await checkAdmin(cred.user.uid);
+    const ok = checkIsAdmin(cred.user);
     if (!ok) {
       await firebaseSignOut(auth);
       throw new Error('Nemate dozvolu za pristup admin panelu.');
