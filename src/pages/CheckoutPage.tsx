@@ -205,7 +205,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const dd = String(date.getDate()).padStart(2, '0');
       const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
       
-      // ČISTI FORMAT BEZ ZNAKA #
       const orderNumber = `CS-${mm}${dd}-${randomStr}`;
 
       const cleanPhone = normalizePhone(formData.phone) || formData.phone.trim();
@@ -238,14 +237,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         ...(appliedPromoCode ? { promoCode: appliedPromoCode, discountAmount } : {}),
       };
 
-      // createOrder unutar db.ts se poziva i samostalno šalje JEDINSTVENU obavijest na Telegram
       const docId = await createOrder(orderData);
       const finalizedOrder: Order = {
         ...orderData,
         id: docId,
       };
 
-      // TRENUTNO OZNAČAVANJE PROMO KODA KAO ISKORIŠTENOG I AUTOMATSKO GAŠENJE
       if (appliedPromoCode) {
         try {
           await markPromoCodeAsUsed(appliedPromoCode);
@@ -826,3 +823,30 @@ Casual Shop BiH
                   ) : activeShippingFee === 0 ? (
                     <span className="text-emerald-700 font-black">BESPLATNO</span>
                   ) : (
+                    `${activeShippingFee.toFixed(2)} KM`
+                  )}
+                </span>
+              </div>
+
+              <div className="flex justify-between text-base font-black text-black pt-3 border-t-2 border-neutral-200 font-['Poppins']">
+                <span className="uppercase tracking-wider">UKUPNO:</span>
+                <span className="text-xl">{calculatedTotal.toFixed(2)} KM</span>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.99] border-2 border-[#0A0A0A] cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>
+                {submitting ? 'KREIRANJE NARUDŽBE...' : 'POTVRDI NARUDŽBU'}
+              </span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+};
