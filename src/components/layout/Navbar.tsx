@@ -28,7 +28,7 @@ export const Navbar: React.FC = () => {
   );
 
   const navLinks = [
-    { href: '/', label: 'Početna' },
+    { href: '/', label: 'Pocetna' },
     { href: '/shop', label: 'Kolekcija' },
     { href: '/o-nama', label: 'O nama' },
     { href: '/dostava-i-povrat', label: 'Dostava i povrat' },
@@ -52,11 +52,11 @@ export const Navbar: React.FC = () => {
   return (
     <header className="relative z-40 bg-[#0A0A0A] text-white border-b border-neutral-800">
       <div className="bg-[#0A0A0A] text-[#F7E97F] text-[11px] font-['Poppins'] font-bold tracking-widest uppercase py-1.5 px-4 text-center border-b border-neutral-900 flex items-center justify-center gap-3">
-        <span>{settings?.topBarText || 'Plaćanje pouzećem • Dostava širom BiH'}</span>
+        <span>{settings?.topBarText || 'Placanje pouzecem • Dostava Sirom BiH'}</span>
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        {/* UKLONJEN overflow-hidden kako padajući meni ne bi bio odsječen */}
+        {/* UKLONJEN overflow-hidden kako padajuci meni ne bi bio odsjecen */}
         <div className="flex items-center justify-between h-16 sm:h-20 gap-1 flex-nowrap w-full relative">
           
           {/* Burger meni (mobilni) */}
@@ -111,7 +111,7 @@ export const Navbar: React.FC = () => {
                   <span className="text-[10px]">▼</span>
                 </button>
 
-                {/* Padajući meni s potpunim prikazom (radi na hover i na klik) */}
+                {/* Padajuci meni s potpunim prikazom (radi na hover i na klik) */}
                 <div 
                   className={`absolute top-full left-0 mt-2 w-56 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50 animate-fadeIn ${
                     categoriesDropdownOpen ? 'block' : 'hidden group-hover:block'
@@ -137,7 +137,7 @@ export const Navbar: React.FC = () => {
             <button
               onClick={() => setSearchOpen(!searchOpen)}
               className="p-1 text-neutral-300 hover:text-[#F7E97F] transition-colors cursor-pointer"
-              title="Pretraži artikle"
+              title="Pretrazi artikle"
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
@@ -186,7 +186,7 @@ export const Navbar: React.FC = () => {
                 type="text"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="Pretražite artikle (npr. majica, dukserica, jakna...)"
+                placeholder="Pretrazite artikle (npr. majica, dukserica, jakna...)"
                 className="w-full bg-[#171717] border border-neutral-700 text-white px-4 py-2.5 pr-10 text-xs focus:ring-1 focus:ring-[#F7E97F] focus:border-[#F7E97F] placeholder-neutral-500"
                 autoFocus
               />
@@ -256,7 +256,7 @@ export const Navbar: React.FC = () => {
                 <span>@casualshop.bih</span>
               </a>
               <p className="text-[11px] text-neutral-400">
-                Plaćanje pouzećem • Dostava širom BiH
+                Placanje pouzecem • Dostava Sirom BiH
               </p>
             </div>
           </div>

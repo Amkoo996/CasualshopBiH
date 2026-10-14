@@ -119,11 +119,11 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ orders }) => {
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-neutral-300">Broj narudžbi:</span>
+            <span className="text-neutral-300">Broj narudzbi:</span>
             <span className="font-bold text-white">{dataPoint.ordersCount}</span>
           </div>
           <div className="flex justify-between items-center text-[11px] text-neutral-400 pt-0.5 border-t border-neutral-800">
-            <span>Prosjek po narudžbi:</span>
+            <span>Prosjek po narudzbi:</span>
             <span className="font-semibold text-neutral-200">{dataPoint.averageOrder.toFixed(2)} KM</span>
           </div>
         </div>
@@ -151,7 +151,7 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ orders }) => {
             <span>Linijski grafikon trenda prodaje (Zadnjih 30 dana)</span>
           </h3>
           <p className="text-xs text-neutral-500 font-['Inter']">
-            Praćenje dnevnog kretanja prometa i volumena narudžbi u Casual Shop BiH.
+            Pracenje dnevnog kretanja prometa i volumena narudzbi u Casual Shop BiH.
           </p>
         </div>
 
@@ -221,7 +221,7 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ orders }) => {
                   : 'text-neutral-700 hover:text-black'
               }`}
             >
-              NARUDŽBE
+              NARUDzBE
             </button>
           </div>
         </div>
@@ -247,7 +247,7 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ orders }) => {
         <div className="bg-[#F4F2EC] border border-neutral-300 p-3.5 space-y-1">
           <div className="flex items-center justify-between text-neutral-500">
             <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider">
-              UKUPNO NARUDŽBI
+              UKUPNO NARUDzBI
             </span>
             <ShoppingBag className="w-3.5 h-3.5 text-[#0A0A0A]" />
           </div>
@@ -262,7 +262,7 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ orders }) => {
         <div className="bg-[#F4F2EC] border border-neutral-300 p-3.5 space-y-1">
           <div className="flex items-center justify-between text-neutral-500">
             <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider">
-              PROSJEČNA KORPA
+              PROSJEcNA KORPA
             </span>
             <Award className="w-3.5 h-3.5 text-[#0A0A0A]" />
           </div>
@@ -285,7 +285,7 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ orders }) => {
             {bestDay ? `${bestDay.revenue.toFixed(0)} KM` : '0 KM'}
           </div>
           <span className="text-[10px] text-neutral-600 block">
-            {bestDay ? `${bestDay.date} (${bestDay.ordersCount} narudžbi)` : '-'}
+            {bestDay ? `${bestDay.date} (${bestDay.ordersCount} narudzbi)` : '-'}
           </span>
         </div>
       </div>
@@ -355,13 +355,13 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ orders }) => {
               />
             )}
 
-            {/* Linija 2: Broj narudžbi */}
+            {/* Linija 2: Broj narudzbi */}
             {(viewMetric === 'orders' || viewMetric === 'both') && (
               <Line
                 yAxisId={viewMetric === 'orders' ? 'right' : 'right'}
                 type="monotone"
                 dataKey="ordersCount"
-                name="Broj narudžbi"
+                name="Broj narudzbi"
                 stroke="#D97706"
                 strokeWidth={2.5}
                 strokeDasharray="4 2"
@@ -377,10 +377,10 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ orders }) => {
       <div className="pt-3 border-t border-neutral-200 flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-neutral-500 font-['Inter'] gap-2">
         <div className="flex items-center gap-1.5">
           <Activity className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Linijski grafikon automatski preračunava sve nove narudžbe kreirane u Firestoreu.</span>
+          <span>Linijski grafikon automatski preracunava sve nove narudzbe kreirane u Firestoreu.</span>
         </div>
         <div className="text-neutral-400">
-          Ažurirano: danas u {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          Azurirano: danas u {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
     </div>

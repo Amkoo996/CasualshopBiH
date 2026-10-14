@@ -5,7 +5,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Inicijalizujemo Firestore sa optimizovanim keširanjem za preglednike
+// Inicijalizujemo Firestore sa optimizovanim keSiranjem za preglednike
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager(),

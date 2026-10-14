@@ -59,7 +59,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        console.error('Neuspješno kopiranje linka:', err);
+        console.error('NeuspjeSno kopiranje linka:', err);
       }
     }
   };
@@ -79,7 +79,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           <button
             type="button"
             onClick={handleHeartClick}
-            aria-label={isSaved ? 'Ukloni iz liste želja' : 'Dodaj u listu želja'}
+            aria-label={isSaved ? 'Ukloni iz liste zelja' : 'Dodaj u listu zelja'}
             className={`p-2 rounded-full transition-all duration-200 shadow-md ${
               isSaved
                 ? 'bg-[#0A0A0A] text-red-500 border border-neutral-700 hover:scale-110'

@@ -68,12 +68,12 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
   const rawDailyTrends = analyticsData?.dailyTrends || [];
   const filteredDailyTrends = rawDailyTrends.slice(-Number(timeFilter));
 
-  // Izračun max vrijednosti za bars/grafikon
+  // Izracun max vrijednosti za bars/grafikon
   const maxTrendVisitors = Math.max(...filteredDailyTrends.map((d) => d.uniqueVisitors || 0), 1);
 
   return (
     <div className="space-y-6 font-['Inter'] animate-fadeIn">
-      {/* 1. Header sa dugmetom za osvežavanje */}
+      {/* 1. Header sa dugmetom za osvezavanje */}
       <div className="bg-white border-2 border-neutral-200 p-5 sm:p-7 shadow-sm space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-neutral-200">
           <div>
@@ -83,15 +83,15 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
               </span>
               <span className="text-xs text-neutral-500 flex items-center gap-1">
                 <Database className="w-3.5 h-3.5 text-neutral-400" />
-                <span>Zasebna kolekcija za praćenje akcija</span>
+                <span>Zasebna kolekcija za pracenje akcija</span>
               </span>
             </div>
             <h3 className="font-['Poppins'] text-lg sm:text-2xl font-black uppercase tracking-tight text-neutral-900 mt-1 flex items-center gap-2">
               <Activity className="w-6 h-6 text-[#0A0A0A]" />
-              <span>Praćenje jedinstvenih posjetilaca & Dodavanje u korpu</span>
+              <span>Pracenje jedinstvenih posjetilaca & Dodavanje u korpu</span>
             </h3>
             <p className="text-xs text-neutral-500">
-              Analitika ponašanja kupaca u Casual Shop BiH u realnom vremenu uz evidenciju u bazi.
+              Analitika ponaSanja kupaca u Casual Shop BiH u realnom vremenu uz evidenciju u bazi.
             </p>
           </div>
 
@@ -101,7 +101,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
             className="px-4 py-2.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white border-2 border-[#0A0A0A] text-xs font-['Poppins'] font-black uppercase tracking-wider flex items-center gap-2 transition-all self-start lg:self-auto shadow-sm cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>{loading ? 'Učitavam...' : 'Osvježi analitiku'}</span>
+            <span>{loading ? 'Ucitavam...' : 'Osvjezi analitiku'}</span>
           </button>
         </div>
 
@@ -135,7 +135,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
               {addToCartEvents}
             </div>
             <span className="text-[11px] text-neutral-600 block">
-              Od <strong>{uniqueAddToCartUsers}</strong> različitih kupaca
+              Od <strong>{uniqueAddToCartUsers}</strong> razlicitih kupaca
             </span>
           </div>
 
@@ -159,7 +159,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
           <div className="bg-[#F4F2EC] border-2 border-neutral-300 p-4.5 space-y-1 shadow-xs">
             <div className="flex items-center justify-between text-neutral-600">
               <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700">
-                REALIZOVANE NARUDŽBE
+                REALIZOVANE NARUDzBE
               </span>
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             </div>
@@ -215,7 +215,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
 
           {filteredDailyTrends.length === 0 ? (
             <div className="p-8 text-center text-xs text-neutral-500 font-['Inter'] bg-[#F4F2EC] border border-neutral-300">
-              Nema još zabilježenih dnevnih događaja u bazi za odabrani period.
+              Nema joS zabiljezenih dnevnih događaja u bazi za odabrani period.
             </div>
           ) : (
             <div className="bg-[#F4F2EC] p-4 border border-neutral-300 space-y-3">
@@ -266,7 +266,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-[#0A0A0A]" />
             <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black">
-              Zadnje zabilježene akcije posjetilaca (Live Event Feed)
+              Zadnje zabiljezene akcije posjetilaca (Live Event Feed)
             </h4>
           </div>
           <span className="text-[10px] font-['Poppins'] font-bold text-neutral-400 uppercase">
@@ -340,7 +340,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
                       <td className="p-2.5 text-neutral-800 font-semibold">
                         {evt.metadata?.productName
                           ? `${evt.metadata.productName} ${evt.metadata.size ? `(\${evt.metadata.size})` : ''} - ${evt.metadata.price ?? ''} KM`
-                          : evt.metadata?.path || 'Početna stranica'}
+                          : evt.metadata?.path || 'Pocetna stranica'}
                       </td>
                     </tr>
                   );
@@ -350,7 +350,7 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
           </div>
         ) : (
           <div className="bg-[#F4F2EC] p-4 text-xs text-neutral-600 font-['Inter']">
-            Evidentiranje akcija je aktivno. Čim posjetioci otvore shop ili dodaju majicu u korpu, ovdje će se u realnom vremenu prikazati njihove radnje.
+            Evidentiranje akcija je aktivno. cim posjetioci otvore shop ili dodaju majicu u korpu, ovdje ce se u realnom vremenu prikazati njihove radnje.
           </div>
         )}
       </div>
@@ -363,8 +363,8 @@ export const FunnelAnalytics: React.FC<FunnelAnalyticsProps> = ({ ordersCount })
             Kako pretvoriti dodavanje u korpu u prodaju?
           </span>
           <p className="text-neutral-700 leading-relaxed">
-            1. <strong>Retargeting napuštenih korpi</strong>: U kartici <em>"Napuštene korpe & E-mail"</em> možete vidjeti kupce koji su ostavili korpu. Jednim klikom im pošaljite promo kod od 10% popusta.<br />
-            2. <strong>Analiza najtraženijih artikala</strong>: Ako se artikal često dodaje u korpu a rjeđe kupuje, provjerite zalihe ili ponudite besplatnu dostavu preko 100 KM.
+            1. <strong>Retargeting napuStenih korpi</strong>: U kartici <em>"NapuStene korpe & E-mail"</em> mozete vidjeti kupce koji su ostavili korpu. Jednim klikom im poSaljite promo kod od 10% popusta.<br />
+            2. <strong>Analiza najtrazenijih artikala</strong>: Ako se artikal cesto dodaje u korpu a rjeđe kupuje, provjerite zalihe ili ponudite besplatnu dostavu preko 100 KM.
           </p>
         </div>
       </div>

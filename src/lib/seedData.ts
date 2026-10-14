@@ -8,14 +8,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     originalPrice: 45.0,
     category: 'Majice',
     color: 'Crna sa bijelim box printom',
-    material: '100% češljani pamuk 240 GSM',
-    careInstructions: 'Prati u mašini na 30°C izvrnuto. Peglati s unutrašnje strane. Ne sušiti u sušilici.',
-    description: 'Prepoznatljiva ulična majica s kultnim "SARAJEVO geographic" box logom na prsima. Boxy ulični kroj sa spuštenim ramenima i ojačanim rebrastim ovratnikom.',
+    material: '100% ceSljani pamuk 240 GSM',
+    careInstructions: 'Prati u maSini na 30°C izvrnuto. Peglati s unutraSnje strane. Ne suSiti u suSilici.',
+    description: 'Prepoznatljiva ulicna majica s kultnim "SARAJEVO geographic" box logom na prsima. Boxy ulicni kroj sa spuStenim ramenima i ojacanim rebrastim ovratnikom.',
     details: [
-      '100% vrhunski češljani pamuk 240 GSM',
+      '100% vrhunski ceSljani pamuk 240 GSM',
       'Boxy streetwear kroj (regular/relaxed fit)',
       'Visokokvalitetni sitotisak postojan na pranje',
-      'Unutrašnja žuta traka na ovratniku'
+      'UnutraSnja zuta traka na ovratniku'
     ],
     images: [
       '/images/sarajevo_geo_tee.jpg',
@@ -38,13 +38,13 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 40.0,
     category: 'Majice',
     color: 'Crna',
-    material: '100% češljani pamuk 240 GSM',
+    material: '100% ceSljani pamuk 240 GSM',
     careInstructions: 'Prati na 30°C izvrnuto, ne izbjeljivati, peglati na srednjoj temperaturi.',
-    description: 'Streetwear majica posvećena kulturi putovanja, kombija i navijačkih gostovanja uz ilustraciju VW Transportera i natpis "Best days? Away days".',
+    description: 'Streetwear majica posvecena kulturi putovanja, kombija i navijackih gostovanja uz ilustraciju VW Transportera i natpis "Best days? Away days".',
     details: [
-      'Gusti češljani pamuk 240 GSM',
-      'Detaljna višebojna grafika na prsima',
-      'Mekana tkanina prijatna za cjelodnevno nošenje'
+      'Gusti ceSljani pamuk 240 GSM',
+      'Detaljna viSebojna grafika na prsima',
+      'Mekana tkanina prijatna za cjelodnevno noSenje'
     ],
     images: [
       '/images/away_days_tee.jpg'
@@ -71,7 +71,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Limitirano izdanje kultne Sarajevo geographic majice sa podlogom u zagasitoj maslinasto/kadulja zelenoj nijansi.',
     details: [
       'Specijalna sage green nijansa printa',
-      '100% organski češljani pamuk',
+      '100% organski ceSljani pamuk',
       'Boxy streetwear kroj'
     ],
     images: [
@@ -95,14 +95,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 35.0,
     originalPrice: 40.0,
     category: 'Majice',
-    color: 'Crna sa bijelim slovima i žutom trakom',
-    material: '100% češljani pamuk 240 GSM',
+    color: 'Crna sa bijelim slovima i zutom trakom',
+    material: '100% ceSljani pamuk 240 GSM',
     careInstructions: 'Prati na 30°C.',
-    description: 'Minimalistička crna streetwear majica sa lučnim retro natpisom COPACABANA u reljefnom printu i kontrastnom žutom trakom u kragni.',
+    description: 'Minimalisticka crna streetwear majica sa lucnim retro natpisom COPACABANA u reljefnom printu i kontrastnom zutom trakom u kragni.',
     details: [
-      'Retro lučni lettering',
-      'Žuta unutrašnja ojačana traka ovratnika',
-      'Opušteni kroj'
+      'Retro lucni lettering',
+      'zuta unutraSnja ojacana traka ovratnika',
+      'OpuSteni kroj'
     ],
     images: [
       '/images/copacabana_tee.jpg'
@@ -124,12 +124,12 @@ export const INITIAL_PRODUCTS: Product[] = [
     price: 40.0,
     category: 'Majice',
     color: 'Crna',
-    material: '100% češljani pamuk 240 GSM',
-    careInstructions: 'Prati na 30°C, sušiti na zraku.',
-    description: 'Klasik ulične casual kulture: retro patike uz natpis "Made for standing not running". Savršen izbor za tribinu, ulicu i svakodnevne casual kombinacije.',
+    material: '100% ceSljani pamuk 240 GSM',
+    careInstructions: 'Prati na 30°C, suSiti na zraku.',
+    description: 'Klasik ulicne casual kulture: retro patike uz natpis "Made for standing not running". SavrSen izbor za tribinu, ulicu i svakodnevne casual kombinacije.',
     details: [
       'Premijum pamuk sa silikonskom obradom',
-      'Autentična retro tenisice grafika',
+      'Autenticna retro tenisice grafika',
       'Udoban kroj sa slobodnim padom'
     ],
     images: [
@@ -153,12 +153,12 @@ export const INITIAL_PRODUCTS: Product[] = [
     originalPrice: 45.0,
     category: 'Majice',
     color: 'Maslinasto zelena (Olive)',
-    material: '100% češljani pamuk 240 GSM',
+    material: '100% ceSljani pamuk 240 GSM',
     careInstructions: 'Prati na 30°C naopako.',
-    description: 'Maslinasta majica s prepoznatljivim plamenom baklje i natpisom "No Pyro No Party". Upečatljiv kontrast boja i Casual bočni amblem na rukavu.',
+    description: 'Maslinasta majica s prepoznatljivim plamenom baklje i natpisom "No Pyro No Party". Upecatljiv kontrast boja i Casual bocni amblem na rukavu.',
     details: [
       'Zagasito maslinasto-zelena nijansa',
-      'Visokootporan sitotisak u bijeloj i narandžastoj boji',
+      'Visokootporan sitotisak u bijeloj i narandzastoj boji',
       'Casual tkani mini amblem na rukavu'
     ],
     images: [
@@ -182,13 +182,13 @@ export const INITIAL_PRODUCTS: Product[] = [
     originalPrice: 95.0,
     category: 'Duksevi i hoodice',
     color: 'Crna',
-    material: '100% češljani pamuk 460 GSM s flisom',
-    careInstructions: 'Prati na 30°C, ne koristiti sušilicu.',
-    description: 'Najtraženiji komad brenda: teški 460 GSM duks sa širokom kapuljačom bez pertli i minimalističkim vezenim detaljima.',
+    material: '100% ceSljani pamuk 460 GSM s flisom',
+    careInstructions: 'Prati na 30°C, ne koristiti suSilicu.',
+    description: 'Najtrazeniji komad brenda: teSki 460 GSM duks sa Sirokom kapuljacom bez pertli i minimalistickim vezenim detaljima.',
     details: [
       '460 GSM gusti organski pamuk',
-      'Dupla kapuljača za čvrst volumen',
-      'Prednji kengur džep'
+      'Dupla kapuljaca za cvrst volumen',
+      'Prednji kengur dzep'
     ],
     images: [
       'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1000&q=80',
@@ -207,16 +207,16 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
   {
     id: 'cs-bucket-hat-signature-08',
-    name: 'CS Signature Bucket Šešir "Casual Black"',
+    name: 'CS Signature Bucket SeSir "Casual Black"',
     price: 25.0,
-    category: 'Kape i šeširi',
-    color: 'Crna sa žutim detaljem',
-    material: '100% čvrsti pamučni keper',
-    careInstructions: 'Ručno pranje u mlakoj vodi.',
-    description: 'Prepoznatljivi bucket šešir sa logotipom brenda. Pruža klasičan casual streetwear izgled i zaštitu.',
+    category: 'Kape i SeSiri',
+    color: 'Crna sa zutim detaljem',
+    material: '100% cvrsti pamucni keper',
+    careInstructions: 'Rucno pranje u mlakoj vodi.',
+    description: 'Prepoznatljivi bucket SeSir sa logotipom brenda. Pruza klasican casual streetwear izgled i zaStitu.',
     details: [
-      'Univerzalna veličina (One size fits all)',
-      'Čvrst obod sa proštepanim linijama'
+      'Univerzalna velicina (One size fits all)',
+      'cvrst obod sa proStepanim linijama'
     ],
     images: [
       'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?auto=format&fit=crop&w=1000&q=80'

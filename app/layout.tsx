@@ -3,8 +3,8 @@ import "./globals.css";
 import ClientLayout from "./ClientLayout";
 
 export const metadata: Metadata = {
-  title: "Casual Shop BiH | Udobna i stilska odjeća online",
-  description: "Udobna odjeća za svaki dan. Majice, duksevi, kape i streetwear komadi uz brzu dostavu širom BiH i plaćanje pouzećem.",
+  title: "Casual Shop BiH | Udobna i stilska odjeca online",
+  description: "Udobna odjeca za svaki dan. Majice, duksevi, kape i streetwear komadi uz brzu dostavu Sirom BiH i placanje pouzecem.",
 };
 
 export default function RootLayout({

@@ -8,7 +8,7 @@ export function DevSettings() {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
 
-  // 1. Učitavanje postavki direktno iz Firebase baze
+  // 1. Ucitavanje postavki direktno iz Firebase baze
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -16,7 +16,7 @@ export function DevSettings() {
         setSettings(data);
         applyTheme(data);
       } catch (err) {
-        console.error('Greška pri učitavanju postavki:', err);
+        console.error('GreSka pri ucitavanju postavki:', err);
       } finally {
         setLoading(false);
       }
@@ -24,7 +24,7 @@ export function DevSettings() {
     fetchSettings();
   }, []);
 
-  // 2. Ažuriranje lokalnog stanja i instant Live Preview na ekranu
+  // 2. Azuriranje lokalnog stanja i instant Live Preview na ekranu
   const handleChange = (field: keyof StoreSettings, value: any) => {
     const updated = { ...settings, [field]: value };
     setSettings(updated);
@@ -38,31 +38,31 @@ export function DevSettings() {
     try {
       await saveStoreSettings(settings);
       applyTheme(settings);
-      alert('Postavke teme su uspješno sačuvane u Firebase bazu za sve kupce!');
+      alert('Postavke teme su uspjeSno sacuvane u Firebase bazu za sve kupce!');
     } catch (err) {
-      console.error('Greška pri spremanju:', err);
-      alert('Došlo je do greške pri spremanju u bazu.');
+      console.error('GreSka pri spremanju:', err);
+      alert('DoSlo je do greSke pri spremanju u bazu.');
     } finally {
       setSaving(false);
     }
   };
 
-  // 4. Vraćanje na fabričke postavke
+  // 4. Vracanje na fabricke postavke
   const handleReset = async () => {
-    if (window.confirm('Da li ste sigurni da želite vratiti sve vizuelne postavke na početne?')) {
+    if (window.confirm('Da li ste sigurni da zelite vratiti sve vizuelne postavke na pocetne?')) {
       setSettings(DEFAULT_STORE_SETTINGS);
       applyTheme(DEFAULT_STORE_SETTINGS);
       try {
         await saveStoreSettings(DEFAULT_STORE_SETTINGS);
-        alert('Postavke vraćene na fabričke!');
+        alert('Postavke vracene na fabricke!');
       } catch (err) {
-        console.error('Greška pri resetovanju:', err);
+        console.error('GreSka pri resetovanju:', err);
       }
     }
   };
 
   if (loading) {
-    return <div className="p-6 text-center text-gray-500">Učitavanje postavki...</div>;
+    return <div className="p-6 text-center text-gray-500">Ucitavanje postavki...</div>;
   }
 
   return (
@@ -145,10 +145,10 @@ export function DevSettings() {
           </select>
         </div>
 
-        {/* Veličina Fonta */}
+        {/* Velicina Fonta */}
         <div>
           <label className="block font-medium mb-1">
-            Bazna veličina fonta: <span className="font-bold">{settings.fontSize || 16}px</span>
+            Bazna velicina fonta: <span className="font-bold">{settings.fontSize || 16}px</span>
           </label>
           <input
             type="range"
@@ -167,7 +167,7 @@ export function DevSettings() {
             disabled={saving}
             className="flex-1 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition-colors font-semibold disabled:opacity-50"
           >
-            {saving ? 'Spremanje...' : 'Sačuvaj Promene'}
+            {saving ? 'Spremanje...' : 'Sacuvaj Promene'}
           </button>
           <button
             type="button"

@@ -8,15 +8,15 @@
         "name": { "type": "string", "description": "Naziv artikla", "maxLength": 150 },
         "price": { "type": "number", "description": "Cijena artikla u KM" },
         "originalPrice": { "type": "number", "description": "Stara cijena za akciju u KM" },
-        "category": { "type": "string", "description": "Kategorija odjeće", "maxLength": 60 },
+        "category": { "type": "string", "description": "Kategorija odjece", "maxLength": 60 },
         "color": { "type": "string", "description": "Boja artikla", "maxLength": 60 },
         "material": { "type": "string", "description": "Materijal i gramatura", "maxLength": 100 },
         "description": { "type": "string", "description": "Detaljan opis artikla", "maxLength": 2000 },
         "careInstructions": { "type": "string", "description": "Upute za njegu i pranje", "maxLength": 500 },
         "images": { "type": "array", "description": "Lista URL-ova slika artikla" },
-        "sizes": { "type": "object", "description": "Dostupne veličine i zalihe (S, M, L, XL ili One size)" },
+        "sizes": { "type": "object", "description": "Dostupne velicine i zalihe (S, M, L, XL ili One size)" },
         "isNew": { "type": "boolean", "description": "Oznaka novo u ponudi" },
-        "featured": { "type": "boolean", "description": "Da li je artikal istaknut na početnoj stranici" },
+        "featured": { "type": "boolean", "description": "Da li je artikal istaknut na pocetnoj stranici" },
         "isHidden": { "type": "boolean", "description": "Sakriven iz javnog kataloga" },
         "createdAt": { "type": "string", "description": "Datum kreiranja artikla" }
       },
@@ -24,18 +24,18 @@
     },
     "Order": {
       "title": "Order",
-      "description": "Narudžba kupca",
+      "description": "Narudzba kupca",
       "type": "object",
       "properties": {
-        "orderNumber": { "type": "string", "description": "Unikatan broj narudžbe", "maxLength": 50 },
-        "items": { "type": "array", "description": "Lista naručenih artikala sa odabranim veličinama i cijenama" },
+        "orderNumber": { "type": "string", "description": "Unikatan broj narudzbe", "maxLength": 50 },
+        "items": { "type": "array", "description": "Lista narucenih artikala sa odabranim velicinama i cijenama" },
         "customer": { "type": "object", "description": "Podaci o kupcu za dostavu" },
         "subtotal": { "type": "number", "description": "Iznos artikala u KM" },
         "shippingFee": { "type": "number", "description": "Iznos dostave u KM" },
-        "total": { "type": "number", "description": "Ukupan iznos za plaćanje pouzećem u KM" },
-        "paymentMethod": { "type": "string", "description": "Metoda plaćanja (gotovinsko pouzeće)", "maxLength": 50 },
-        "status": { "type": "string", "description": "Status narudžbe", "enum": ["Nova", "Potvrđena", "Poslana", "Dostavljena", "Otkazana"] },
-        "createdAt": { "type": "string", "description": "Datum i vrijeme narudžbe" }
+        "total": { "type": "number", "description": "Ukupan iznos za placanje pouzecem u KM" },
+        "paymentMethod": { "type": "string", "description": "Metoda placanja (gotovinsko pouzece)", "maxLength": 50 },
+        "status": { "type": "string", "description": "Status narudzbe", "enum": ["Nova", "Potvrđena", "Poslana", "Dostavljena", "Otkazana"] },
+        "createdAt": { "type": "string", "description": "Datum i vrijeme narudzbe" }
       },
       "required": ["orderNumber", "items", "customer", "subtotal", "shippingFee", "total", "paymentMethod", "status"]
     },
@@ -62,7 +62,7 @@
         "instagramUrl": { "type": "string", "description": "Instagram link", "maxLength": 200 },
         "whatsappNumber": { "type": "string", "description": "WhatsApp broj", "maxLength": 50 },
         "topBarText": { "type": "string", "description": "Tekst trake iznad headera", "maxLength": 200 },
-        "sizeGuideText": { "type": "string", "description": "Tekst tabele veličina", "maxLength": 2000 },
+        "sizeGuideText": { "type": "string", "description": "Tekst tabele velicina", "maxLength": 2000 },
         "sellerName": { "type": "string", "description": "Ime ili naziv firme prodavca", "maxLength": 200 },
         "sellerAddress": { "type": "string", "description": "Adresa prodavca", "maxLength": 200 },
         "sellerIdNumber": { "type": "string", "description": "ID broj prodavca", "maxLength": 50 }
@@ -70,14 +70,14 @@
     },
     "AnalyticsEvent": {
       "title": "AnalyticsEvent",
-      "description": "Zabilježeni event praćenja posjetilaca ili akcija dodaj u korpu",
+      "description": "Zabiljezeni event pracenja posjetilaca ili akcija dodaj u korpu",
       "type": "object",
       "properties": {
         "eventType": { "type": "string", "description": "Tip eventa (visit, add_to_cart, view_item, begin_checkout, purchase)", "maxLength": 50 },
         "visitorId": { "type": "string", "description": "Jedinstveni identifikator posjetioca", "maxLength": 100 },
-        "timestamp": { "type": "string", "description": "Vrijeme zabilješke eventa" },
+        "timestamp": { "type": "string", "description": "Vrijeme zabiljeSke eventa" },
         "date": { "type": "string", "description": "Datum u formatu YYYY-MM-DD", "maxLength": 20 },
-        "metadata": { "type": "object", "description": "Dodatni podaci (npr. naziv artikla, cijena, veličina)" }
+        "metadata": { "type": "object", "description": "Dodatni podaci (npr. naziv artikla, cijena, velicina)" }
       },
       "required": ["eventType", "visitorId", "timestamp", "date"]
     },
@@ -103,7 +103,7 @@
       "properties": {
         "userId": { "type": "string", "description": "ID prijavljenog korisnika", "maxLength": 128 },
         "productIds": { "type": "array", "description": "Lista ID-eva spremljenih proizvoda" },
-        "updatedAt": { "type": "string", "description": "Vrijeme zadnje izmjene liste želja" }
+        "updatedAt": { "type": "string", "description": "Vrijeme zadnje izmjene liste zelja" }
       },
       "required": ["userId", "productIds"]
     }
@@ -115,7 +115,7 @@
     },
     "/orders/{orderId}": {
       "schema": "Order",
-      "description": "Kolekcija pristiglih narudžbi"
+      "description": "Kolekcija pristiglih narudzbi"
     },
     "/subscribers/{subscriberId}": {
       "schema": "Subscriber",
@@ -127,7 +127,7 @@
     },
     "/analytics_events/{eventId}": {
       "schema": "AnalyticsEvent",
-      "description": "Kolekcija zabilježenih korisničkih akcija i posjeta za statistiku"
+      "description": "Kolekcija zabiljezenih korisnickih akcija i posjeta za statistiku"
     },
     "/reviews/{reviewId}": {
       "schema": "Review",
@@ -135,7 +135,7 @@
     },
     "/wishlists/{userId}": {
       "schema": "Wishlist",
-      "description": "Kolekcija lista želja korisnika"
+      "description": "Kolekcija lista zelja korisnika"
     }
   }
 }

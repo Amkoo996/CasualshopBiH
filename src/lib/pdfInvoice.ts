@@ -267,32 +267,32 @@ export function getWhatsAppConfirmationUrl(order: Order): string {
   }
 
   const itemsList = order.items
-    .map((it) => `  • ${it.quantity}x ${it.name} (Veličina: ${it.size}) - ${(it.price * it.quantity).toFixed(2)} KM`)
+    .map((it) => `  • ${it.quantity}x ${it.name} (Velicina: ${it.size}) - ${(it.price * it.quantity).toFixed(2)} KM`)
     .join('\n');
 
   const shippingText = order.shippingFee === 0 ? 'BESPLATNA (0 KM)' : `${order.shippingFee.toFixed(2)} KM`;
 
   const message = `Pozdrav ${order.customer.firstName}! 👕
-Hvala ti na narudžbi u Casual Shop BiH!
+Hvala ti na narudzbi u Casual Shop BiH!
 
-📦 *Broj narudžbe:* #${order.orderNumber}
+📦 *Broj narudzbe:* #${order.orderNumber}
 
-📋 *Naručeni artikli:*
+📋 *Naruceni artikli:*
 ${itemsList}
 
 💰 *Iznos artikala:* ${order.subtotal.toFixed(2)} KM
-🚚 *Dostava (Brza pošta):* ${shippingText}
-💵 *UKUPNO ZA PLAĆANJE POUZEĆEM:* ${order.total.toFixed(2)} KM
+🚚 *Dostava (Brza poSta):* ${shippingText}
+💵 *UKUPNO ZA PLAcANJE POUZEcEM:* ${order.total.toFixed(2)} KM
 
 📍 *Podaci za dostavu:*
 ${order.customer.address}, ${order.customer.postalCode} ${order.customer.city}
 📞 *Telefon:* ${order.customer.phone}
 
 ℹ️ *Informacija o isporuci:*
-Paket stiže u roku 2–5 radnih dana putem kurirske službe. Plaćate gotovinom kuriru pri preuzimanju paketa.
+Paket stize u roku 2–5 radnih dana putem kurirske sluzbe. Placate gotovinom kuriru pri preuzimanju paketa.
 
-Molimo te da odgovoriš sa *'POTVRĐUJEM'* kako bismo odmah spakovali tvoj paket.
-Hvala što nosiš Casual! 💛`;
+Molimo te da odgovoriS sa *'POTVRĐUJEM'* kako bismo odmah spakovali tvoj paket.
+Hvala Sto nosiS Casual! 💛`;
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }

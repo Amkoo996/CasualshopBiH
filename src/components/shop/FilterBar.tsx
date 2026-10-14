@@ -57,7 +57,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               className="inline-flex items-center gap-1.5 text-xs font-['Poppins'] font-bold text-neutral-600 hover:text-black transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Poništi filtere</span>
+              <span>PoniSti filtere</span>
             </button>
           )}
 
@@ -73,15 +73,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               className="bg-white border-2 border-neutral-300 text-xs font-['Poppins'] font-semibold px-3 py-1.5 text-neutral-900 focus:border-[#0A0A0A] focus:outline-none cursor-pointer"
             >
               <option value="newest">Najnovije</option>
-              <option value="price-low">Cijena: Niža prema višoj</option>
-              <option value="price-high">Cijena: Viša prema nižoj</option>
+              <option value="price-low">Cijena: Niza prema viSoj</option>
+              <option value="price-high">Cijena: ViSa prema nizoj</option>
               <option value="name">Naziv (A-Z)</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Categories - KORISTI PROČIŠĆENI NIZ iz PROPSA */}
+      {/* Categories - KORISTI PROcIScENI NIZ iz PROPSA */}
       <div className="space-y-2">
         <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-[0.15em] text-neutral-500 block">
           Kategorija
@@ -108,7 +108,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         {/* Size pills */}
         <div className="space-y-2">
           <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-[0.15em] text-neutral-500 block">
-            Veličina
+            Velicina
           </span>
           <div className="flex flex-wrap gap-2">
             <button

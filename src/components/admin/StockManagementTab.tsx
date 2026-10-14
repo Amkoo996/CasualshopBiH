@@ -20,7 +20,7 @@ const SIZE_LIST: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 const DEFAULT_PLACEHOLDER_IMAGE = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f4f2ec"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%23a3a3a3">Casual Shop</text></svg>';
 
 /**
- * Robusni CSV parser koji rukuje navodnicima i podržava i komu (,) i tačka-zarez (;)
+ * Robusni CSV parser koji rukuje navodnicima i podrzava i komu (,) i tacka-zarez (;)
  */
 function parseCSVLine(text: string, delimiter: string): string[] {
   const result: string[] = [];
@@ -96,10 +96,10 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
 
       setStockChanges({});
       await onRefreshData();
-      setStatusMessage({ text: 'Zalihe uspješno ažurirane u bazi!', error: false });
+      setStatusMessage({ text: 'Zalihe uspjeSno azurirane u bazi!', error: false });
     } catch (err: any) {
-      console.error('Greška pri spremanju zaliha:', err);
-      setStatusMessage({ text: 'Greška prilikom spremanja zaliha.', error: true });
+      console.error('GreSka pri spremanju zaliha:', err);
+      setStatusMessage({ text: 'GreSka prilikom spremanja zaliha.', error: true });
     } finally {
       setIsSaving(false);
     }
@@ -154,7 +154,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
           if (cols.length >= 4) {
             const [rawId, rawName, rawCategory, priceStr, s, m, l, xl, xxl, xxxl, oneSize] = cols;
 
-            // Čišćenje potencijalnih navodnika
+            // ciScenje potencijalnih navodnika
             const cleanId = rawId ? rawId.replace(/^"|"\$/g, '').trim() : '';
             const name = rawName ? rawName.replace(/^"|"\$/g, '').trim() : '';
             const category = rawCategory ? rawCategory.replace(/^"|"\$/g, '').trim() : '';
@@ -176,7 +176,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
                 'One size': parseInt(oneSize) || 0,
               };
 
-              // SIGURNA NADOGRADNJA: Ako proizvod postoji, čuvamo njegove slike, opis i boju (K5 Fix)
+              // SIGURNA NADOGRADNJA: Ako proizvod postoji, cuvamo njegove slike, opis i boju (K5 Fix)
               const payload: Partial<Product> & { id?: string } = existingProd
                 ? {
                     id: existingProd.id,
@@ -190,7 +190,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
                     category: catValid,
                     price,
                     color: 'Standardna',
-                    material: '100% češljani pamuk 240 GSM',
+                    material: '100% ceSljani pamuk 240 GSM',
                     description: '',
                     sizes: importedSizes,
                     images: [DEFAULT_PLACEHOLDER_IMAGE],
@@ -205,10 +205,10 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
         }
 
         await onRefreshData();
-        setStatusMessage({ text: `Uspješno uvezeno/ažurirano ${importedCount} artikala iz Excel/CSV datoteke!`, error: false });
+        setStatusMessage({ text: `UspjeSno uvezeno/azurirano ${importedCount} artikala iz Excel/CSV datoteke!`, error: false });
       } catch (err) {
-        console.error('Greška pri parsiranju CSV-a:', err);
-        setStatusMessage({ text: 'Greška pri čitanju datoteke. Provjerite format.', error: true });
+        console.error('GreSka pri parsiranju CSV-a:', err);
+        setStatusMessage({ text: 'GreSka pri citanju datoteke. Provjerite format.', error: true });
       } finally {
         setIsSaving(false);
         e.target.value = '';
@@ -240,7 +240,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
             <span>Upravljanje Zalihama & Excel Import</span>
           </h2>
           <p className="text-xs text-neutral-500 font-['Inter']">
-            Brza izmjena komada po veličinama, masovni unos putem Excel/CSV tabele i izvoz stanja magacina.
+            Brza izmjena komada po velicinama, masovni unos putem Excel/CSV tabele i izvoz stanja magacina.
           </p>
         </div>
 
@@ -281,7 +281,7 @@ export const StockManagementTab: React.FC<StockManagementTabProps> = ({
         <div className="relative w-full sm:w-72">
           <input
             type="text"
-            placeholder="Pretraži artikal po nazivu ili ID-u..."
+            placeholder="Pretrazi artikal po nazivu ili ID-u..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-[#F4F2EC] border border-neutral-300 px-3 py-1.5 text-xs focus:bg-white focus:outline-none"

@@ -8,7 +8,7 @@ export const onRequestPost = async (context: {
   try {
     const { request, env } = context;
 
-    // 1. STROGA ORIGIN / REFERER ZAŠTITA (K4 Fix)
+    // 1. STROGA ORIGIN / REFERER ZASTITA (K4 Fix)
     const origin = request.headers.get('Origin') || '';
     const referer = request.headers.get('Referer') || '';
     const allowedOrigins = ['https://casualshopbih.pages.dev', 'https://casualshop.ba'];
@@ -40,7 +40,7 @@ export const onRequestPost = async (context: {
     if (!apiKey) {
       console.error('BREVO_API_KEY nije konfigurisana u Cloudflare varijablama.');
       return new Response(
-        JSON.stringify({ error: 'Sistemska greška na serveru.' }),
+        JSON.stringify({ error: 'Sistemska greSka na serveru.' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -73,7 +73,7 @@ export const onRequestPost = async (context: {
     }
 
     if (responseText.includes('duplicate_parameter') || responseText.includes('already exists')) {
-      return new Response(JSON.stringify({ success: true, message: 'Korisnik je već prijavljen.' }), {
+      return new Response(JSON.stringify({ success: true, message: 'Korisnik je vec prijavljen.' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -81,13 +81,13 @@ export const onRequestPost = async (context: {
 
     console.error('Brevo API error:', res.status, responseText);
     return new Response(
-      JSON.stringify({ error: 'Došlo je do greške pri prijavi na newsletter.' }),
+      JSON.stringify({ error: 'DoSlo je do greSke pri prijavi na newsletter.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
 
   } catch (err: any) {
-    console.error('Sistemska greška u Brevo Workeru:', err);
-    return new Response(JSON.stringify({ error: 'Greška na serveru.' }), {
+    console.error('Sistemska greSka u Brevo Workeru:', err);
+    return new Response(JSON.stringify({ error: 'GreSka na serveru.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

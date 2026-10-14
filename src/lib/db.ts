@@ -3,52 +3,36 @@ import {
   doc,
   getDocs,
   getDoc,
-  addDoc,
-  updateDoc,
+  setDoc,
   deleteDoc,
+  updateDoc,
   query,
   where,
-  orderBy,
-  limit,
-  setDoc,
-  onSnapshot,
-  runTransaction,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from './firebase';
-import {
-  Product,
-  Order,
-  StoreSettings,
-  DEFAULT_STORE_SETTINGS,
-  NewsletterSubscriber,
-  ProductReview,
-  Category,
-  HomeCMSContent,
-  DEFAULT_CMS_CONTENT,
-} from '../types';
-import { normalizePhone, sha256 } from './validation';
+import { Product, Order, NewsletterSubscriber, StoreSettings, OrderStatus, DEFAULT_STORE_SETTINGS } from '../types';
 
 // ==========================================
-// PROIZVODI (PRODUCTS)
+// 1. UPRAVLJANJE PROIZVODIMA (PRODUCTS)
 // ==========================================
 
 export const getProducts = async (includeHidden = false): Promise<Product[]> => {
   try {
-    const productsRef = collection(db, 'products');
-    const snapshot = await getDocs(productsRef);
-    
-    let products = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    })) as Product[];
+    const querySnapshot = await getDocs(collection(db, 'products'));
+    const products: Product[] = [];
 
-    if (!includeHidden) {
-      products = products.filter((p) => !p.isHidden);
-    }
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data() as Product;
+      const product = { ...data, id: docSnap.id };
+      if (includeHidden || !product.isHidden) {
+        products.push(product);
+      }
+    });
 
     return products;
   } catch (error) {
-    console.error('Greška pri dohvaćanju proizvoda:', error);
+    console.error('Greška pri dohvatanju proizvoda:', error);
     return [];
   }
 };
@@ -57,466 +41,236 @@ export const getProductById = async (id: string): Promise<Product | null> => {
   try {
     const docRef = doc(db, 'products', id);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Product;
+      return { ...(docSnap.data() as Product), id: docSnap.id };
     }
     return null;
   } catch (error) {
-    console.error('Greška pri dohvaćanju proizvoda po ID-u:', error);
+    console.error(`Greška pri dohvatanju proizvoda ${id}:`, error);
     return null;
   }
 };
 
-export const addProduct = async (productData: Omit<Product, 'id'>): Promise<string> => {
-  try {
-    const docRef = await addDoc(collection(db, 'products'), {
-      ...productData,
-      createdAt: new Date().toISOString(),
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error('Greška pri dodavanju proizvoda:', error);
-    throw error;
-  }
-};
-
-export const updateProduct = async (id: string, productData: Partial<Product>): Promise<void> => {
-  try {
-    const docRef = doc(db, 'products', id);
-    await updateDoc(docRef, productData);
-  } catch (error) {
-    console.error('Greška pri ažuriranju proizvoda:', error);
-    throw error;
-  }
-};
-
-export const saveProduct = async (productData: Partial<Product> & { id?: string }): Promise<string> => {
-  if (productData.id) {
-    const { id, ...data } = productData;
-    await updateProduct(id, data);
-    return id;
-  } else {
-    return await addProduct(productData as Omit<Product, 'id'>);
-  }
+export const saveProduct = async (productData: Partial<Product>): Promise<void> => {
+  const id = productData.id || `cs-${Date.now()}`;
+  const docRef = doc(db, 'products', id);
+  await setDoc(docRef, { ...productData, id }, { merge: true });
 };
 
 export const deleteProduct = async (id: string): Promise<void> => {
-  try {
-    const docRef = doc(db, 'products', id);
-    await deleteDoc(docRef);
-  } catch (error) {
-    console.error('Greška pri brisanju proizvoda:', error);
-    throw error;
-  }
+  await deleteDoc(doc(db, 'products', id));
 };
 
 // ==========================================
-// NARUDŽBE (ORDERS & TRACKING) - SIGURNA TRANSAKCIJA (K1, K2, K3)
+// 2. UPRAVLJANJE NARUDŽBAMA (ORDERS)
 // ==========================================
-
-export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
-  try {
-    const phoneKey = normalizePhone(orderData.customer?.phone || '') || orderData.customer?.phone || '';
-    const phoneHash = await sha256(phoneKey);
-    const createdAt = new Date().toISOString();
-
-    const ordersRef = collection(db, 'orders');
-    const newOrderRef = doc(ordersRef);
-    const trackingRef = doc(db, 'order_tracking', orderData.orderNumber);
-
-    await runTransaction(db, async (transaction) => {
-      let calculatedSubtotal = 0;
-      const verifiedItems = [];
-
-      // 1. STROGA PROJVERA ZALIHA I PRERAČUNAVANJE PRAVE CIJENE IZ BAZI (K1, K2)
-      for (const item of orderData.items) {
-        const productRef = doc(db, 'products', item.id);
-        const productSnap = await transaction.get(productRef);
-
-        if (!productSnap.exists()) {
-          throw new Error(`Artikal "${item.name}" više ne postoji u ponudi.`);
-        }
-
-        const pData = productSnap.data() as Product;
-        if (pData.isHidden) {
-          throw new Error(`Artikal "${pData.name}" trenutno nije dostupan.`);
-        }
-
-        const currentStock = pData.sizes?.[item.size] ?? 0;
-        if (currentStock < item.quantity) {
-          throw new Error(`Nema dovoljno zaliha za "${pData.name}" (Veličina: ${item.size}). Na stanju: ${currentStock}`);
-        }
-
-        const realPrice = pData.price;
-        calculatedSubtotal += realPrice * item.quantity;
-
-        verifiedItems.push({
-          ...item,
-          price: realPrice,
-        });
-
-        // Smanjivanje zalihe
-        transaction.update(productRef, {
-          [`sizes.${item.size}`]: currentStock - item.quantity,
-        });
-      }
-
-      // 2. STROGA VERIFIKACIJA PROMO KODA U TRANSAKCIJI (K3)
-      let verifiedDiscount = 0;
-      if (orderData.promoCode) {
-        const promoCodeUpper = orderData.promoCode.trim().toUpperCase();
-        const promoRef = doc(db, 'promo_codes', promoCodeUpper);
-        const promoSnap = await transaction.get(promoRef);
-
-        if (promoSnap.exists()) {
-          const promoData = promoSnap.data();
-          const isExpired = promoData.expiresAt ? new Date(promoData.expiresAt).getTime() < Date.now() : false;
-          const isMaxUsed = promoData.maxUsage ? (promoData.usageCount || 0) >= promoData.maxUsage : false;
-
-          if (promoData.active !== false && !isExpired && !isMaxUsed) {
-            const discountPercent = promoData.discountPercent || 10;
-            verifiedDiscount = (calculatedSubtotal * discountPercent) / 100;
-
-            // Povećanje broja upotreba promo koda
-            transaction.update(promoRef, {
-              usageCount: (promoData.usageCount || 0) + 1,
-            });
-          }
-        }
-      }
-
-      // 3. PRERAČUNAVANJE FINALNOG TOTALA
-      const verifiedShippingFee = calculatedSubtotal >= 100 ? 0 : 12;
-      const verifiedTotal = Math.max(0, calculatedSubtotal - verifiedDiscount + verifiedShippingFee);
-
-      // 4. UPIS VERIFICIRANIH PODATAKA NARUDŽBE
-      transaction.set(newOrderRef, {
-        ...orderData,
-        items: verifiedItems,
-        subtotal: calculatedSubtotal,
-        discountAmount: verifiedDiscount,
-        shippingFee: verifiedShippingFee,
-        total: verifiedTotal,
-        status: 'Nova',
-        createdAt,
-      });
-
-      // 5. UPIS ANONIMIZIRANIH PODATAKA ZA PRAĆENJE
-      transaction.set(trackingRef, {
-        orderNumber: orderData.orderNumber,
-        status: 'Nova',
-        phoneHash,
-        createdAt,
-      });
-    });
-
-    // 6. Slanje notifikacije na Telegram
-    sendOrderToTelegram({ ...orderData, id: newOrderRef.id }).catch((err) => {
-      console.warn('Slanje Telegram obavijesti nije uspjelo:', err);
-    });
-
-    return newOrderRef.id;
-  } catch (error) {
-    console.error('Greška pri kreiranju narudžbe:', error);
-    throw error;
-  }
-};
 
 export const getOrders = async (): Promise<Order[]> => {
   try {
-    const ordersRef = collection(db, 'orders');
-    const q = query(ordersRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
+    const querySnapshot = await getDocs(collection(db, 'orders'));
+    const orders: Order[] = [];
 
-    return snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    })) as Order[];
+    querySnapshot.forEach((docSnap) => {
+      orders.push({ ...(docSnap.data() as Order), id: docSnap.id });
+    });
+
+    // Sortiranje po datumu (najnovije na vrhu)
+    orders.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    return orders;
   } catch (error) {
-    console.error('Greška pri dohvaćanju narudžbi:', error);
+    console.error('Greška pri dohvatanju narudžbi:', error);
     return [];
   }
+};
+
+/**
+ * Kreiranje narudžbe sa Firestore transakcijom:
+ * RJEŠENJE ZA: "Firestore transactions require all reads to be executed before all writes"
+ */
+export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
+  const newOrderRef = doc(collection(db, 'orders'));
+  const orderId = newOrderRef.id;
+
+  await runTransaction(db, async (transaction) => {
+    // 1. FAZA: SVA ČITANJA MORAJU BITI IZVRŠENA PRIJE BILO KAKVOG UPISA
+    const productReads = [];
+    for (const item of orderData.items) {
+      const prodRef = doc(db, 'products', item.id);
+      const prodSnap = await transaction.get(prodRef);
+      productReads.push({ item, prodRef, prodSnap });
+    }
+
+    // 2. FAZA: SVA PISANJA NAKON ŠTO SU PODACI PROČITANI
+    for (const { item, prodRef, prodSnap } of productReads) {
+      if (prodSnap.exists()) {
+        const prodData = prodSnap.data() as any;
+        const currentSizes = { ...(prodData.sizes || {}) };
+        const currentStock = currentSizes[item.size] ?? 0;
+        currentSizes[item.size] = Math.max(0, currentStock - item.quantity);
+
+        transaction.update(prodRef, { sizes: currentSizes });
+      }
+    }
+
+    // Upis nove narudžbe
+    transaction.set(newOrderRef, {
+      ...orderData,
+      id: orderId,
+      createdAt: orderData.createdAt || new Date().toISOString(),
+      status: orderData.status || 'Nova',
+    });
+  });
+
+  // 3. Slanje Telegram notifikacije o novoj narudžbi
+  try {
+    const c = (orderData as any).customer || {};
+    const buyerName = c.fullName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.name || 'Kupac';
+    const itemsText = orderData.items.map((i) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
+
+    const telegramText = 
+      `🛍️ NOVA NARUDŽBA #${orderData.orderNumber || orderId.slice(0, 7)}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `👤 Kupac: ${buyerName}\n` +
+      `📞 Tel: ${c.phone || 'N/A'}\n` +
+      `📍 Grad: ${c.city || 'N/A'}, ${c.address || ''}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `📦 Artikli:\n${itemsText}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `💰 Ukupno za naplatu: ${orderData.total.toFixed(2)} KM (Pouzećem)`;
+
+    fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: telegramText, type: 'order' }),
+    }).catch(() => {});
+  } catch (err) {
+    console.error('Greška pri slanju notifikacije za narudžbu:', err);
+  }
+
+  return orderId;
 };
 
 export const updateOrderStatus = async (
   orderId: string,
-  status: Order['status'],
-  trackingData?: { trackingNumber?: string; courierName?: string }
+  status: OrderStatus,
+  trackingInfo?: { trackingNumber?: string; courierName?: string }
 ): Promise<void> => {
+  const orderRef = doc(db, 'orders', orderId);
+  const updateData: any = { status };
+
+  if (trackingInfo?.trackingNumber !== undefined) {
+    updateData.trackingNumber = trackingInfo.trackingNumber;
+  }
+  if (trackingInfo?.courierName !== undefined) {
+    updateData.courierName = trackingInfo.courierName;
+  }
+
+  await updateDoc(orderRef, updateData);
+};
+
+// ==========================================
+// 3. RECENZIJE PROIZVODA (REVIEWS)
+// ==========================================
+
+/**
+ * Dohvatanje recenzija uz sortiranje u memoriji:
+ * RJEŠENJE ZA: "FirebaseError: The query requires an index"
+ */
+export const getProductReviews = async (productId: string) => {
   try {
-    const docRef = doc(db, 'orders', orderId);
-    const orderSnap = await getDoc(docRef);
+    const q = query(collection(db, 'reviews'), where('productId', '==', productId));
+    const snap = await getDocs(q);
+    const reviews: any[] = [];
 
-    if (!orderSnap.exists()) {
-      throw new Error('Narudžba ne postoji');
-    }
+    snap.forEach((d) => {
+      reviews.push({ id: d.id, ...d.data() });
+    });
 
-    const currentOrder = orderSnap.data() as Order;
-    const payload: Partial<Order> = { status };
+    // Sortiranje u JavaScript memoriji uklanja potrebu za kompozitnim indeksom
+    reviews.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    return reviews;
+  } catch (err) {
+    console.error('Greška pri dohvatanju recenzija:', err);
+    return [];
+  }
+};
 
-    if (trackingData?.trackingNumber !== undefined) {
-      payload.trackingNumber = trackingData.trackingNumber.trim();
-    }
-    if (trackingData?.courierName !== undefined) {
-      payload.courierName = trackingData.courierName.trim();
-    }
+export const addReview = async (reviewData: {
+  productId: string;
+  author: string;
+  rating: number;
+  comment: string;
+  createdAt?: string;
+}): Promise<void> => {
+  const newReviewRef = doc(collection(db, 'reviews'));
+  await setDoc(newReviewRef, {
+    ...reviewData,
+    id: newReviewRef.id,
+    createdAt: reviewData.createdAt || new Date().toISOString(),
+  });
+};
 
-    await updateDoc(docRef, payload);
+// ==========================================
+// 4. NEWSLETTER PRETPLATA
+// ==========================================
 
-    // Sinhronizacija javnog statusa za praćenje
-    if (currentOrder.orderNumber) {
-      await updateDoc(doc(db, 'order_tracking', currentOrder.orderNumber), { status }).catch(() => {});
-    }
+export const getSubscribers = async (): Promise<NewsletterSubscriber[]> => {
+  try {
+    const snap = await getDocs(collection(db, 'newsletter'));
+    const subs: NewsletterSubscriber[] = [];
+
+    snap.forEach((d) => {
+      const data = d.data();
+      subs.push({
+        id: d.id,
+        email: data.email || d.id,
+        subscribedAt: data.subscribedAt || data.createdAt || new Date().toISOString(),
+      });
+    });
+
+    return subs;
   } catch (error) {
-    console.error('Greška pri ažuriranju statusa narudžbe:', error);
-    throw error;
+    console.error('Greška pri dohvatanju pretplatnika:', error);
+    return [];
+  }
+};
+
+export const subscribeToNewsletter = async (email: string): Promise<boolean> => {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const docRef = doc(db, 'newsletter', cleanEmail);
+    await setDoc(docRef, {
+      email: cleanEmail,
+      subscribedAt: new Date().toISOString(),
+    }, { merge: true });
+    return true;
+  } catch (error) {
+    console.error('Greška pri prijavi na newsletter:', error);
+    return false;
   }
 };
 
 // ==========================================
-// PRETRAGA NARUDŽBE ZA KUPCA (SIGURNO)
-// ==========================================
-
-export const getOrderByNumberAndPhone = async (
-  orderNumber: string,
-  phone: string
-): Promise<{ orderNumber: string; status: string; createdAt: string } | null> => {
-  try {
-    const num = orderNumber.trim().toUpperCase();
-    const snap = await getDoc(doc(db, 'order_tracking', num));
-
-    if (!snap.exists()) return null;
-
-    const data = snap.data();
-    const normalized = normalizePhone(phone);
-
-    if (!normalized || (await sha256(normalized)) !== data.phoneHash) {
-      return null;
-    }
-
-    return {
-      orderNumber: data.orderNumber,
-      status: data.status,
-      createdAt: data.createdAt,
-    };
-  } catch (error) {
-    console.error('Greška pri pretrazi statusa narudžbe:', error);
-    return null;
-  }
-};
-
-// ==========================================
-// POSTAVKE TRGOVINE (STORE SETTINGS)
+// 5. POSTAVKE TRGOVINE (STORE SETTINGS)
 // ==========================================
 
 export const getStoreSettings = async (): Promise<StoreSettings> => {
   try {
-    const docRef = doc(db, 'settings', 'store');
+    const docRef = doc(db, 'settings', 'general');
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      return { ...DEFAULT_STORE_SETTINGS, ...docSnap.data() } as StoreSettings;
-    } else {
-      await setDoc(docRef, DEFAULT_STORE_SETTINGS);
-      return DEFAULT_STORE_SETTINGS;
+      return { ...DEFAULT_STORE_SETTINGS, ...(docSnap.data() as StoreSettings) };
     }
+    return DEFAULT_STORE_SETTINGS;
   } catch (error) {
-    console.error('Greška pri dohvaćanju postavki:', error);
+    console.error('Greška pri dohvatanju postavki:', error);
     return DEFAULT_STORE_SETTINGS;
   }
 };
 
-export const updateStoreSettings = async (settingsData: Partial<StoreSettings>): Promise<void> => {
-  try {
-    const docRef = doc(db, 'settings', 'store');
-    await setDoc(docRef, settingsData, { merge: true });
-  } catch (error) {
-    console.error('Greška pri spremanju postavki:', error);
-    throw error;
-  }
+export const saveStoreSettings = async (settings: StoreSettings): Promise<void> => {
+  const docRef = doc(db, 'settings', 'general');
+  await setDoc(docRef, settings, { merge: true });
 };
-
-export const saveStoreSettings = updateStoreSettings;
-
-// ==========================================
-// UPRAVLJANJE SADRŽAJEM POČETNE STRANICE (CMS)
-// ==========================================
-
-export const getCMSContent = async (): Promise<HomeCMSContent> => {
-  try {
-    const docRef = doc(db, 'settings', 'cms_content');
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      return { ...DEFAULT_CMS_CONTENT, ...docSnap.data() } as HomeCMSContent;
-    } else {
-      await setDoc(docRef, DEFAULT_CMS_CONTENT);
-      return DEFAULT_CMS_CONTENT;
-    }
-  } catch (error) {
-    console.error('Greška pri dohvaćanju CMS sadržaja:', error);
-    return DEFAULT_CMS_CONTENT;
-  }
-};
-
-export const saveCMSContent = async (cmsData: HomeCMSContent): Promise<void> => {
-  try {
-    const docRef = doc(db, 'settings', 'cms_content');
-    await setDoc(docRef, cmsData, { merge: true });
-  } catch (error) {
-    console.error('Greška pri spremanju CMS sadržaja:', error);
-    throw error;
-  }
-};
-
-// ==========================================
-// NEWSLETTER
-// ==========================================
-
-export const subscribeNewsletter = async (email: string): Promise<void> => {
-  try {
-    const cleanEmail = email.trim().toLowerCase();
-    const nowISO = new Date().toISOString();
-
-    const subscriberDocRef = doc(db, 'subscribers', cleanEmail);
-    await setDoc(
-      subscriberDocRef,
-      {
-        email: cleanEmail,
-        subscribedAt: nowISO,
-        createdAt: nowISO,
-        consent: true,
-      },
-      { merge: true }
-    );
-
-    try {
-      const res = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: cleanEmail }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        console.warn('API sinhronizacija nije uspjela:', res.status, errData);
-      }
-    } catch (apiErr) {
-      console.warn('Mrežna greška pri slanju na /api/subscribe:', apiErr);
-    }
-  } catch (error) {
-    console.error('Greška pri prijavi na newsletter:', error);
-    throw error;
-  }
-};
-
-export const unsubscribeNewsletter = async (email: string): Promise<void> => {
-  try {
-    const cleanEmail = email.trim().toLowerCase();
-    const subscriberDocRef = doc(db, 'subscribers', cleanEmail);
-    await deleteDoc(subscriberDocRef);
-  } catch (error) {
-    console.error('Greška pri odjavi sa newslettera:', error);
-    throw error;
-  }
-};
-
-export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]> => {
-  try {
-    const subscribersRef = collection(db, 'subscribers');
-    const snapshot = await getDocs(subscribersRef);
-
-    const subscribers = snapshot.docs.map((docSnap) => {
-      const data = docSnap.data();
-      const dateVal = data.subscribedAt || data.createdAt || new Date().toISOString();
-
-      return {
-        id: docSnap.id,
-        email: data.email || docSnap.id,
-        subscribedAt: dateVal,
-        consent: data.consent ?? true,
-      } as NewsletterSubscriber;
-    });
-
-    return subscribers.sort(
-      (a, b) => new Date(b.subscribedAt).getTime() - new Date(a.subscribedAt).getTime()
-    );
-  } catch (error) {
-    console.error('Greška pri dohvaćanju newsletter pretplatnika:', error);
-    return [];
-  }
-};
-
-export const getSubscribers = getNewsletterSubscribers;
-
-// ==========================================
-// RECENZIJE PROIZVODA (REVIEWS)
-// ==========================================
-
-export const getProductReviews = async (productId: string): Promise<ProductReview[]> => {
-  try {
-    const reviewsRef = collection(db, 'reviews');
-    const q = query(reviewsRef, where('productId', '==', productId), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    })) as ProductReview[];
-  } catch (error) {
-    console.error('Greška pri dohvaćanju recenzija:', error);
-    return [];
-  }
-};
-
-export const submitProductReview = async (
-  reviewData: Omit<ProductReview, 'id' | 'createdAt'>
-): Promise<string> => {
-  try {
-    const docRef = await addDoc(collection(db, 'reviews'), {
-      ...reviewData,
-      createdAt: new Date().toISOString(),
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error('Greška pri spremanju recenzije:', error);
-    throw error;
-  }
-};
-
-// ==========================================
-// TELEGRAM NOTIFIKACIJE (PREKO SERVERLESS PROXY-JA)
-// ==========================================
-
-export async function sendOrderToTelegram(orderData: any) {
-  try {
-    const name = (
-      orderData.customer?.name ||
-      `${orderData.customer?.firstName || ''} ${orderData.customer?.lastName || ''}`
-    ).trim() || 'Nije navedeno';
-
-    const items = (orderData.items || [])
-      .map((i: any) => `- ${i.name} (${i.size || 'Univerzalna'}) x${i.quantity || 1} - ${i.price} KM`)
-      .join('\n');
-
-    const text =
-      `NOVA NARUDŽBA ${orderData.orderNumber || ''}\n\n` +
-      `Ime: ${name}\n` +
-      `Telefon: ${orderData.customer?.phone || 'Nije navedeno'}\n` +
-      `Adresa: ${orderData.customer?.address || ''}, ${orderData.customer?.city || ''}\n\n` +
-      `Artikli:\n${items}\n\n` +
-      `Ukupno: ${orderData.total || 0} KM` +
-      (orderData.promoCode ? `\nPromo kod: ${orderData.promoCode}` : '');
-
-    await fetch('/api/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-  } catch (error) {
-    console.warn('Telegram obavijest nije poslana:', error);
-  }
-}

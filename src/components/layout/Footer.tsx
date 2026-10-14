@@ -17,28 +17,28 @@ export const Footer: React.FC = () => {
           <div className="flex flex-col items-center p-2">
             <Truck className="w-6 h-6 text-[#F7E97F] mb-2" />
             <span className="font-['Poppins'] font-black text-xs uppercase tracking-wider">DOSTAVA 12 KM (48-72h)</span>
-            <span className="text-neutral-400 text-xs mt-1">Moguće otvaranje paketa prije preuzimanja</span>
+            <span className="text-neutral-400 text-xs mt-1">Moguce otvaranje paketa prije preuzimanja</span>
           </div>
 
           <div className="flex flex-col items-center p-2">
             <ShieldCheck className="w-6 h-6 text-[#F7E97F] mb-2" />
-            <span className="font-['Poppins'] font-black text-xs uppercase tracking-wider">PLAĆANJE POUZEĆEM</span>
-            <span className="text-neutral-400 text-xs mt-1">Plaćaš kuriru tek pri preuzimanju paketa</span>
+            <span className="font-['Poppins'] font-black text-xs uppercase tracking-wider">PLAcANJE POUZEcEM</span>
+            <span className="text-neutral-400 text-xs mt-1">PlacaS kuriru tek pri preuzimanju paketa</span>
           </div>
 
           <div className="flex flex-col items-center p-2">
             <div className="w-6 h-6 rounded-full border-2 border-[#F7E97F] flex items-center justify-center text-[#F7E97F] text-xs font-bold mb-2">✓</div>
             <span className="font-['Poppins'] font-black text-xs uppercase tracking-wider">CASUAL KVALITET</span>
-            <span className="text-neutral-400 text-xs mt-1">Udobna odjeća za svaki dan</span>
+            <span className="text-neutral-400 text-xs mt-1">Udobna odjeca za svaki dan</span>
           </div>
         </div>
 
-        {/* Glavni footer sadržaj */}
+        {/* Glavni footer sadrzaj */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Logo />
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Casual Shop BiH je brend za one koji vole udobnu i stilsku odjeću za svaki dan. Počeli smo na Instagramu, a sada smo tu i online.
+              Casual Shop BiH je brend za one koji vole udobnu i stilsku odjecu za svaki dan. Poceli smo na Instagramu, a sada smo tu i online.
             </p>
             <a
               href={settings?.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
@@ -60,8 +60,8 @@ export const Footer: React.FC = () => {
               <li><Link href="/shop" className="hover:text-[#F7E97F] transition-colors">Shop</Link></li>
               <li><Link href="/o-nama" className="hover:text-[#F7E97F] transition-colors">O nama</Link></li>
               <li><Link href="/kontakt" className="hover:text-[#F7E97F] transition-colors">Kontakt</Link></li>
-              <li><Link href="/dostava-i-povrat" className="hover:text-[#F7E97F] transition-colors">Dostava i povrat (Praćenje)</Link></li>
-              <li><Link href="/uslovi-koristenja" className="hover:text-[#F7E97F] transition-colors">Uslovi korištenja</Link></li>
+              <li><Link href="/dostava-i-povrat" className="hover:text-[#F7E97F] transition-colors">Dostava i povrat (Pracenje)</Link></li>
+              <li><Link href="/uslovi-koristenja" className="hover:text-[#F7E97F] transition-colors">Uslovi koriStenja</Link></li>
               <li><Link href="/politika-privatnosti" className="hover:text-[#F7E97F] transition-colors">Politika privatnosti</Link></li>
             </ul>
           </div>
@@ -78,7 +78,7 @@ export const Footer: React.FC = () => {
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#F7E97F] shrink-0 mt-0.5" />
-                <span>Dostava u sve gradove u Bosni i Hercegovini (Lično u Sarajevu)</span>
+                <span>Dostava u sve gradove u Bosni i Hercegovini (Licno u Sarajevu)</span>
               </li>
             </ul>
           </div>
@@ -89,17 +89,17 @@ export const Footer: React.FC = () => {
               POUZDANA I BRZA DOSTAVA
             </h4>
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Sve pakete na vašu adresu šaljemo putem ugovorene kurirske službe brze pošte X Express.
+              Sve pakete na vaSu adresu Saljemo putem ugovorene kurirske sluzbe brze poSte X Express.
             </p>
           </div>
         </div>
 
         {/* Donja traka + Katanac za Admin */}
         <div className="pt-8 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <p>© {new Date().getFullYear()} Casual Shop BiH. Sva prava zadržana.</p>
+          <p>© {new Date().getFullYear()} Casual Shop BiH. Sva prava zadrzana.</p>
           
           <div className="flex items-center gap-2">
-            <span>Plaćanje pouzećem</span>
+            <span>Placanje pouzecem</span>
             {/* Katanac koji otvara Admin Dashboard */}
             <Link
               href="/admin"

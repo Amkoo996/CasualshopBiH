@@ -1,67 +1,77 @@
-// Telefon: BiH formati (fiksni i mobilni) i međunarodni (dijaspora)
+// 1. Normalizacija i fleksibilna provjera brojeva telefona (BiH i inostranstvo)
 export function normalizePhone(raw: string): string | null {
-  if (!raw || raw.trim().length < 8) return null;
+  if (!raw || typeof raw !== 'string') return null;
 
-  // Uklanjanje razmaka, crtica, kosih crta i zagrada
-  let p = raw.replace(/[\s\-().\/]/g, '');
+  const trimmed = raw.trim();
+  if (trimmed.length < 6) return null;
 
-  // Pretvaranje 00 u +
+  // Uklanjanje razmaka, crtica, tačaka, zagrada i kosa crta
+  let p = trimmed.replace(/[\s\-().\/]/g, '');
+
+  // Formatiranje međunarodnih prefiksa
   if (p.startsWith('00')) p = '+' + p.slice(2);
-
-  // Normalizacija BiH prefiksa u lokalni format (06x, 03x, 05x)
   if (p.startsWith('+387')) p = '0' + p.slice(4);
   else if (p.startsWith('387')) p = '0' + p.slice(3);
 
-  // Strog BiH format: Počinje sa 03, 05 ili 06, nakon čega slijedi 6 do 7 cifara (ukupno 8 ili 9 cifara)
-  if (/^0(3[0-9]|5[0-9]|6[0-7])[0-9]{6,7}$/.test(p)) {
-    return p;
-  }
-
-  // Međunarodni format za dijasporu (mora počinjati sa + i imati od 8 do 15 cifara)
-  if (/^\+[1-9][0-9]{7,14}$/.test(p)) {
+  // Provjera: dozvoljava sve validne BiH mobilne i fiksne brojeve (06x, 03x, 05x)
+  // te dijaspora brojeve dužine između 6 i 15 cifara
+  const digitsOnly = p.replace(/\D/g, '');
+  if (digitsOnly.length >= 6 && digitsOnly.length <= 15) {
     return p;
   }
 
   return null;
 }
 
-// Funkcija za brzu provjeru da li je uneseni telefon validan
+// Brza provjera ispravnosti telefona
 export const isValidPhone = (v: string): boolean => {
-  if (!v || v.trim().length < 8) return false;
+  if (!v || !v.trim()) return false;
   return normalizePhone(v) !== null;
 };
 
-// Validacija email adrese
-export const isValidEmail = (v: string): boolean => 
-  /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+// 2. Validacija e-mail adrese
+export const isValidEmail = (v: string): boolean => {
+  if (!v || !v.trim()) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(v.trim());
+};
 
 const TYPOS: Record<string, string> = {
-  'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gmail.con': 'gmail.com',
-  'gmail.co': 'gmail.com', 'hotmial.com': 'hotmail.com', 'hotnail.com': 'hotmail.com',
-  'yaho.com': 'yahoo.com', 'outlok.com': 'outlook.com',
+  'gmial.com': 'gmail.com',
+  'gmai.com': 'gmail.com',
+  'gmail.con': 'gmail.com',
+  'gmail.co': 'gmail.com',
+  'hotmial.com': 'hotmail.com',
+  'hotnail.com': 'hotmail.com',
+  'yaho.com': 'yahoo.com',
+  'outlok.com': 'outlook.com',
 };
 
 export function suggestEmail(v: string): string | null {
+  if (!v || !v.includes('@')) return null;
   const [user, domain] = v.trim().toLowerCase().split('@');
-  return domain && TYPOS[domain] ? user + '@' + TYPOS[domain] : null;
+  return domain && TYPOS[domain] ? `${user}@${TYPOS[domain]}` : null;
 }
 
-// Validacija imena i prezimena
+// 3. Validacija imena i prezimena (podržava naša slova č, ć, ž, š, đ)
 export const isValidName = (v: string): boolean => {
+  if (!v || typeof v !== 'string') return false;
   const trimmed = v.trim();
-  if (trimmed.length < 2 || trimmed.length > 50) return false;
+  if (trimmed.length < 2 || trimmed.length > 60) return false;
+
   try {
-    return new RegExp("^[\\p{L}][\\p{L} .'-]{1,49}$", "u").test(trimmed);
+    return new RegExp("^[\\p{L}][\\p{L} .'-]{1,59}\$", "u").test(trimmed);
   } catch {
-    return /^[a-zA-ZčćžšđČĆŽŠĐ][a-zA-ZčćžšđČĆŽŠĐ .'-]{1,49}$/i.test(trimmed);
+    return /^[a-zA-ZčćžšđČĆŽŠĐ][a-zA-ZčćžšđČĆŽŠĐ .'-]{1,59}\$/i.test(trimmed);
   }
 };
 
-// Validacija poštanskog broja - tačno 5 cifara (BiH standard)
-export const isValidPostalCode = (v: string): boolean => 
-  /^\d{5}$/.test(v.trim());
+// 4. Validacija poštanskog broja (tačno 5 cifara za BiH)
+export const isValidPostalCode = (v: string): boolean => {
+  if (!v) return false;
+  return /^\d{5}\$/.test(v.trim());
+};
 
-// SHA-256 Hashing funkcija za sigurno praćenje narudžbi
+// 5. SHA-256 Hashing za praćenje narudžbi
 export async function sha256(text: string): Promise<string> {
   const data = new TextEncoder().encode(text);
   const buf = await crypto.subtle.digest('SHA-256', data);

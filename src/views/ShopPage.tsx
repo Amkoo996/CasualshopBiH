@@ -28,7 +28,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
     setSelectedCategory(initialCategory);
   }, [initialCategory]);
 
-  // Dinamička filtracija lista kategorija na osnovu postavki u Admin Panelu
+  // Dinamicka filtracija lista kategorija na osnovu postavki u Admin Panelu
   const hiddenCats = settings?.hiddenCategories || [];
   const categories = useMemo(() => {
     const visibleFromGlobal = CATEGORIES.filter(
@@ -37,7 +37,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
     return ['Sve', ...visibleFromGlobal];
   }, [hiddenCats]);
 
-  // Izračun maksimalne cijene za slider
+  // Izracun maksimalne cijene za slider
   const maxProductPrice = useMemo(() => {
     if (products.length === 0) return 150;
     return Math.ceil(Math.max(...products.map((p) => p.price), 150));
@@ -45,7 +45,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
   const [priceRange, setPriceRange] = useState<number>(maxProductPrice);
 
-  // Ažuriranje priceRange ako se učitaju novi proizvodi
+  // Azuriranje priceRange ako se ucitaju novi proizvodi
   useEffect(() => {
     setPriceRange(maxProductPrice);
   }, [maxProductPrice]);
@@ -56,21 +56,21 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
     return products
       .filter((product) => {
-        // Ukupna zaliha po svim veličinama
+        // Ukupna zaliha po svim velicinama
         const totalStock = Object.values(product.sizes || {}).reduce(
           (sum, val) => sum + (val || 0),
           0
         );
         const isSoldOut = totalStock <= 0;
 
-        // Ako je odabrana kategorija "Rasprodano", prikaži SAMO rasprodane artikle
+        // Ako je odabrana kategorija "Rasprodano", prikazi SAMO rasprodane artikle
         if (normalizedSelectedCat === 'rasprodano') {
           if (!isSoldOut) return false;
         } else {
-          // Za sve ostale kategorije (uključujući "Sve"), SAKRIJ rasprodane artikle
+          // Za sve ostale kategorije (ukljucujuci "Sve"), SAKRIJ rasprodane artikle
           if (isSoldOut) return false;
 
-          // Filtriranje po specifičnoj kategoriji
+          // Filtriranje po specificnoj kategoriji
           if (
             normalizedSelectedCat !== 'sve' &&
             (product.category || '').trim().toLowerCase() !== normalizedSelectedCat
@@ -79,7 +79,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
           }
         }
 
-        // Filtriranje po veličini
+        // Filtriranje po velicini
         if (selectedSize !== '') {
           const sizeStock = product.sizes?.[selectedSize] ?? 0;
           if (sizeStock <= 0) return false;
@@ -140,7 +140,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
           STREETWEAR KOLEKCIJA
         </h1>
         <p className="text-xs sm:text-sm text-neutral-600 mt-1 max-w-xl font-['Inter']">
-          Kompletna ponuda muške i uniseks ulične odjeće. Pronađite savršenu veličinu i kroj uz brzu dostavu u BiH.
+          Kompletna ponuda muSke i uniseks ulicne odjece. Pronađite savrSenu velicinu i kroj uz brzu dostavu u BiH.
         </p>
 
         {/* Aktivni Filteri / Tags Bar */}
@@ -166,7 +166,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 onClick={() => setSelectedSize('')}
                 className="inline-flex items-center gap-1 bg-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase px-2.5 py-1 rounded-xs hover:bg-neutral-800 transition-colors cursor-pointer"
               >
-                <span>Veličina: {selectedSize}</span>
+                <span>Velicina: {selectedSize}</span>
                 <X className="w-3.5 h-3.5 text-[#F7E97F]" />
               </button>
             )}
@@ -213,14 +213,14 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         totalProductsCount={filteredProducts.length}
       />
 
-      {/* Prikaz Mreže Proizvoda */}
+      {/* Prikaz Mreze Proizvoda */}
       {filteredProducts.length === 0 ? (
         <div className="text-center py-20 bg-white border-2 border-neutral-300 p-8 shadow-sm space-y-3">
           <p className="text-sm font-black uppercase tracking-wider text-black font-['Poppins']">
             Nema artikala koji odgovaraju odabranim filterima.
           </p>
           <p className="text-xs text-neutral-600 max-w-md mx-auto font-['Inter']">
-            Pokušajte promijeniti raspon cijene, odabrati drugu kategoriju ili ukloniti odabranu veličinu.
+            PokuSajte promijeniti raspon cijene, odabrati drugu kategoriju ili ukloniti odabranu velicinu.
           </p>
           <button
             onClick={handleReset}

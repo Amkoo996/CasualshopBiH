@@ -23,8 +23,8 @@ export const FloatingActions: React.FC = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-13 h-13 rounded-full bg-black text-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all border-2 border-neutral-800 cursor-pointer"
-        aria-label="Pomoć i podrška"
-        title="Instagram podrška"
+        aria-label="Pomoc i podrSka"
+        title="Instagram podrSka"
       >
         {isOpen ? (
           <X className="w-6 h-6" />

@@ -2,19 +2,19 @@ import { Metadata } from 'next';
 import { getProducts } from '../../src/lib/db';
 import { ShopPageClient } from './ShopPageClient';
 
-// 1. Dinamički SEO
+// 1. Dinamicki SEO
 export const metadata: Metadata = {
   title: 'Kolekcija | Casualshop BiH',
-  description: 'Pregledajte našu najnoviju streetwear kolekciju. Brza dostava širom Bosne i Hercegovine.',
+  description: 'Pregledajte naSu najnoviju streetwear kolekciju. Brza dostava Sirom Bosne i Hercegovine.',
   openGraph: {
     title: 'Kolekcija | Casualshop BiH',
-    description: 'Pregledajte našu najnoviju streetwear kolekciju. Brza dostava širom BiH.',
+    description: 'Pregledajte naSu najnoviju streetwear kolekciju. Brza dostava Sirom BiH.',
   }
 };
 
-// 2. Next.js SERVER KOMPONENTA (Dohvaća podatke direktno iz baze, bez loading ekrana!)
+// 2. Next.js SERVER KOMPONENTA (Dohvaca podatke direktno iz baze, bez loading ekrana!)
 export default async function Shop() {
-  // Dohvaćamo proizvode (false znači da ne dohvaćamo sakrivene proizvode)
+  // Dohvacamo proizvode (false znaci da ne dohvacamo sakrivene proizvode)
   const initialProducts = await getProducts(false);
 
   // Prosljeđujemo proizvode klijentskoj komponenti

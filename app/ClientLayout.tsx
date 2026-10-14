@@ -12,7 +12,7 @@ import { FloatingActions } from '../src/components/layout/FloatingActions';
 import { CookieConsent } from '../src/components/common/CookieConsent';
 import { NewsletterPopup } from '../src/components/common/NewsletterPopup';
 
-// Omotač koji povezuje korpu sa Next.js ruterom za checkout
+// Omotac koji povezuje korpu sa Next.js ruterom za checkout
 function CartDrawerWithRouter() {
   const router = useRouter();
   const { setIsCartOpen } = useCart();

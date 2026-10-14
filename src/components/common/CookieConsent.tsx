@@ -45,7 +45,7 @@ export const CookieConsent: React.FC = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A] text-white p-4 sm:p-5 border-t-2 border-[#F7E97F] shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 font-['Inter']">
       <p className="text-xs text-neutral-300 max-w-3xl">
-        Koristimo kolačiće za rad stranice, analitiku i prilagođavanje ponuda. Možete prihvatiti sve ili nastaviti samo sa neophodnim kolačićima.
+        Koristimo kolacice za rad stranice, analitiku i prilagođavanje ponuda. Mozete prihvatiti sve ili nastaviti samo sa neophodnim kolacicima.
       </p>
       <div className="flex items-center gap-3 shrink-0">
         <button

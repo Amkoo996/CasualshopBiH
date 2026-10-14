@@ -64,7 +64,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product })
   );
 
   useEffect(() => {
-    // Dohvaćamo ostale proizvode za "Moglo bi ti se svidjeti" sekciju
+    // Dohvacamo ostale proizvode za "Moglo bi ti se svidjeti" sekciju
     getProducts().then(data => setAllProducts(data));
 
     trackViewItem(product);
@@ -122,7 +122,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product })
     setTimeout(() => setAddedSuccess(false), 3500);
   };
 
-  // PRAVI DIREKTNI LINK NA ARTIKAL PRI DIJELJENJU (Automatski čita URL)
+  // PRAVI DIREKTNI LINK NA ARTIKAL PRI DIJELJENJU (Automatski cita URL)
   const handleShareClick = async () => {
     const productUrl = typeof window !== 'undefined' ? window.location.href : '';
     const shareData = {
@@ -143,7 +143,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product })
         setShareCopied(true);
         setTimeout(() => setShareCopied(false), 2500);
       } catch (err) {
-        console.error('Neuspješno kopiranje linka:', err);
+        console.error('NeuspjeSno kopiranje linka:', err);
       }
     }
   };
@@ -152,11 +152,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product })
     const sizeText = selectedSize ? selectedSize : 'Nije odabrano';
     const totalPrice = (product.price * quantity).toFixed(2);
     
-    const message = `Pozdrav! Želim naručiti artikal preko Instagrama:
+    const message = `Pozdrav! zelim naruciti artikal preko Instagrama:
 ----------------------------------
 📦 Artikal: ${product.name}
-📏 Veličina: ${sizeText}
-🔢 Količina: ${quantity} kom
+📏 Velicina: ${sizeText}
+🔢 Kolicina: ${quantity} kom
 💰 Cijena: ${totalPrice} KM
 
 Podaci za dostavu:
@@ -220,7 +220,7 @@ Podaci za dostavu:
             <img src={currentImageUrl} alt={product.name} className="w-12 h-14 object-cover border border-neutral-700 bg-neutral-900" />
             <div className="text-xs space-y-0.5">
               <p className="font-['Poppins'] font-bold text-white uppercase line-clamp-1">{product.name}</p>
-              <p className="text-neutral-400 text-[11px]">Veličina: {selectedSize} • Količina: {quantity}</p>
+              <p className="text-neutral-400 text-[11px]">Velicina: {selectedSize} • Kolicina: {quantity}</p>
               <p className="font-bold text-[#F7E97F]">{(product.price * quantity).toFixed(2)} KM</p>
             </div>
           </div>
@@ -253,7 +253,7 @@ Podaci za dostavu:
             onTouchEnd={handleTouchEnd}
             onClick={() => setIsZoomed(true)}
             className="relative aspect-[3/4] bg-white overflow-hidden border-2 border-neutral-300 group cursor-zoom-in touch-pan-y"
-            title="Kliknite za uvećanje"
+            title="Kliknite za uvecanje"
           >
             <img
               src={optimizeCloudinaryUrl(currentImageUrl, 1000)}
@@ -284,7 +284,7 @@ Podaci za dostavu:
                     setSelectedImageIndex((prev) => (prev + 1) % product.images.length);
                   }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black text-white rounded-full transition-colors z-20 cursor-pointer backdrop-blur-xs"
-                  aria-label="Sljedeća slika"
+                  aria-label="Sljedeca slika"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -377,7 +377,7 @@ Podaci za dostavu:
                 </span>
               )}
               <span className="text-[11px] font-['Poppins'] font-bold text-neutral-500 uppercase tracking-wider">
-                • Plaćanje pouzećem ili lično
+                • Placanje pouzecem ili licno
               </span>
             </div>
           </div>
@@ -386,20 +386,20 @@ Podaci za dostavu:
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-900">
-                Dostupne veličine:
+                Dostupne velicine:
               </label>
               <button
                 onClick={() => setSizeChartOpen(true)}
                 className="inline-flex items-center gap-1.5 text-xs font-['Poppins'] font-bold text-neutral-700 hover:text-black underline cursor-pointer"
               >
                 <Ruler className="w-3.5 h-3.5 text-[#0A0A0A]" />
-                <span>Tabela veličina</span>
+                <span>Tabela velicina</span>
               </button>
             </div>
 
             {availableSizes.length === 0 ? (
               <p className="text-xs text-red-600 font-['Poppins'] font-bold">
-                Artikal je rasprodan u svim veličinama.
+                Artikal je rasprodan u svim velicinama.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -431,7 +431,7 @@ Podaci za dostavu:
               <div className="text-xs font-medium text-neutral-600 pt-1 flex items-center gap-1.5 font-['Inter']">
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
                 <span>
-                  Odabrana veličina: <strong>{selectedSize}</strong>
+                  Odabrana velicina: <strong>{selectedSize}</strong>
                 </span>
               </div>
             )}
@@ -486,7 +486,7 @@ Podaci za dostavu:
                     ? 'bg-[#0A0A0A] border-[#0A0A0A] text-red-500 hover:bg-neutral-900'
                     : 'bg-white border-neutral-300 text-neutral-700 hover:border-black hover:text-black'
                 }`}
-                title={isSaved ? 'Ukloni iz liste želja' : 'Spremi u listu želja'}
+                title={isSaved ? 'Ukloni iz liste zelja' : 'Spremi u listu zelja'}
               >
                 <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
               </button>
@@ -521,7 +521,7 @@ Podaci za dostavu:
                 <span className="truncate">
                   {instaCopied
                     ? 'KOPIRANO! OTVARAM INSTAGRAM...'
-                    : 'BRZA NARUDŽBA PREKO INSTAGRAMA'}
+                    : 'BRZA NARUDzBA PREKO INSTAGRAMA'}
                 </span>
               </button>
             </div>
@@ -562,9 +562,9 @@ Podaci za dostavu:
               <span>Dostava i preuzimanje</span>
             </h4>
             <ul className="space-y-1.5 text-xs text-neutral-600 font-['Inter']">
-              <li>• <strong>Brza pošta BiH:</strong> Rok 48–72h. Cijena {settings.shippingFee || 12} KM (besplatno preko {settings.freeShippingThreshold || 100} KM). Obavezno otvaranje paketa prije preuzimanja.</li>
-              <li>• <strong>Lično preuzimanje:</strong> Sarajevo - 0.00 KM.</li>
-              <li>• <strong>Plaćanje:</strong> Pouzećem gotovinom kuriru ili pri ličnom preuzimanju.</li>
+              <li>• <strong>Brza poSta BiH:</strong> Rok 48–72h. Cijena {settings.shippingFee || 12} KM (besplatno preko {settings.freeShippingThreshold || 100} KM). Obavezno otvaranje paketa prije preuzimanja.</li>
+              <li>• <strong>Licno preuzimanje:</strong> Sarajevo - 0.00 KM.</li>
+              <li>• <strong>Placanje:</strong> Pouzecem gotovinom kuriru ili pri licnom preuzimanju.</li>
             </ul>
           </div>
         </div>
@@ -630,7 +630,7 @@ Podaci za dostavu:
               <div className="flex items-center gap-2">
                 <Ruler className="w-5 h-5 text-[#0A0A0A]" />
                 <h3 className="font-['Poppins'] text-sm font-black uppercase tracking-wider text-black">
-                  Tabela veličina (cm)
+                  Tabela velicina (cm)
                 </h3>
               </div>
               <button
@@ -642,15 +642,15 @@ Podaci za dostavu:
             </div>
 
             <div className="text-xs text-neutral-700 space-y-3 leading-relaxed">
-              <p>{settings.sizeGuideText || 'Sve dimenzije su izražene u centimetrima (cm).'}</p>
+              <p>{settings.sizeGuideText || 'Sve dimenzije su izrazene u centimetrima (cm).'}</p>
 
               <div className="overflow-x-auto border border-neutral-200">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-[#0A0A0A] text-white font-['Poppins'] font-bold uppercase">
                     <tr>
-                      <th className="p-2.5">Veličina</th>
-                      <th className="p-2.5">Širina prsa (cm)</th>
-                      <th className="p-2.5">Dužina (cm)</th>
+                      <th className="p-2.5">Velicina</th>
+                      <th className="p-2.5">Sirina prsa (cm)</th>
+                      <th className="p-2.5">Duzina (cm)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 font-semibold">
@@ -686,7 +686,7 @@ Podaci za dostavu:
                     </tr>
                     <tr>
                       <td className="p-2.5 font-bold">One size</td>
-                      <td className="p-2.5" colSpan={2}>Univerzalna veličina za kape i dodatke</td>
+                      <td className="p-2.5" colSpan={2}>Univerzalna velicina za kape i dodatke</td>
                     </tr>
                   </tbody>
                 </table>

@@ -30,7 +30,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
 
   if (!isCartOpen) return null;
 
-  // Izračunavanje ukupnog broja komada (a ne samo stavki)
+  // Izracunavanje ukupnog broja komada (a ne samo stavki)
   const totalItemPieces = items.reduce((sum, item) => sum + item.quantity, 0);
 
   // Prag za besplatnu dostavu
@@ -75,7 +75,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                   {amountLeftForFreeShipping > 0 ? (
                     <span className="text-neutral-300 flex items-center gap-1">
                       <Truck className="w-3.5 h-3.5 text-[#F7E97F]" />
-                      <span>Još <strong className="text-[#F7E97F]">{amountLeftForFreeShipping.toFixed(2)} KM</strong> do besplatne dostave</span>
+                      <span>JoS <strong className="text-[#F7E97F]">{amountLeftForFreeShipping.toFixed(2)} KM</strong> do besplatne dostave</span>
                     </span>
                   ) : (
                     <span className="text-emerald-400 font-black flex items-center gap-1">
@@ -102,10 +102,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                   <ShoppingBag className="w-8 h-8" />
                 </div>
                 <p className="font-['Poppins'] text-sm font-bold uppercase text-black">
-                  Vaša korpa je prazna
+                  VaSa korpa je prazna
                 </p>
                 <p className="text-xs text-neutral-500 font-['Inter'] max-w-xs mx-auto">
-                  Dodajte artikle iz kolekcije kako biste završili kupovinu.
+                  Dodajte artikle iz kolekcije kako biste zavrSili kupovinu.
                 </p>
                 <button
                   onClick={() => setIsCartOpen(false)}
@@ -120,7 +120,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                   <div key={`${item.id}-${item.size}`} className="py-4 flex gap-3.5 first:pt-0">
                     <img
                       src={optimizeCloudinaryUrl(item.image || '/images/sarajevo_geo_tee.jpg', 200)}
-                      alt={`${item.name} - Veličina ${item.size}`}
+                      alt={`${item.name} - Velicina ${item.size}`}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/images/sarajevo_geo_tee.jpg';
                       }}
@@ -143,7 +143,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                           </button>
                         </div>
                         <p className="text-[11px] text-neutral-500 font-['Inter'] mt-0.5">
-                          Veličina: <strong>{item.size}</strong>
+                          Velicina: <strong>{item.size}</strong>
                         </p>
                         <p className="text-[10px] text-neutral-400 font-mono mt-0.5">
                           {item.price.toFixed(2)} KM × {item.quantity} kom
@@ -151,12 +151,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                       </div>
 
                       <div className="flex items-center justify-between pt-2">
-                        {/* Količina selector */}
+                        {/* Kolicina selector */}
                         <div className="flex items-center border border-neutral-300 bg-white">
                           <button
                             onClick={() => updateQuantity(item.id, item.size, item.quantity - 1)}
                             className="px-2 py-0.5 font-bold hover:bg-neutral-100 text-xs cursor-pointer"
-                            aria-label="Smanji količinu"
+                            aria-label="Smanji kolicinu"
                           >
                             -
                           </button>
@@ -167,7 +167,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                             onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
                             disabled={item.quantity >= item.maxStock}
                             className="px-2 py-0.5 font-bold hover:bg-neutral-100 text-xs disabled:opacity-30 cursor-pointer"
-                            aria-label="Povećaj količinu"
+                            aria-label="Povecaj kolicinu"
                           >
                             +
                           </button>
@@ -193,7 +193,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                   <span className="font-['Poppins'] font-bold text-black">{subtotal.toFixed(2)} KM</span>
                 </div>
                 <div className="flex justify-between text-neutral-600">
-                  <span>Dostava (Brza pošta X Express):</span>
+                  <span>Dostava (Brza poSta X Express):</span>
                   <span className="font-['Poppins'] font-bold text-black">
                     {shippingFee === 0 ? (
                       <span className="text-emerald-700 font-black">BESPLATNO</span>
@@ -203,7 +203,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                   </span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-black pt-2 border-t border-neutral-300 font-['Poppins']">
-                  <span>UKUPNO ZA PLAĆANJE:</span>
+                  <span>UKUPNO ZA PLAcANJE:</span>
                   <span className="text-base">{total.toFixed(2)} KM</span>
                 </div>
               </div>
@@ -221,7 +221,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
               </button>
 
               <p className="text-[10px] text-center text-neutral-500 font-['Inter']">
-                Plaćanje pouzećem gotovinom prilikom preuzimanja od kurira.
+                Placanje pouzecem gotovinom prilikom preuzimanja od kurira.
               </p>
             </div>
           )}

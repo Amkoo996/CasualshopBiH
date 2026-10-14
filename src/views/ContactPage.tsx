@@ -65,12 +65,12 @@ export const ContactPage: React.FC = () => {
         setFormData({ name: '', email: '', phone: '', message: '', bot_field: '' });
       } else {
         setStatus('error');
-        setErrorMessage('Greška pri slanju poruke. Molimo pokušajte ponovo kasnije.');
+        setErrorMessage('GreSka pri slanju poruke. Molimo pokuSajte ponovo kasnije.');
       }
     } catch (err) {
-      console.error('Mrežna greška pri slanju:', err);
+      console.error('Mrezna greSka pri slanju:', err);
       setStatus('error');
-      setErrorMessage('Mrežna greška pri slanju poruke. Pokušajte ponovo.');
+      setErrorMessage('Mrezna greSka pri slanju poruke. PokuSajte ponovo.');
     }
   };
 
@@ -79,13 +79,13 @@ export const ContactPage: React.FC = () => {
       {/* ZAGLAVLJE STRANICE */}
       <div className="text-center space-y-3 mb-12 sm:mb-16">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F7E97F] border border-black font-['Poppins'] text-[11px] font-black uppercase tracking-[0.2em] text-[#0A0A0A]">
-          <Sparkles className="w-3.5 h-3.5 text-black" /> PODRŠKA KUPCIMA
+          <Sparkles className="w-3.5 h-3.5 text-black" /> PODRSKA KUPCIMA
         </span>
         <h1 className="font-['Poppins'] text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#0A0A0A]">
           KONTAKTIRAJTE NAS
         </h1>
         <p className="text-xs sm:text-sm text-neutral-600 max-w-lg mx-auto font-['Inter']">
-          Imate pitanja o dimenzijama, brzini dostave ili zamjeni veličine? Javite nam se i odgovorit ćemo Vam u najkraćem roku.
+          Imate pitanja o dimenzijama, brzini dostave ili zamjeni velicine? Javite nam se i odgovorit cemo Vam u najkracem roku.
         </p>
       </div>
 
@@ -113,7 +113,7 @@ export const ContactPage: React.FC = () => {
                     Instagram DM
                   </span>
                   <span className="text-[11px] text-neutral-600 font-semibold group-hover:text-black">
-                    @casualshop.bih (Najbrži odgovor)
+                    @casualshop.bih (Najbrzi odgovor)
                   </span>
                 </div>
               </a>
@@ -124,7 +124,7 @@ export const ContactPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="font-['Poppins'] font-black uppercase block text-black text-xs">
-                    E-mail podrška
+                    E-mail podrSka
                   </span>
                   <span className="text-[11px] text-neutral-600 font-medium">
                     {settings?.email || 'info@casualshop.ba'}
@@ -141,7 +141,7 @@ export const ContactPage: React.FC = () => {
                     Lokacija & Dostava
                   </span>
                   <span className="text-[11px] text-neutral-600 font-medium">
-                    Sarajevo (Lično preuzimanje) • Dostava brze pošte u sve gradove BiH
+                    Sarajevo (Licno preuzimanje) • Dostava brze poSte u sve gradove BiH
                   </span>
                 </div>
               </div>
@@ -153,7 +153,7 @@ export const ContactPage: React.FC = () => {
             <div className="flex items-center gap-2 text-[#F7E97F]">
               <Clock className="w-4 h-4 shrink-0" />
               <h3 className="font-['Poppins'] font-black text-xs uppercase tracking-wider">
-                Radno vrijeme podrške
+                Radno vrijeme podrSke
               </h3>
             </div>
             <p className="text-xs text-neutral-300 font-['Inter'] leading-relaxed">
@@ -168,10 +168,10 @@ export const ContactPage: React.FC = () => {
           <div className="bg-white p-6 sm:p-10 border-2 border-neutral-900 shadow-[6px_6px_0px_0px_rgba(10,10,10,1)] space-y-6">
             <div className="border-b-2 border-neutral-200 pb-4">
               <h2 className="font-['Poppins'] text-sm sm:text-base font-black uppercase tracking-[0.15em] text-[#0A0A0A] flex items-center gap-2">
-                <Send className="w-4 h-4 text-black" /> POŠALJITE UPIT FORMULAROM
+                <Send className="w-4 h-4 text-black" /> POSALJITE UPIT FORMULAROM
               </h2>
               <p className="text-xs text-neutral-500 mt-1">
-                Polja označena zvjezdicom (*) su obavezna.
+                Polja oznacena zvjezdicom (*) su obavezna.
               </p>
             </div>
 
@@ -179,16 +179,16 @@ export const ContactPage: React.FC = () => {
               <div className="p-6 bg-emerald-50 border-2 border-emerald-600 text-emerald-900 text-xs font-['Inter'] space-y-3 animate-fadeIn">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
-                  <span className="font-['Poppins'] font-black uppercase text-sm">Poruka je uspješno poslata!</span>
+                  <span className="font-['Poppins'] font-black uppercase text-sm">Poruka je uspjeSno poslata!</span>
                 </div>
                 <p className="text-emerald-800 leading-relaxed">
-                  Hvala Vam na javljanju. Naš tim će obraditi Vaš upit i odgovoriti Vam na uneseni broj telefona ili e-mail u najkraćem roku.
+                  Hvala Vam na javljanju. NaS tim ce obraditi VaS upit i odgovoriti Vam na uneseni broj telefona ili e-mail u najkracem roku.
                 </p>
                 <button
                   onClick={() => setStatus('idle')}
                   className="mt-2 px-4 py-2 bg-emerald-800 text-white font-['Poppins'] text-[11px] font-bold uppercase tracking-wider hover:bg-black transition-colors cursor-pointer"
                 >
-                  Pošalji novu poruku
+                  PoSalji novu poruku
                 </button>
               </div>
             ) : (
@@ -223,7 +223,7 @@ export const ContactPage: React.FC = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="npr. Marko Marković"
+                    placeholder="npr. Marko Markovic"
                     className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-3 text-xs sm:text-sm focus:bg-white focus:border-black focus:outline-none transition-colors"
                   />
                 </div>
@@ -271,7 +271,7 @@ export const ContactPage: React.FC = () => {
 
                 <div>
                   <label htmlFor="contact-message" className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-800 mb-1.5">
-                    Vaša poruka *
+                    VaSa poruka *
                   </label>
                   <textarea
                     id="contact-message"
@@ -280,7 +280,7 @@ export const ContactPage: React.FC = () => {
                     rows={4}
                     value={formData.message}
                     onChange={handleChange}
-                    placeholder="Napišite Vaše pitanje u vezi artikla, velicina ili narudžbe..."
+                    placeholder="NapiSite VaSe pitanje u vezi artikla, velicina ili narudzbe..."
                     className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-3 text-xs sm:text-sm focus:bg-white focus:border-black focus:outline-none transition-colors"
                   />
                 </div>
@@ -291,7 +291,7 @@ export const ContactPage: React.FC = () => {
                   className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 cursor-pointer border-2 border-[#0A0A0A] shadow-md active:scale-[0.99] disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
-                  <span>{status === 'submitting' ? 'SLANJE PORUKE...' : 'POŠALJI PORUKU'}</span>
+                  <span>{status === 'submitting' ? 'SLANJE PORUKE...' : 'POSALJI PORUKU'}</span>
                 </button>
               </form>
             )}

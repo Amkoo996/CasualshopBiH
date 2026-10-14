@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { getProductById, getProducts } from "../../../src/lib/db";
 import { ProductDetailPage } from "../../../src/views/ProductDetailPage";
 
-// Generira statičke rute za sve postojeće artikle
+// Generira staticke rute za sve postojece artikle
 export async function generateStaticParams() {
   try {
     const products = await getProducts();
@@ -10,7 +10,7 @@ export async function generateStaticParams() {
       id: product.id,
     }));
   } catch (e) {
-    console.error("Greška pri generiranju parametara proizvoda:", e);
+    console.error("GreSka pri generiranju parametara proizvoda:", e);
     return [];
   }
 }
@@ -22,16 +22,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!product) {
     return {
       title: "Proizvod nije pronađen | Casualshop BiH",
-      description: "Traženi proizvod trenutno nije dostupan."
+      description: "Trazeni proizvod trenutno nije dostupan."
     };
   }
 
   return {
     title: `${product.name} | Casualshop BiH`,
-    description: product.description || `Kupite ${product.name} po cijeni od ${product.price} KM uz brzu dostavu širom BiH.`,
+    description: product.description || `Kupite ${product.name} po cijeni od ${product.price} KM uz brzu dostavu Sirom BiH.`,
     openGraph: {
       title: `${product.name} | Casualshop BiH`,
-      description: product.description || `Kupite ${product.name} po cijeni od ${product.price} KM uz brzu dostavu širom BiH.`,
+      description: product.description || `Kupite ${product.name} po cijeni od ${product.price} KM uz brzu dostavu Sirom BiH.`,
       type: "website",
       images: [product.images?.[0] || ''],
     }

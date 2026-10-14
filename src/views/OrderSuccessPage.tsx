@@ -26,7 +26,7 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Uklanjanje eventualnog preostalog # znaka iz naziva narudžbe
+  // Uklanjanje eventualnog preostalog # znaka iz naziva narudzbe
   const cleanOrderNumber = order.orderNumber.replace(/^#/, '');
 
   return (
@@ -39,12 +39,12 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
           </div>
 
           <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-[#0A0A0A]">
-            HVALA NA NARUDŽBI!
+            HVALA NA NARUDzBI!
           </h1>
 
           <div className="p-4 bg-[#F4F2EC] border-2 border-neutral-300 max-w-lg mx-auto">
             <p className="font-['Poppins'] text-sm sm:text-base font-bold text-[#0A0A0A]">
-              "Hvala na narudžbi! Kontaktirat ćemo te telefonom radi potvrde. Plaćaš kuriru pri preuzimanju."
+              "Hvala na narudzbi! Kontaktirat cemo te telefonom radi potvrde. PlacaS kuriru pri preuzimanju."
             </p>
           </div>
         </div>
@@ -52,13 +52,13 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
         {/* Order Number Box - BEZ ZNAKA # */}
         <div className="bg-[#0A0A0A] text-white p-5 border-2 border-[#F7E97F] max-w-md mx-auto space-y-1">
           <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-[0.2em] text-[#F7E97F] block">
-            BROJ NARUDŽBE:
+            BROJ NARUDzBE:
           </span>
           <div className="text-2xl sm:text-3xl font-['Poppins'] font-black tracking-wider text-white select-all">
             {cleanOrderNumber}
           </div>
           <span className="text-[10px] text-neutral-400 block">
-            Sačuvaj ovaj broj za kontakt s podrškom ili zamjenu veličine
+            Sacuvaj ovaj broj za kontakt s podrSkom ili zamjenu velicine
           </span>
         </div>
 
@@ -89,9 +89,9 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
                 </span>
               </p>
               <div className="pt-1">
-                <span className="text-[10px] font-bold uppercase text-neutral-500">Plaćanje:</span>
+                <span className="text-[10px] font-bold uppercase text-neutral-500">Placanje:</span>
                 <p className="font-bold text-[#0A0A0A]">
-                  Plaćanje pouzećem gotovinom kuriru ({order.total.toFixed(2)} KM)
+                  Placanje pouzecem gotovinom kuriru ({order.total.toFixed(2)} KM)
                 </p>
               </div>
             </div>
@@ -101,7 +101,7 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
         {/* Items Summary */}
         <div className="text-left border-t-2 border-neutral-200 pt-6 space-y-3">
           <h3 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-black">
-            Naručeni artikli
+            Naruceni artikli
           </h3>
           <div className="divide-y divide-neutral-200">
             {order.items.map((item) => (
@@ -110,7 +110,7 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
                   <img src={item.image} alt={item.name} className="w-10 h-12 object-cover bg-neutral-100 border border-neutral-300" />
                   <div>
                     <span className="font-['Poppins'] font-bold text-neutral-900 uppercase block">{item.name}</span>
-                    <span className="text-neutral-500 text-[11px]">Veličina: {item.size} • Količina: {item.quantity} kom</span>
+                    <span className="text-neutral-500 text-[11px]">Velicina: {item.size} • Kolicina: {item.quantity} kom</span>
                   </div>
                 </div>
                 <span className="font-['Poppins'] font-bold text-neutral-900">
@@ -121,7 +121,7 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
           </div>
 
           <div className="pt-3 border-t-2 border-neutral-200 flex justify-between items-center text-sm font-black text-black font-['Poppins']">
-            <span>UKUPNO ZA PLAĆANJE POUZEĆEM:</span>
+            <span>UKUPNO ZA PLAcANJE POUZEcEM:</span>
             <span className="text-lg">{order.total.toFixed(2)} KM</span>
           </div>
         </div>

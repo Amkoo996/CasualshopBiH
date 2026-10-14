@@ -48,7 +48,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [promoValidating, setPromoValidating] = useState(false);
   const [promoMessage, setPromoMessage] = useState<{ text: string; error: boolean } | null>(null);
 
-  // Izračun konačnih iznosa
+  // Izracun konacnih iznosa
   const activeShippingFee = deliveryMethod === 'pickup' ? 0 : shippingFee;
   const discountAmount = Number(((subtotal * promoDiscountPercent) / 100).toFixed(2));
   const finalSubtotal = Number((subtotal - discountAmount).toFixed(2));
@@ -139,14 +139,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
     if (deliveryMethod === 'courier') {
       if (formData.city.trim().length < 2) newErrors.city = 'Grad je obavezan';
-      if (formData.address.trim().length < 5) newErrors.address = 'Unesite ulicu i kućni broj';
+      if (formData.address.trim().length < 5) newErrors.address = 'Unesite ulicu i kucni broj';
       
       if (formData.postalCode.trim() && !isValidPostalCode(formData.postalCode)) {
-        newErrors.postalCode = 'Poštanski broj mora imati tačno 5 cifara (npr. 71000)';
+        newErrors.postalCode = 'PoStanski broj mora imati tacno 5 cifara (npr. 71000)';
       }
     } else {
       if (!pickupTime.trim()) {
-        newErrors.pickupTime = 'Molimo navedite željeni dan i okvirno vrijeme preuzimanja';
+        newErrors.pickupTime = 'Molimo navedite zeljeni dan i okvirno vrijeme preuzimanja';
       }
     }
 
@@ -178,7 +178,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
     const lastOrderTime = localStorage.getItem('casualshop_last_order_time');
     if (lastOrderTime && Date.now() - parseInt(lastOrderTime) < 30000) {
-      setSubmitError('Molimo sačekajte 30 sekundi prije nove narudžbe.');
+      setSubmitError('Molimo sacekajte 30 sekundi prije nove narudzbe.');
       return;
     }
 
@@ -193,7 +193,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         if (freshProd) {
           const stockForSize = freshProd.sizes?.[item.size] ?? 0;
           if (stockForSize < item.quantity) {
-            setSubmitError(`Nažalost, artikal "${item.name}" u veličini ${item.size} više nema dovoljno komada na stanju (preostalo: ${stockForSize}).`);
+            setSubmitError(`Nazalost, artikal "${item.name}" u velicini ${item.size} viSe nema dovoljno komada na stanju (preostalo: ${stockForSize}).`);
             setSubmitting(false);
             return;
           }
@@ -211,7 +211,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const cleanEmail = formData.email.trim().toLowerCase();
 
       const noteDetails = deliveryMethod === 'pickup'
-        ? `LIČNO PREUZIMANJE (Sarajevo). Željeno vrijeme: ${pickupTime}. ${formData.note.trim()}`
+        ? `LIcNO PREUZIMANJE (Sarajevo). zeljeno vrijeme: ${pickupTime}. ${formData.note.trim()}`
         : formData.note.trim();
 
       const orderData: Omit<Order, 'id'> = {
@@ -222,7 +222,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           lastName: formData.lastName.trim(),
           phone: cleanPhone,
           email: cleanEmail,
-          address: deliveryMethod === 'pickup' ? 'Lično preuzimanje - Sarajevo' : formData.address.trim(),
+          address: deliveryMethod === 'pickup' ? 'Licno preuzimanje - Sarajevo' : formData.address.trim(),
           city: deliveryMethod === 'pickup' ? 'Sarajevo' : formData.city.trim(),
           postalCode: deliveryMethod === 'pickup' ? '71000' : formData.postalCode.trim(),
           note: noteDetails.substring(0, 300),
@@ -247,7 +247,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         try {
           await markPromoCodeAsUsed(appliedPromoCode);
         } catch (err) {
-          console.warn('Upozorenje: Promo kod primijenjen ali nije označen kao iskorišten u bazi:', err);
+          console.warn('Upozorenje: Promo kod primijenjen ali nije oznacen kao iskoriSten u bazi:', err);
         }
       }
 
@@ -265,13 +265,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ? cleanEmail
           : fallbackSellerEmail;
 
-        const emailSubjectText = `Potvrda narudžbe ${finalizedOrder.orderNumber} - Casual Shop BiH`;
-        const shippingFeeText = activeShippingFee === 0 ? '0.00 KM (Lično preuzimanje / Besplatna dostava)' : `${activeShippingFee.toFixed(2)} KM`;
+        const emailSubjectText = `Potvrda narudzbe ${finalizedOrder.orderNumber} - Casual Shop BiH`;
+        const shippingFeeText = activeShippingFee === 0 ? '0.00 KM (Licno preuzimanje / Besplatna dostava)' : `${activeShippingFee.toFixed(2)} KM`;
 
         const messageBodyFormatted = `
 Pozdrav ${formData.firstName},
 
-Vaša narudžba ${finalizedOrder.orderNumber} je uspješno kreirana!
+VaSa narudzba ${finalizedOrder.orderNumber} je uspjeSno kreirana!
 
 Podaci o kupcu:
 - Ime i prezime: ${formData.firstName} ${formData.lastName}
@@ -279,14 +279,14 @@ Podaci o kupcu:
 - Adresa: ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
 - Napomena: ${noteDetails || 'Nema napomene'}
 
-Naručeni artikli:
+Naruceni artikli:
 ${itemsSummary}
 ${appliedPromoCode ? `\nPrimijenjen promo kod: ${appliedPromoCode} (-${discountAmount.toFixed(2)} KM)` : ''}
 
 Dostava: ${shippingFeeText}
-Ukupno za plaćanje: ${finalizedOrder.total.toFixed(2)} KM (Plaćanje pouzećem)
+Ukupno za placanje: ${finalizedOrder.total.toFixed(2)} KM (Placanje pouzecem)
 
-Srdačan pozdrav,
+Srdacan pozdrav,
 Casual Shop BiH
         `.trim();
 
@@ -314,7 +314,7 @@ Casual Shop BiH
               order_number: finalizedOrder.orderNumber,
               items_summary: itemsSummary,
               total_amount: `${finalizedOrder.total.toFixed(2)} KM`,
-              shipping_fee: activeShippingFee === 0 ? 'BESPLATNO / LIČNO' : `${activeShippingFee.toFixed(2)} KM`,
+              shipping_fee: activeShippingFee === 0 ? 'BESPLATNO / LIcNO' : `${activeShippingFee.toFixed(2)} KM`,
               message: messageBodyFormatted,
               message_body: messageBodyFormatted,
               email_body: messageBodyFormatted,
@@ -324,10 +324,10 @@ Casual Shop BiH
         });
 
         if (!emailRes.ok) {
-          console.warn('EmailJS obavijest nije uspješno poslata:', await emailRes.text());
+          console.warn('EmailJS obavijest nije uspjeSno poslata:', await emailRes.text());
         }
       } catch (err: any) {
-        console.warn('Greška pri slanju e-maila:', err);
+        console.warn('GreSka pri slanju e-maila:', err);
       }
 
       trackPurchase(finalizedOrder);
@@ -336,8 +336,8 @@ Casual Shop BiH
       clearCart();
       onOrderSuccess(finalizedOrder);
     } catch (error: any) {
-      console.error('Greška pri kreiranju narudžbe:', error);
-      setSubmitError(error?.message || 'Došlo je do greške prilikom obrade narudžbe. Osvježite stranicu i pokušajte ponovo.');
+      console.error('GreSka pri kreiranju narudzbe:', error);
+      setSubmitError(error?.message || 'DoSlo je do greSke prilikom obrade narudzbe. Osvjezite stranicu i pokuSajte ponovo.');
     } finally {
       setSubmitting(false);
     }
@@ -347,10 +347,10 @@ Casual Shop BiH
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center space-y-4 font-['Inter']">
         <h2 className="font-['Poppins'] text-xl font-black uppercase tracking-wider text-black">
-          Vaša korpa je prazna
+          VaSa korpa je prazna
         </h2>
         <p className="text-sm text-neutral-600">
-          Nemate artikala u korpi za završetak narudžbe.
+          Nemate artikala u korpi za zavrSetak narudzbe.
         </p>
         <button
           onClick={onBack}
@@ -374,10 +374,10 @@ Casual Shop BiH
 
       <div className="mb-8">
         <h1 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-neutral-900">
-          ZAVRŠETAK NARUDŽBE (CHECKOUT)
+          ZAVRSETAK NARUDzBE (CHECKOUT)
         </h1>
         <p className="text-xs sm:text-sm text-neutral-600 mt-1">
-          Izaberite način preuzimanja i unesite podatke za narudžbu.
+          Izaberite nacin preuzimanja i unesite podatke za narudzbu.
         </p>
       </div>
 
@@ -393,7 +393,7 @@ Casual Shop BiH
           {/* ODABIR DOSTAVE */}
           <div className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
             <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A] border-b-2 border-neutral-200 pb-3">
-              1. Način dostave i preuzimanja
+              1. Nacin dostave i preuzimanja
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -408,9 +408,9 @@ Casual Shop BiH
                 <Truck className="w-5 h-5 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-['Poppins'] text-xs font-bold uppercase block">
-                    Brza pošta (BiH)
+                    Brza poSta (BiH)
                   </span>
-                  <span className="text-[11px] opacity-80 block">Dostava na vašu adresu ({shippingFee.toFixed(2)} KM)</span>
+                  <span className="text-[11px] opacity-80 block">Dostava na vaSu adresu ({shippingFee.toFixed(2)} KM)</span>
                 </div>
               </label>
 
@@ -425,7 +425,7 @@ Casual Shop BiH
                 <MapPin className="w-5 h-5 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-['Poppins'] text-xs font-bold uppercase block">
-                    Lično preuzimanje
+                    Licno preuzimanje
                   </span>
                   <span className="text-[11px] opacity-80 block">Sarajevo - 0.00 KM</span>
                 </div>
@@ -434,8 +434,8 @@ Casual Shop BiH
 
             {deliveryMethod === 'pickup' && (
               <div className="p-3 bg-[#F7E97F] border border-black text-black text-xs space-y-2">
-                <p className="font-bold font-['Poppins'] uppercase">📍 Lokacija za lično preuzimanje:</p>
-                <p>Sarajevo. Tačnu lokaciju i kontakt dobijate nakon potvrde narudžbe.</p>
+                <p className="font-bold font-['Poppins'] uppercase">📍 Lokacija za licno preuzimanje:</p>
+                <p>Sarajevo. Tacnu lokaciju i kontakt dobijate nakon potvrde narudzbe.</p>
               </div>
             )}
           </div>
@@ -494,7 +494,7 @@ Casual Shop BiH
                   value={formData.lastName}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="npr. Hodžić"
+                  placeholder="npr. Hodzic"
                   className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                     errors.lastName ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                   }`}
@@ -524,7 +524,7 @@ Casual Shop BiH
                     errors.phone ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                   }`}
                 />
-                <p className="text-[10px] text-neutral-500 mt-1">Nazvat ćemo te radi potvrde.</p>
+                <p className="text-[10px] text-neutral-500 mt-1">Nazvat cemo te radi potvrde.</p>
                 {errors.phone && (
                   <p className="text-[11px] text-red-600 mt-1">{errors.phone}</p>
                 )}
@@ -548,7 +548,7 @@ Casual Shop BiH
                     errors.email ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                   }`}
                 />
-                <p className="text-[10px] text-neutral-500 mt-1">Za slanje potvrde narudžbe.</p>
+                <p className="text-[10px] text-neutral-500 mt-1">Za slanje potvrde narudzbe.</p>
                 {errors.email && (
                   <p className="text-[11px] text-red-600 mt-1">{errors.email}</p>
                 )}
@@ -582,7 +582,7 @@ Casual Shop BiH
 
                   <div>
                     <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                      Poštanski broj
+                      PoStanski broj
                     </label>
                     <input
                       type="text"
@@ -606,7 +606,7 @@ Casual Shop BiH
 
                 <div>
                   <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                    Adresa stanovanja (Ulica i kućni broj) *
+                    Adresa stanovanja (Ulica i kucni broj) *
                   </label>
                   <input
                     type="text"
@@ -616,7 +616,7 @@ Casual Shop BiH
                     value={formData.address}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    placeholder="npr. Maršala Tita 15 (ili bb)"
+                    placeholder="npr. MarSala Tita 15 (ili bb)"
                     className={`w-full bg-[#F4F2EC] border-2 p-2.5 text-xs sm:text-sm focus:bg-white focus:outline-none ${
                       errors.address ? 'border-red-500' : 'border-neutral-300 focus:border-black'
                     }`}
@@ -629,7 +629,7 @@ Casual Shop BiH
             ) : (
               <div>
                 <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                  Željeni dan i vrijeme preuzimanja *
+                  zeljeni dan i vrijeme preuzimanja *
                 </label>
                 <input
                   type="text"
@@ -649,7 +649,7 @@ Casual Shop BiH
 
             <div>
               <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                Napomena za narudžbu <span className="text-neutral-400 font-normal">(opciono)</span>
+                Napomena za narudzbu <span className="text-neutral-400 font-normal">(opciono)</span>
               </label>
               <textarea
                 name="note"
@@ -664,12 +664,12 @@ Casual Shop BiH
             </div>
           </div>
 
-          {/* NAČIN PLAĆANJA */}
+          {/* NAcIN PLAcANJA */}
           <div className="bg-white p-6 border-2 border-neutral-300 space-y-4 shadow-sm">
             <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-3">
               <CreditCard className="w-4 h-4 text-[#0A0A0A]" />
               <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#0A0A0A]">
-                3. Način plaćanja
+                3. Nacin placanja
               </h2>
             </div>
 
@@ -684,12 +684,12 @@ Casual Shop BiH
                 />
                 <div className="space-y-1">
                   <span className="font-['Poppins'] text-xs sm:text-sm font-black uppercase tracking-wider text-[#F7E97F]">
-                    {deliveryMethod === 'pickup' ? 'Plaćanje gotovinom pri preuzimanju' : 'Plaćanje pouzećem (Gotovinom kuriru)'}
+                    {deliveryMethod === 'pickup' ? 'Placanje gotovinom pri preuzimanju' : 'Placanje pouzecem (Gotovinom kuriru)'}
                   </span>
                   <p className="text-xs text-neutral-300">
                     {deliveryMethod === 'pickup'
-                      ? 'Plaćate u gotovini na licu mjesta prilikom preuzimanja paketa.'
-                      : 'Plaćate gotovinom kuriru brze pošte. Moguće otvaranje i pregled paketa prije preuzimanja.'}
+                      ? 'Placate u gotovini na licu mjesta prilikom preuzimanja paketa.'
+                      : 'Placate gotovinom kuriru brze poSte. Moguce otvaranje i pregled paketa prije preuzimanja.'}
                   </p>
                 </div>
               </label>
@@ -701,20 +701,20 @@ Casual Shop BiH
             <div className="p-3 bg-[#F4F2EC] border border-neutral-300 space-y-2 text-xs text-neutral-700">
               <p className="font-bold text-black font-['Poppins'] uppercase flex items-center gap-1.5">
                 <AlertCircle className="w-4 h-4 text-black" />
-                <span>Procedura za povrat pošiljke i reklamacije:</span>
+                <span>Procedura za povrat poSiljke i reklamacije:</span>
               </p>
               <p>
-                Pri primitku robe provjera ispravnosti narudžbe ovisi o kupcu. Molimo Vas da uporedite primljene artikle s narudžbom, te ukoliko nešto nedostaje odmah to napomenite Vašem dostavljaču ili se odmah obratite direktno nama, jer naknadne reklamacije ne uvažavamo.
+                Pri primitku robe provjera ispravnosti narudzbe ovisi o kupcu. Molimo Vas da uporedite primljene artikle s narudzbom, te ukoliko neSto nedostaje odmah to napomenite VaSem dostavljacu ili se odmah obratite direktno nama, jer naknadne reklamacije ne uvazavamo.
               </p>
               <p>
-                U slučaju povrata robe kupac je dužan uputiti opravdanu reklamaciju putem e-maila ili Instagram profila. Kupac ima pravo na povrat robe u sljedećim slučajevima:
+                U slucaju povrata robe kupac je duzan uputiti opravdanu reklamaciju putem e-maila ili Instagram profila. Kupac ima pravo na povrat robe u sljedecim slucajevima:
               </p>
               <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
-                <li>isporuka robe koja nije naručena</li>
-                <li>isporuka robe koja ima grešku ili oštećenja koja nisu nastala u transportu</li>
+                <li>isporuka robe koja nije narucena</li>
+                <li>isporuka robe koja ima greSku ili oStecenja koja nisu nastala u transportu</li>
               </ul>
               <p className="text-[11px] font-semibold text-black">
-                Naručilac snosi troškove povrata robe i obavezan je artikal vratiti u originalnom nenošenom stanju.
+                Narucilac snosi troSkove povrata robe i obavezan je artikal vratiti u originalnom nenoSenom stanju.
               </p>
             </div>
 
@@ -727,7 +727,7 @@ Casual Shop BiH
                 className="mt-0.5 w-4 h-4 accent-[#0A0A0A] cursor-pointer"
               />
               <span>
-                Slažem se i prihvatam uslove kupovine, otvaranje paketa pri dostavi i navedenu proceduru za povrat robe.*
+                Slazem se i prihvatam uslove kupovine, otvaranje paketa pri dostavi i navedenu proceduru za povrat robe.*
               </span>
             </label>
             {errors.terms && (
@@ -736,11 +736,11 @@ Casual Shop BiH
           </div>
         </div>
 
-        {/* REGIONALNI PREGLED PROIZVODA I PREDRAČUNA */}
+        {/* REGIONALNI PREGLED PROIZVODA I PREDRAcUNA */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white p-6 border-2 border-[#F7E97F] sticky top-28 space-y-6 shadow-md">
             <h2 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-black border-b-2 border-neutral-200 pb-3">
-              Pregled narudžbe ({items.length})
+              Pregled narudzbe ({items.length})
             </h2>
 
             {/* UNOS PROMO KODA */}
@@ -791,7 +791,7 @@ Casual Shop BiH
                         {item.name}
                       </h4>
                       <div className="text-[11px] text-neutral-500 mt-0.5">
-                        Veličina: <strong>{item.size}</strong> • Količina: {item.quantity} kom
+                        Velicina: <strong>{item.size}</strong> • Kolicina: {item.quantity} kom
                       </div>
                     </div>
                     <div className="font-['Poppins'] font-bold text-black text-right">
@@ -819,7 +819,7 @@ Casual Shop BiH
                 <span>Dostava:</span>
                 <span className="font-['Poppins'] font-bold">
                   {deliveryMethod === 'pickup' ? (
-                    <span className="text-emerald-700 font-black">LIČNO PREUZIMANJE (0 KM)</span>
+                    <span className="text-emerald-700 font-black">LIcNO PREUZIMANJE (0 KM)</span>
                   ) : activeShippingFee === 0 ? (
                     <span className="text-emerald-700 font-black">BESPLATNO</span>
                   ) : (
@@ -841,7 +841,7 @@ Casual Shop BiH
             >
               <ShieldCheck className="w-4 h-4" />
               <span>
-                {submitting ? 'KREIRANJE NARUDŽBE...' : 'POTVRDI NARUDŽBU'}
+                {submitting ? 'KREIRANJE NARUDzBE...' : 'POTVRDI NARUDzBU'}
               </span>
             </button>
           </div>

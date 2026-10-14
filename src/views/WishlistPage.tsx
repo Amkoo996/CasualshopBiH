@@ -47,10 +47,10 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
             </div>
             <div>
               <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-[#0A0A0A]">
-                Moja lista želja
+                Moja lista zelja
               </h1>
               <p className="text-xs text-neutral-500 font-['Inter']">
-                Vaši sačuvani komadi za brzu kupovinu ({wishlistProducts.length})
+                VaSi sacuvani komadi za brzu kupovinu ({wishlistProducts.length})
               </p>
             </div>
           </div>
@@ -59,7 +59,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
         {wishlistProducts.length > 0 && (
           <button
             onClick={() => {
-              if (confirm('Jeste li sigurni da želite ukloniti sve artikle iz liste želja?')) {
+              if (confirm('Jeste li sigurni da zelite ukloniti sve artikle iz liste zelja?')) {
                 clearWishlist();
               }
             }}
@@ -77,7 +77,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
             <Heart className="w-8 h-8 text-neutral-400" />
           </div>
           <h2 className="font-['Poppins'] text-lg font-black uppercase tracking-wider text-black">
-            Vaša lista želja je prazna
+            VaSa lista zelja je prazna
           </h2>
           <p className="text-xs text-neutral-600 font-['Inter']">
             Kliknite na ikonicu srca na bilo kojem artiklu u trgovini kako biste ga spremili ovdje.
@@ -88,7 +88,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
               className="px-6 py-3.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-all inline-flex items-center gap-2 border-2 border-[#0A0A0A] cursor-pointer"
             >
               <ShoppingBag className="w-4 h-4" />
-              <span>Istraži ponudu artikala</span>
+              <span>Istrazi ponudu artikala</span>
             </button>
           </div>
         </div>

@@ -14,7 +14,7 @@ export const HomeCMSEditor: React.FC = () => {
         const data = await getCMSContent();
         setCms(data);
       } catch (e) {
-        console.error('Greška pri učitavanju CMS koda:', e);
+        console.error('GreSka pri ucitavanju CMS koda:', e);
       } finally {
         setLoading(false);
       }
@@ -29,12 +29,12 @@ export const HomeCMSEditor: React.FC = () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {
-      alert('Greška pri spremanju sadržaja.');
+      alert('GreSka pri spremanju sadrzaja.');
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center font-mono text-xs">Učitavanje CMS-a...</div>;
+    return <div className="p-8 text-center font-mono text-xs">Ucitavanje CMS-a...</div>;
   }
 
   return (
@@ -43,10 +43,10 @@ export const HomeCMSEditor: React.FC = () => {
         <div>
           <h2 className="font-['Poppins'] text-lg font-black uppercase tracking-wider text-black flex items-center gap-2">
             <Layout className="w-5 h-5 text-[#0A0A0A]" />
-            <span>Uređivač Sadržaja Početne Stranice (CMS)</span>
+            <span>Uređivac Sadrzaja Pocetne Stranice (CMS)</span>
           </h2>
           <p className="text-xs text-neutral-600 font-['Inter']">
-            Sve izmjene koje ovdje napravite se odražavaju uživo na vašoj početnoj stranici.
+            Sve izmjene koje ovdje napravite se odrazavaju uzivo na vaSoj pocetnoj stranici.
           </p>
         </div>
       </div>
@@ -54,7 +54,7 @@ export const HomeCMSEditor: React.FC = () => {
       {saved && (
         <div className="bg-[#F7E97F] border-2 border-black p-4 flex items-center gap-2 text-xs font-['Poppins'] font-bold text-black animate-fadeIn">
           <CheckCircle2 className="w-5 h-5 text-emerald-700" />
-          <span>Sadržaj početne stranice je uspješno sačuvan i ažuriran uživo!</span>
+          <span>Sadrzaj pocetne stranice je uspjeSno sacuvan i azuriran uzivo!</span>
         </div>
       )}
 
@@ -73,7 +73,7 @@ export const HomeCMSEditor: React.FC = () => {
                 onChange={(e) => setCms({ ...cms, topBar: { ...cms.topBar, enabled: e.target.checked } })}
                 className="accent-black h-4 w-4 cursor-pointer"
               />
-              <span>Prikaži Top Baner</span>
+              <span>Prikazi Top Baner</span>
             </label>
 
             <label className="flex items-center gap-2 cursor-pointer text-xs font-bold font-['Poppins']">
@@ -83,7 +83,7 @@ export const HomeCMSEditor: React.FC = () => {
                 onChange={(e) => setCms({ ...cms, topBar: { ...cms.topBar, showTimer: e.target.checked } })}
                 className="accent-black h-4 w-4 cursor-pointer"
               />
-              <span>Prikaži Odbrojavanje (Timer)</span>
+              <span>Prikazi Odbrojavanje (Timer)</span>
             </label>
           </div>
 
@@ -128,7 +128,7 @@ export const HomeCMSEditor: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Žuti Naslov (Linija 2) *</label>
+              <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">zuti Naslov (Linija 2) *</label>
               <input
                 type="text"
                 value={cms.hero.titleLine2}
@@ -219,7 +219,7 @@ export const HomeCMSEditor: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[11px] font-['Poppins'] font-bold uppercase">2. Plaćanje (Naslov)</label>
+              <label className="block text-[11px] font-['Poppins'] font-bold uppercase">2. Placanje (Naslov)</label>
               <input
                 type="text"
                 value={cms.benefits.paymentTitle}
@@ -258,7 +258,7 @@ export const HomeCMSEditor: React.FC = () => {
             className="px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center gap-2 border-2 border-black transition-colors cursor-pointer shadow-md"
           >
             <Save className="w-4 h-4" />
-            <span>Sačuvaj CMS Izmjene</span>
+            <span>Sacuvaj CMS Izmjene</span>
           </button>
         </div>
       </form>

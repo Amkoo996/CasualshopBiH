@@ -34,7 +34,7 @@ export const TrafficAndCartStatsTable: React.FC<TrafficAndCartStatsTableProps> =
           recentEvents: [],
         });
       } catch (err) {
-        console.error('Greška pri učitavanju tabele statistike:', err);
+        console.error('GreSka pri ucitavanju tabele statistike:', err);
       } finally {
         setLoading(false);
       }
@@ -46,7 +46,7 @@ export const TrafficAndCartStatsTable: React.FC<TrafficAndCartStatsTableProps> =
   if (loading) {
     return (
       <div className="bg-white p-6 border-2 border-neutral-200 text-xs text-neutral-500 font-['Inter']">
-        Učitavanje statistike posjeta i korpe...
+        Ucitavanje statistike posjeta i korpe...
       </div>
     );
   }
@@ -136,7 +136,7 @@ export const TrafficAndCartStatsTable: React.FC<TrafficAndCartStatsTableProps> =
               {stats.dailyTrends.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-4 text-center text-neutral-500">
-                    Nema zabilježenih posjeta u zadnjih 14 dana.
+                    Nema zabiljezenih posjeta u zadnjih 14 dana.
                   </td>
                 </tr>
               ) : (

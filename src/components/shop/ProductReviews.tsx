@@ -60,11 +60,11 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userName.trim()) {
-      setErrorMsg('Molimo unesite vaše ime.');
+      setErrorMsg('Molimo unesite vaSe ime.');
       return;
     }
     if (!comment.trim() || comment.trim().length < 5) {
-      setErrorMsg('Recenzija mora sadržavati najmanje 5 karaktera.');
+      setErrorMsg('Recenzija mora sadrzavati najmanje 5 karaktera.');
       return;
     }
 
@@ -89,7 +89,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
       setShowForm(false);
       setTimeout(() => setFormSuccess(false), 5000);
     } catch (err) {
-      setErrorMsg('Došlo je do greške prilikom objave recenzije. Pokušajte ponovo.');
+      setErrorMsg('DoSlo je do greSke prilikom objave recenzije. PokuSajte ponovo.');
     } finally {
       setSubmitting(false);
     }
@@ -120,7 +120,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
           className="px-5 py-2.5 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-[#0A0A0A] self-start sm:self-auto flex items-center gap-2 active:scale-95 cursor-pointer"
         >
           <Star className="w-4 h-4 fill-current" />
-          <span>{showForm ? 'Zatvori obrazac' : 'Napiši recenziju'}</span>
+          <span>{showForm ? 'Zatvori obrazac' : 'NapiSi recenziju'}</span>
         </button>
       </div>
 
@@ -128,7 +128,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
       {formSuccess && (
         <div className="bg-[#F7E97F] text-[#0A0A0A] border-2 border-[#0A0A0A] p-4 flex items-center gap-3 font-['Inter'] text-xs font-bold animate-fadeIn">
           <CheckCircle2 className="w-5 h-5 text-[#0A0A0A] shrink-0" />
-          <span>Hvala vam na recenziji! Vaša ocjena i utisak su uspješno zabilježeni u bazi.</span>
+          <span>Hvala vam na recenziji! VaSa ocjena i utisak su uspjeSno zabiljezeni u bazi.</span>
         </div>
       )}
 
@@ -161,10 +161,10 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
             <span className="font-bold text-neutral-900">100% provjerene recenzije kupaca</span>
           </div>
           <p className="text-neutral-600 leading-relaxed text-[11px]">
-            Sve recenzije dolaze od stvarnih kupaca koji su naručili robu putem Casual Shop BiH. Cijenimo vaše mišljenje o udobnosti kroja, kvalitetu 240 GSM češljanog pamuka i postojanosti štampe.
+            Sve recenzije dolaze od stvarnih kupaca koji su narucili robu putem Casual Shop BiH. Cijenimo vaSe miSljenje o udobnosti kroja, kvalitetu 240 GSM ceSljanog pamuka i postojanosti Stampe.
           </p>
           <div className="flex items-center gap-3 text-[11px] text-neutral-500 pt-1">
-            <span>👕 Veličina odgovara standardu</span>
+            <span>👕 Velicina odgovara standardu</span>
             <span>•</span>
             <span className="text-black font-bold">⚡ Brza dostava 48–72h</span>
           </div>
@@ -179,10 +179,10 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
         >
           <div className="border-b border-neutral-200 pb-3">
             <h4 className="font-['Poppins'] text-sm font-black uppercase tracking-wider text-black">
-              Napišite svoju ocjenu za {productName}
+              NapiSite svoju ocjenu za {productName}
             </h4>
             <p className="text-xs text-neutral-500 font-['Inter']">
-              Podijelite svoje iskustvo sa veličinom, materijalom i cjelokupnim dojmom.
+              Podijelite svoje iskustvo sa velicinom, materijalom i cjelokupnim dojmom.
             </p>
           </div>
 
@@ -195,7 +195,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
           {/* Interactive Star Rating */}
           <div className="space-y-1.5">
             <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700">
-              Vaša ocjena (1 do 5 zvjezdica) *
+              VaSa ocjena (1 do 5 zvjezdica) *
             </label>
             <div className="flex items-center gap-1.5">
               {[1, 2, 3, 4, 5].map((starValue) => {
@@ -221,7 +221,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
                 );
               })}
               <span className="font-['Poppins'] text-xs font-bold text-neutral-800 ml-2">
-                {rating === 5 ? '5/5 - Odlično' : rating === 4 ? '4/5 - Vrlo dobro' : rating === 3 ? '3/5 - Dobro' : rating === 2 ? '2/5 - Prosječno' : '1/5 - Slabo'}
+                {rating === 5 ? '5/5 - Odlicno' : rating === 4 ? '4/5 - Vrlo dobro' : rating === 3 ? '3/5 - Dobro' : rating === 2 ? '2/5 - Prosjecno' : '1/5 - Slabo'}
               </span>
             </div>
           </div>
@@ -229,7 +229,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-['Inter']">
             <div>
               <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                Vaše ime ili nadimak *
+                VaSe ime ili nadimak *
               </label>
               <input
                 type="text"
@@ -243,7 +243,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
 
             <div>
               <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                E-mail adresa <span className="text-neutral-400 font-normal">(opciono, neće biti javno prikazana)</span>
+                E-mail adresa <span className="text-neutral-400 font-normal">(opciono, nece biti javno prikazana)</span>
               </label>
               <input
                 type="email"
@@ -257,14 +257,14 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
 
           <div>
             <label className="block text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-              Vaš komentar / recenzija *
+              VaS komentar / recenzija *
             </label>
             <textarea
               required
               rows={4}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Opišite kako vam stoji veličina, kakav je materijal pod rukom i kako se ponaša nakon pranja..."
+              placeholder="OpiSite kako vam stoji velicina, kakav je materijal pod rukom i kako se ponaSa nakon pranja..."
               className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-3 text-xs sm:text-sm focus:bg-white focus:outline-none focus:border-black font-['Inter'] leading-relaxed"
             />
           </div>
@@ -293,22 +293,22 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, produ
       <div className="space-y-4">
         {loading ? (
           <div className="bg-white border-2 border-neutral-200 p-8 text-center text-xs text-neutral-500 font-['Inter']">
-            Učitavam recenzije kupaca...
+            Ucitavam recenzije kupaca...
           </div>
         ) : reviews.length === 0 ? (
           <div className="bg-white border-2 border-dashed border-neutral-300 p-8 text-center space-y-3 font-['Inter']">
             <Star className="w-8 h-8 text-neutral-300 mx-auto" />
             <h4 className="font-['Poppins'] text-sm font-black uppercase tracking-wider text-neutral-800">
-              Još nema recenzija za ovaj artikal
+              JoS nema recenzija za ovaj artikal
             </h4>
             <p className="text-xs text-neutral-500 max-w-md mx-auto">
-              Budite prvi koji će ostaviti recenziju i pomoći ostalim članovima Casual zajednice u odabiru idealne veličine.
+              Budite prvi koji ce ostaviti recenziju i pomoci ostalim clanovima Casual zajednice u odabiru idealne velicine.
             </p>
             <button
               onClick={() => setShowForm(true)}
               className="px-4 py-2 bg-[#0A0A0A] text-[#F7E97F] text-xs font-['Poppins'] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 hover:bg-neutral-800 cursor-pointer"
             >
-              <span>Napiši prvu recenziju</span>
+              <span>NapiSi prvu recenziju</span>
             </button>
           </div>
         ) : (

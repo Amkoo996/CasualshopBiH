@@ -11,7 +11,7 @@ service cloud.firestore {
       );
     }
 
-    // Helper funkcija: osigurava da kupac može samo smanjiti zalihu (K1 fix)
+    // Helper funkcija: osigurava da kupac moze samo smanjiti zalihu (K1 fix)
     function sizeOk(s) {
       return !(s in request.resource.data.sizes) || (
         !(s in resource.data.sizes) || (
@@ -29,7 +29,7 @@ service cloud.firestore {
       allow read: if true;
       allow create, delete: if isAdmin();
       
-      // Admin mijenja sve; Kupci pri kupovini mogu isključivo smanjiti postojeće zalihe
+      // Admin mijenja sve; Kupci pri kupovini mogu iskljucivo smanjiti postojece zalihe
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sizes']) &&
         sizeOk('S') && sizeOk('M') && sizeOk('L') && sizeOk('XL') &&
@@ -38,7 +38,7 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // NARUDŽBE (ORDERS) - ZAKLJUČANO ZA JAVNOST
+    // NARUDzBE (ORDERS) - ZAKLJUcANO ZA JAVNOST
     // ==========================================
     match /orders/{orderId} {
       allow create: if request.resource.data.keys().hasOnly([
@@ -51,7 +51,7 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // SIGURNO PRAĆENJE NARUDŽBI (ORDER TRACKING)
+    // SIGURNO PRAcENJE NARUDzBI (ORDER TRACKING)
     // ==========================================
     match /order_tracking/{orderNumber} {
       allow get: if true;
@@ -66,7 +66,7 @@ service cloud.firestore {
     // ANALITIKA I METRIKE - STRATIFIKOVANO SVE ZA ADMINA (V1)
     // ==========================================
     match /analytics_events/{eventId} {
-      allow create: if true; // Kupci šalju event pri posjeti
+      allow create: if true; // Kupci Salju event pri posjeti
       allow read, update, delete: if isAdmin();
     }
 
@@ -86,10 +86,10 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // PROMO KODOVI (PROMO CODES) - SPREČAVANJE CURENJA (K3 fix)
+    // PROMO KODOVI (PROMO CODES) - SPREcAVANJE CURENJA (K3 fix)
     // ==========================================
     match /promo_codes/{codeId} {
-      // Kupac može dohvatiti samo konkretan kod pri unosa u checkout (get), ali NE MOŽE listati sve kodove (list)
+      // Kupac moze dohvatiti samo konkretan kod pri unosa u checkout (get), ali NE MOzE listati sve kodove (list)
       allow get: if true;
       allow list: if isAdmin();
       allow write: if isAdmin();
@@ -107,10 +107,10 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // NEWSLETTER PRETPATNICI (SUBSCRIBERS) - ONEMOGUĆENO PREPISIVANJE (V4 fix)
+    // NEWSLETTER PRETPATNICI (SUBSCRIBERS) - ONEMOGUcENO PREPISIVANJE (V4 fix)
     // ==========================================
     match /subscribers/{email} {
-      // Onemogućen update anonimnim korisnicima kako ne bi mogli mijenjati/prepisivati tuđe e-mailove
+      // Onemogucen update anonimnim korisnicima kako ne bi mogli mijenjati/prepisivati tuđe e-mailove
       allow create: if request.resource.data.keys().hasOnly([
         'email', 'subscribedAt', 'createdAt', 'consent'
       ]);
@@ -118,7 +118,7 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // RECENZIJE PROIZVODA (REVIEWS) - STRATEŠKA VALIDACIJA (V3 fix)
+    // RECENZIJE PROIZVODA (REVIEWS) - STRATESKA VALIDACIJA (V3 fix)
     // ==========================================
     match /reviews/{reviewId} {
       allow read: if true;

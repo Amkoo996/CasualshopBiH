@@ -86,53 +86,53 @@ export const AbandonedCartsPromo: React.FC = () => {
   const generateEmailBody = (session: AbandonedCartSession) => {
     const name = session.customerName || 'prijatelju';
     const itemsList = session.items
-      .map((i) => `• ${i.name} (Veličina: ${i.size}) - ${i.quantity}x`)
+      .map((i) => `• ${i.name} (Velicina: ${i.size}) - ${i.quantity}x`)
       .join('\n');
 
     if (emailMode === '3days_no_code') {
       return `Pozdrav ${name},
 
-Primijetili smo da ti se svidjela odjeća u Casual Shop BiH, ali nisi dovršio/la narudžbu:
+Primijetili smo da ti se svidjela odjeca u Casual Shop BiH, ali nisi dovrSio/la narudzbu:
 
 ${itemsList}
 
-Tvoja kombinacija te i dalje čeka!
+Tvoja kombinacija te i dalje ceka!
 
-Plaćanje je sigurno pouzećem prilikom preuzimanja od kurira, a dostava stiže u roku 48–72h širom BiH.
+Placanje je sigurno pouzecem prilikom preuzimanja od kurira, a dostava stize u roku 48–72h Sirom BiH.
 
-Klikni na link i dovrši narudžbu dok su zalihe u tvojoj veličini još dostupne:
+Klikni na link i dovrSi narudzbu dok su zalihe u tvojoj velicini joS dostupne:
 https://casualshopbih.pages.dev
 
-Ako imaš pitanja oko veličine ili dostave, samo odgovori na ovu poruku ili nam se javi na Instagram @casualshop.bih.
+Ako imaS pitanja oko velicine ili dostave, samo odgovori na ovu poruku ili nam se javi na Instagram @casualshop.bih.
 
-Srdačan pozdrav,
+Srdacan pozdrav,
 Casual Shop BiH Tim`;
     }
 
     return `Pozdrav ${name},
 
-Primijetili smo da ti se svidjela odjeća u Casual Shop BiH, ali nisi dovršio/la narudžbu:
+Primijetili smo da ti se svidjela odjeca u Casual Shop BiH, ali nisi dovrSio/la narudzbu:
 
 ${itemsList}
 
 Kako bi tvoja kombinacija bila spremna, pripremili smo ekskluzivni promo kod za ${promoDiscount} popusta na tvoju korpu:
 
-🎁 JEDINSTVENI PROMO KOD: ${promoCode} (Važi narednih 48 sati)
+🎁 JEDINSTVENI PROMO KOD: ${promoCode} (Vazi narednih 48 sati)
 
-Plaćanje je sigurno pouzećem prilikom preuzimanja od kurira, a dostava stiže u roku 48–72h širom BiH.
+Placanje je sigurno pouzecem prilikom preuzimanja od kurira, a dostava stize u roku 48–72h Sirom BiH.
 
-Klikni na link i dovrši narudžbu dok su zalihe u tvojoj veličini još dostupne:
+Klikni na link i dovrSi narudzbu dok su zalihe u tvojoj velicini joS dostupne:
 https://casualshopbih.pages.dev
 
-Srdačan pozdrav,
+Srdacan pozdrav,
 Casual Shop BiH Tim`;
   };
 
   const generateEmailSubject = () => {
     if (emailMode === '3days_no_code') {
-      return `Casual Shop BiH • Zaboravio/la si nešto u korpi?`;
+      return `Casual Shop BiH • Zaboravio/la si neSto u korpi?`;
     }
-    return `Casual Shop BiH • Zaboravio/la si nešto u korpi? Poklanjamo ti ${promoDiscount} popusta!`;
+    return `Casual Shop BiH • Zaboravio/la si neSto u korpi? Poklanjamo ti ${promoDiscount} popusta!`;
   };
 
   const handleCopyText = (text: string) => {
@@ -152,7 +152,7 @@ Casual Shop BiH Tim`;
       const fullEmailContent = generateEmailBody(selectedSession);
       const subjectText = generateEmailSubject();
       const itemsSummary = selectedSession.items
-        .map((i) => `• ${i.name} (Veličina: ${i.size}) - ${i.quantity}x`)
+        .map((i) => `• ${i.name} (Velicina: ${i.size}) - ${i.quantity}x`)
         .join('\n');
 
       const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
@@ -193,11 +193,11 @@ Casual Shop BiH Tim`;
           try {
             await markCartEmailAsSent(selectedSession.id);
           } catch (e) {
-            console.warn('Upozorenje pri ažuriranju statusa u bazi:', e);
+            console.warn('Upozorenje pri azuriranju statusa u bazi:', e);
           }
         }
 
-        // LOKALNO AŽURIRANJE STATE-A
+        // LOKALNO AzURIRANJE STATE-A
         setCarts((prev) =>
           prev.map((c) =>
             c.id === selectedSession.id || c.email === selectedSession.email
@@ -213,8 +213,8 @@ Casual Shop BiH Tim`;
         alert(`Slanje e-maila nije uspjelo: ${errText}`);
       }
     } catch (err) {
-      console.error('Greška pri slanju e-maila:', err);
-      alert('Mrežna greška pri slanju.');
+      console.error('GreSka pri slanju e-maila:', err);
+      alert('Mrezna greSka pri slanju.');
     } finally {
       setSendingEmail(false);
     }
@@ -251,10 +251,10 @@ Casual Shop BiH Tim`;
           </div>
           <h3 className="font-['Poppins'] text-lg sm:text-xl font-black uppercase tracking-tight text-neutral-900 mt-1 flex items-center gap-2">
             <Mail className="w-5 h-5 text-[#0A0A0A]" />
-            <span>Napuštene korpe & E-mail Podsjetnici</span>
+            <span>NapuStene korpe & E-mail Podsjetnici</span>
           </h3>
           <p className="text-xs text-neutral-500 font-['Inter']">
-            Slanje podsjetnika u 2 koraka: Obični podsjetnik nakon 3 dni ili podsjetnik sa promo kodom od 10% nakon 5 dni.
+            Slanje podsjetnika u 2 koraka: Obicni podsjetnik nakon 3 dni ili podsjetnik sa promo kodom od 10% nakon 5 dni.
           </p>
         </div>
 
@@ -274,9 +274,9 @@ Casual Shop BiH Tim`;
             Logika i opcije slanja e-mail podsjetnika:
           </p>
           <p>
-            • <strong>Opcija 1 (Nakon 3 dana):</strong> Šalje se podsjetnik bez promo koda na zaboravljene artikle.<br />
-            • <strong>Opcija 2 (Nakon 5 dni):</strong> Šalje se podsjetnik sa ekskluzivnim promo kodom od 10% koji važi 48 sati.<br />
-            • <strong>Status slanja:</strong> Nakon slanja emaila, korpa se označava kao **POSLANO** kako ne biste ponavljali slanje.
+            • <strong>Opcija 1 (Nakon 3 dana):</strong> Salje se podsjetnik bez promo koda na zaboravljene artikle.<br />
+            • <strong>Opcija 2 (Nakon 5 dni):</strong> Salje se podsjetnik sa ekskluzivnim promo kodom od 10% koji vazi 48 sati.<br />
+            • <strong>Status slanja:</strong> Nakon slanja emaila, korpa se oznacava kao **POSLANO** kako ne biste ponavljali slanje.
           </p>
         </div>
       </div>
@@ -297,7 +297,7 @@ Casual Shop BiH Tim`;
             {carts.length === 0 ? (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-neutral-500 font-['Inter']">
-                  {loading ? 'Učitavanje napuštenih korpi...' : 'Trenutno nema napuštenih korpi u bazi.'}
+                  {loading ? 'Ucitavanje napuStenih korpi...' : 'Trenutno nema napuStenih korpi u bazi.'}
                 </td>
               </tr>
             ) : (
@@ -391,7 +391,7 @@ Casual Shop BiH Tim`;
                         className="px-3.5 py-2 bg-[#0A0A0A] hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 border border-[#0A0A0A] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>{c.emailSent ? 'Već Poslano' : 'Pošalji Email'}</span>
+                        <span>{c.emailSent ? 'Vec Poslano' : 'PoSalji Email'}</span>
                       </button>
                     </td>
                   </tr>
@@ -423,7 +423,7 @@ Casual Shop BiH Tim`;
             {emailSentSuccess && (
               <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-['Poppins'] font-bold flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-600" />
-                <span>E-mail obavijest je uspješno poslana na adresu {selectedSession.email}!</span>
+                <span>E-mail obavijest je uspjeSno poslana na adresu {selectedSession.email}!</span>
               </div>
             )}
 
@@ -464,7 +464,7 @@ Casual Shop BiH Tim`;
                     <span>2. Nakon 5 dni (SA kodom 10%)</span>
                   </div>
                   <p className="text-[11px] text-neutral-600 mt-1">
-                    Uključuje generisani promo kod koji važi 48 sati.
+                    Ukljucuje generisani promo kod koji vazi 48 sati.
                   </p>
                 </button>
               </div>
@@ -550,7 +550,7 @@ Casual Shop BiH Tim`;
                     ) : (
                       <Mail className="w-4 h-4" />
                     )}
-                    <span>{sendingEmail ? 'Slanje...' : selectedSession.emailSent ? 'Već Poslano' : 'Pošalji e-mail'}</span>
+                    <span>{sendingEmail ? 'Slanje...' : selectedSession.emailSent ? 'Vec Poslano' : 'PoSalji e-mail'}</span>
                   </button>
                 )}
               </div>

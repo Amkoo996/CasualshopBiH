@@ -1,6 +1,6 @@
 {
   "name": "Casual Shop BiH",
-  "description": "Službena online trgovina za Casual Shop BiH - minimalistički streetwear brend odjeće. Dostava širom BiH uz plaćanje pouzećem.",
+  "description": "Sluzbena online trgovina za Casual Shop BiH - minimalisticki streetwear brend odjece. Dostava Sirom BiH uz placanje pouzecem.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

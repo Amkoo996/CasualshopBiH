@@ -35,7 +35,7 @@ export const NewsletterPopup: React.FC = () => {
       return;
     }
     if (!consent) {
-      setErrorMsg('Molimo označite saglasnost.');
+      setErrorMsg('Molimo oznacite saglasnost.');
       setStatus('error');
       return;
     }
@@ -51,7 +51,7 @@ export const NewsletterPopup: React.FC = () => {
       }, 3000);
     } catch {
       setStatus('error');
-      setErrorMsg('Došlo je do greške. Pokušajte ponovo.');
+      setErrorMsg('DoSlo je do greSke. PokuSajte ponovo.');
     }
   };
 
@@ -79,7 +79,7 @@ export const NewsletterPopup: React.FC = () => {
             Budi prvi koji sazna.
           </h3>
           <p className="text-xs text-neutral-300">
-            Prijavi se i dobij obavijest čim stigne nova odjeća.
+            Prijavi se i dobij obavijest cim stigne nova odjeca.
           </p>
         </div>
 
@@ -87,7 +87,7 @@ export const NewsletterPopup: React.FC = () => {
           <div className="bg-emerald-950 border border-emerald-500 text-emerald-200 p-4 text-center space-y-1">
             <CheckCircle2 className="w-6 h-6 text-[#F7E97F] mx-auto" />
             <p className="font-bold text-xs uppercase tracking-wider">Hvala na prijavi!</p>
-            <p className="text-[11px] text-neutral-300">Uskoro vam šaljemo prve novosti.</p>
+            <p className="text-[11px] text-neutral-300">Uskoro vam Saljemo prve novosti.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3.5 text-xs text-left">
@@ -110,7 +110,7 @@ export const NewsletterPopup: React.FC = () => {
                 className="mt-0.5 accent-[#F7E97F] cursor-pointer"
               />
               <span>
-                Pristajem na primanje novosti i promocija. Odjava je moguća u svakom trenutku.
+                Pristajem na primanje novosti i promocija. Odjava je moguca u svakom trenutku.
               </span>
             </label>
 

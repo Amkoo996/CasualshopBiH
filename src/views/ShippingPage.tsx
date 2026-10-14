@@ -26,10 +26,10 @@ export const ShippingPage: React.FC = () => {
       if (order) {
         setFoundOrder(order);
       } else {
-        setError('Narudžba nije pronađena. Provjerite broj narudžbe i telefon.');
+        setError('Narudzba nije pronađena. Provjerite broj narudzbe i telefon.');
       }
     } catch {
-      setError('Došlo je do greške pri pretrazi. Pokušajte ponovo.');
+      setError('DoSlo je do greSke pri pretrazi. PokuSajte ponovo.');
     } finally {
       setLoading(false);
     }
@@ -39,25 +39,25 @@ export const ShippingPage: React.FC = () => {
     <div className="max-w-4xl mx-auto px-4 py-12 sm:py-16 space-y-10 font-['Inter']">
       <div className="text-center space-y-2">
         <h1 className="font-['Poppins'] text-3xl sm:text-4xl font-black uppercase tracking-tight text-neutral-900">
-          Dostava i Plaćanje
+          Dostava i Placanje
         </h1>
         <p className="text-xs sm:text-sm text-neutral-600 max-w-lg mx-auto">
-          Sve informacije o načinima isporuke, cijenama brze pošte i provjeri statusa vaše narudžbe.
+          Sve informacije o nacinima isporuke, cijenama brze poSte i provjeri statusa vaSe narudzbe.
         </p>
       </div>
 
-      {/* MODUL ZA PRAĆENJE NARUDŽBE */}
+      {/* MODUL ZA PRAcENJE NARUDzBE */}
       <div className="bg-white border-2 border-[#0A0A0A] p-6 shadow-md max-w-lg mx-auto space-y-4">
         <div className="flex items-center gap-2 border-b-2 border-neutral-200 pb-2">
           <PackageCheck className="w-5 h-5 text-[#0A0A0A]" />
           <h2 className="font-['Poppins'] text-sm font-black uppercase tracking-wider text-black">
-            Provjera statusa narudžbe
+            Provjera statusa narudzbe
           </h2>
         </div>
 
         <form onSubmit={handleTrack} className="space-y-3">
           <div>
-            <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj narudžbe *</label>
+            <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj narudzbe *</label>
             <input
               type="text"
               required
@@ -86,7 +86,7 @@ export const ShippingPage: React.FC = () => {
             className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#0A0A0A] cursor-pointer"
           >
             <Search className="w-4 h-4" />
-            <span>{loading ? 'PRETRAŽIVANJE...' : 'PRONAĐI NARUDŽBU'}</span>
+            <span>{loading ? 'PRETRAzIVANJE...' : 'PRONAĐI NARUDzBU'}</span>
           </button>
         </form>
 
@@ -100,7 +100,7 @@ export const ShippingPage: React.FC = () => {
         {foundOrder && (
           <div className="p-4 bg-[#F4F2EC] border-2 border-[#F7E97F] space-y-3 text-xs animate-fadeIn">
             <div className="flex justify-between items-center border-b border-neutral-300 pb-2">
-              <span className="font-['Poppins'] font-bold text-black">Status narudžbe:</span>
+              <span className="font-['Poppins'] font-bold text-black">Status narudzbe:</span>
               <span className={`px-2.5 py-1 font-['Poppins'] font-black uppercase text-[10px] tracking-wider ${
                 foundOrder.status === 'Nova' ? 'bg-amber-400 text-black' :
                 foundOrder.status === 'Potvrđena' ? 'bg-blue-600 text-white' :
@@ -112,23 +112,23 @@ export const ShippingPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5 text-neutral-800">
-              <p><strong>Broj narudžbe:</strong> <span className="font-mono">{foundOrder.orderNumber}</span></p>
+              <p><strong>Broj narudzbe:</strong> <span className="font-mono">{foundOrder.orderNumber}</span></p>
               <p><strong>Datum kreiranja:</strong> {new Date(foundOrder.createdAt).toLocaleDateString('bs-BA')}</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* BANER SA LOGOTIPOM X EXPRESS I POUZEĆEM */}
+      {/* BANER SA LOGOTIPOM X EXPRESS I POUZEcEM */}
       <div className="bg-white border-2 border-[#F7E97F] p-6 shadow-sm space-y-6">
         <div className="text-center space-y-2 border-b border-neutral-200 pb-4">
           <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] text-neutral-500">
-            ZVAČNIČNA KURIRSKA SLUŽBA I PLAĆANJE
+            ZVAcNIcNA KURIRSKA SLUzBA I PLAcANJE
           </span>
           <div className="flex flex-wrap items-center justify-center gap-6 pt-3 opacity-95">
             <img 
               src="/images/logo-x-express-brza-posta.png" 
-              alt="X Express Brza Pošta" 
+              alt="X Express Brza PoSta" 
               className="h-9 object-contain bg-white px-3 py-1 border border-neutral-300 rounded"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
@@ -139,7 +139,7 @@ export const ShippingPage: React.FC = () => {
               }}
             />
             <span className="font-['Poppins'] font-black text-xs text-black border-2 border-black px-3 py-1.5 uppercase tracking-wider">
-              Plaćanje pouzećem gotovinom
+              Placanje pouzecem gotovinom
             </span>
           </div>
         </div>
@@ -161,11 +161,11 @@ export const ShippingPage: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-neutral-200">
                 <tr className="bg-white">
-                  <td className="p-3 border border-neutral-200">Dostava brzom poštom širom BiH (48-72h)</td>
+                  <td className="p-3 border border-neutral-200">Dostava brzom poStom Sirom BiH (48-72h)</td>
                   <td className="p-3 border border-neutral-200 text-right font-bold font-['Poppins']">12,00 KM</td>
                 </tr>
                 <tr className="bg-emerald-50 text-emerald-900 font-semibold">
-                  <td className="p-3 border border-neutral-200">Narudžbe preko 100,00 KM</td>
+                  <td className="p-3 border border-neutral-200">Narudzbe preko 100,00 KM</td>
                   <td className="p-3 border border-neutral-200 text-right font-black font-['Poppins']">BESPLATNO</td>
                 </tr>
               </tbody>
@@ -173,7 +173,7 @@ export const ShippingPage: React.FC = () => {
           </div>
 
           <p className="text-[11px] text-neutral-600 leading-relaxed bg-[#F4F2EC] p-3 border border-neutral-300">
-            Cijena dostave brzom poštom je fiksna bez obzira na broj artikala u narudžbi.
+            Cijena dostave brzom poStom je fiksna bez obzira na broj artikala u narudzbi.
           </p>
         </div>
       </div>
@@ -183,51 +183,51 @@ export const ShippingPage: React.FC = () => {
         <div className="bg-white p-6 border-2 border-neutral-200 space-y-3">
           <h2 className="font-['Poppins'] text-sm font-black uppercase tracking-wider text-black flex items-center gap-2 border-b pb-2 border-neutral-200">
             <CreditCard className="w-4 h-4 text-black" />
-            <span>Plaćanje</span>
+            <span>Placanje</span>
           </h2>
           <p className="text-xs text-neutral-700 leading-relaxed">
-            <strong>Plaćaš pouzećem:</strong> Gotovinom kuriru pri preuzimanju paketa na tvojoj adresi. Ništa ne plaćaš unaprijed.
+            <strong>PlacaS pouzecem:</strong> Gotovinom kuriru pri preuzimanju paketa na tvojoj adresi. NiSta ne placaS unaprijed.
           </p>
           <div className="p-2.5 bg-amber-50 border border-amber-300 text-[11px] text-amber-900 font-medium flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
-            <span>Moguće otvaranje i provjera paketa prije preuzimanja od kurira.</span>
+            <span>Moguce otvaranje i provjera paketa prije preuzimanja od kurira.</span>
           </div>
         </div>
 
         <div className="bg-white p-6 border-2 border-neutral-200 space-y-3">
           <h2 className="font-['Poppins'] text-sm font-black uppercase tracking-wider text-black flex items-center gap-2 border-b pb-2 border-neutral-200">
             <Clock className="w-4 h-4 text-black" />
-            <span>Rok i način isporuke</span>
+            <span>Rok i nacin isporuke</span>
           </h2>
           <p className="text-xs text-neutral-700 leading-relaxed">
-            Sve narudžbe šaljemo ugovorenom brzom poštom X Express. Rok za isporuku na vašu adresu je <strong>48-72 sata</strong> od momenta potvrde narudžbe.
+            Sve narudzbe Saljemo ugovorenom brzom poStom X Express. Rok za isporuku na vaSu adresu je <strong>48-72 sata</strong> od momenta potvrde narudzbe.
           </p>
         </div>
       </div>
 
-      {/* KURIRSKA SLUŽBA */}
+      {/* KURIRSKA SLUzBA */}
       <div className="space-y-6">
         <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black border-b-2 border-neutral-300 pb-2">
-          Služba brze pošte s kojom sarađujemo
+          Sluzba brze poSte s kojom sarađujemo
         </h2>
 
         <div className="bg-white p-6 border-2 border-neutral-300 space-y-3">
           <div className="flex items-center justify-between border-b pb-2 border-neutral-200">
             <h3 className="font-['Poppins'] font-black text-xs uppercase tracking-wider text-black">
-              X Express Brza Pošta
+              X Express Brza PoSta
             </h3>
             <span className="text-[10px] font-bold bg-[#0A0A0A] text-[#F7E97F] px-2 py-0.5 font-['Poppins']">
               UGOVORENI PARTNER
             </span>
           </div>
           <p className="text-xs text-neutral-600 leading-relaxed">
-            Svu dostavu paketa na vašu adresu realizujemo putem X Express brze pošte, pouzdanog partnera za brzu i sigurnu dostavu unutar Bosne i Hercegovine.
+            Svu dostavu paketa na vaSu adresu realizujemo putem X Express brze poSte, pouzdanog partnera za brzu i sigurnu dostavu unutar Bosne i Hercegovine.
           </p>
           <ul className="text-xs text-neutral-800 space-y-1.5 list-disc pl-4 font-['Inter']">
-            <li><strong>Vrsta dostave:</strong> Ekspresna brza pošta sa omogućenim otvaranjem paketa</li>
+            <li><strong>Vrsta dostave:</strong> Ekspresna brza poSta sa omogucenim otvaranjem paketa</li>
             <li><strong>Vrijeme isporuke:</strong> 48 do 72 sata</li>
-            <li><strong>Praćenje pošiljke:</strong> Obavijest i praćenje pošiljke</li>
-            <li><strong>Isporuka:</strong> Na vašu kućnu adresu radnim danima</li>
+            <li><strong>Pracenje poSiljke:</strong> Obavijest i pracenje poSiljke</li>
+            <li><strong>Isporuka:</strong> Na vaSu kucnu adresu radnim danima</li>
           </ul>
         </div>
       </div>

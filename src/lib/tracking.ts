@@ -29,7 +29,7 @@ export interface AnalyticsEvent {
   metadata?: Record<string, any>;
 }
 
-// Inicijalne čiste vrijednosti bez lažne analitike
+// Inicijalne ciste vrijednosti bez lazne analitike
 export const DEFAULT_METRICS: StoreFunnelMetrics = {
   totalVisits: 0,
   productViews: 0,
@@ -51,7 +51,7 @@ export async function recordAnalyticsEvent(
   eventType: AnalyticsEvent['eventType'],
   metadata?: Record<string, any>
 ) {
-  // Bilježi analitiku samo ako je korisnik prihvatio kolačiće
+  // Biljezi analitiku samo ako je korisnik prihvatio kolacice
   if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') {
     return;
   }
@@ -88,12 +88,12 @@ export async function recordAnalyticsEvent(
       });
     }
   } catch (error) {
-    console.warn('Spremanje analitičkog događaja nije uspjelo:', error);
+    console.warn('Spremanje analitickog događaja nije uspjelo:', error);
   }
 }
 
 // ------------------------------------------------------------------
-// POMOĆNE EXPORT FUNKCIJE ZA STATISTIKU I NAPUŠTENE KORPE
+// POMOcNE EXPORT FUNKCIJE ZA STATISTIKU I NAPUSTENE KORPE
 // ------------------------------------------------------------------
 
 export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
@@ -104,12 +104,12 @@ export async function getFunnelMetrics(): Promise<StoreFunnelMetrics> {
       return funnelSnap.data() as StoreFunnelMetrics;
     }
   } catch (error) {
-    console.error('Greška pri dohvaćanju funnel metrika:', error);
+    console.error('GreSka pri dohvacanju funnel metrika:', error);
   }
   return DEFAULT_METRICS;
 }
 
-// 🛒 DOHVAĆANJE NAPUŠTENIH KORPI SA ČUVANJEM STATUSAS POSLANOG EMAILA (Samo za Admina)
+// 🛒 DOHVAcANJE NAPUSTENIH KORPI SA cUVANJEM STATUSAS POSLANOG EMAILA (Samo za Admina)
 export async function getAbandonedCarts(): Promise<any[]> {
   try {
     const cartsRef = collection(db, 'abandoned_carts');
@@ -125,12 +125,12 @@ export async function getAbandonedCarts(): Promise<any[]> {
       };
     });
   } catch (error) {
-    console.error('Greška pri dohvaćanju napuštenih korpi:', error);
+    console.error('GreSka pri dohvacanju napuStenih korpi:', error);
     return [];
   }
 }
 
-// ✉️ OZNAČAVANJE DA JE PODSJETNIK POSLAN NA FIREBASE BAZU
+// ✉️ OZNAcAVANJE DA JE PODSJETNIK POSLAN NA FIREBASE BAZU
 export async function markCartEmailAsSent(cartId: string): Promise<void> {
   try {
     const cartRef = doc(db, 'abandoned_carts', cartId);
@@ -139,11 +139,11 @@ export async function markCartEmailAsSent(cartId: string): Promise<void> {
       emailSentAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Greška pri ažuriranju statusa poslatog e-maila u bazi:', error);
+    console.error('GreSka pri azuriranju statusa poslatog e-maila u bazi:', error);
   }
 }
 
-// 📊 POJEDINAČNO PRAĆENJE OTVARANJA PROIZVODA
+// 📊 POJEDINAcNO PRAcENJE OTVARANJA PROIZVODA
 export async function recordProductView(productOrId?: any) {
   const productId = typeof productOrId === 'string' ? productOrId : productOrId?.id;
   
@@ -164,7 +164,7 @@ export async function recordProductView(productOrId?: any) {
       });
     } catch (err) {
       // Tiho ignorisanje bez obaranja UI-ja ako klijent nema admin prava na product_stats
-      console.warn('Statistika pregleda proizvoda preskočena:', err);
+      console.warn('Statistika pregleda proizvoda preskocena:', err);
     }
   }
 }
@@ -184,7 +184,7 @@ export async function getProductViewStats(): Promise<Record<string, number>> {
     
     return statsMap;
   } catch (error) {
-    console.error('Greška pri dohvatanju statistike proizvoda:', error);
+    console.error('GreSka pri dohvatanju statistike proizvoda:', error);
     return {};
   }
 }
@@ -229,7 +229,7 @@ export async function saveCartSession(cartData: any) {
 
     await setDoc(cartRef, payload, { merge: true });
   } catch (error) {
-    console.error('Greška pri spašavanju sesije korpe:', error);
+    console.error('GreSka pri spaSavanju sesije korpe:', error);
   }
 }
 
@@ -305,7 +305,7 @@ export async function getAnalyticsStats() {
       dailyTrends,
     };
   } catch (error) {
-    console.error('Greška pri učitavanju analitike:', error);
+    console.error('GreSka pri ucitavanju analitike:', error);
     return {
       funnel: DEFAULT_METRICS,
       uniqueVisitorsCount: 0,

@@ -16,7 +16,7 @@ export const NewsletterSection: React.FC = () => {
       return;
     }
     if (!consent) {
-      setErrorMessage('Molimo označite saglasnost za primanje novosti.');
+      setErrorMessage('Molimo oznacite saglasnost za primanje novosti.');
       setStatus('error');
       return;
     }
@@ -30,7 +30,7 @@ export const NewsletterSection: React.FC = () => {
       setConsent(false);
     } catch {
       setStatus('error');
-      setErrorMessage('Došlo je do greške. Molimo pokušajte ponovo.');
+      setErrorMessage('DoSlo je do greSke. Molimo pokuSajte ponovo.');
     }
   };
 
@@ -45,7 +45,7 @@ export const NewsletterSection: React.FC = () => {
             Budi prvi koji sazna.
           </h2>
           <p className="text-sm text-neutral-300 max-w-lg mx-auto">
-            Prijavi se i dobij obavijest čim stigne nova odjeća.
+            Prijavi se i dobij obavijest cim stigne nova odjeca.
           </p>
         </div>
 
@@ -53,10 +53,10 @@ export const NewsletterSection: React.FC = () => {
           <div className="bg-emerald-950 border border-emerald-500 text-emerald-200 p-6 flex flex-col items-center gap-2 max-w-md mx-auto animate-fadeIn">
             <CheckCircle2 className="w-8 h-8 text-[#F7E97F]" />
             <span className="font-['Poppins'] font-bold text-sm uppercase tracking-wider">
-              Uspješno ste prijavljeni!
+              UspjeSno ste prijavljeni!
             </span>
             <p className="text-xs text-neutral-300 text-center">
-              Hvala na povjerenju. Obavijestit ćemo vas o novim casual dropovima.
+              Hvala na povjerenju. Obavijestit cemo vas o novim casual dropovima.
             </p>
           </div>
         ) : (
@@ -66,7 +66,7 @@ export const NewsletterSection: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Unesite vaš e-mail..."
+                placeholder="Unesite vaS e-mail..."
                 required
                 className="flex-1 bg-[#171717] border border-neutral-700 px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#F7E97F]"
               />
@@ -87,7 +87,7 @@ export const NewsletterSection: React.FC = () => {
                 className="mt-0.5 accent-[#F7E97F] cursor-pointer"
               />
               <span>
-                Pristajem na primanje novosti i promocija. Odjava je moguća u svakom trenutku.
+                Pristajem na primanje novosti i promocija. Odjava je moguca u svakom trenutku.
               </span>
             </label>
 
