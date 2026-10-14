@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, MapPin, Send, CheckCircle2, AlertCircle, Instagram, Clock, PhoneCall, Sparkles } from 'lucide-react';
+import { Mail, MapPin, Send, CheckCircle2, AlertCircle, Instagram, Clock, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { normalizePhone, isValidPhone } from '../lib/validation';
 
@@ -46,50 +46,26 @@ export const ContactPage: React.FC = () => {
     setErrorMessage('');
 
     try {
-      const contactBotToken = import.meta.env.VITE_TELEGRAM_CONTACT_BOT_TOKEN;
-      const rawChatIds = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-
-      if (!contactBotToken || !rawChatIds) {
-        setStatus('error');
-        setErrorMessage('Sistem za kontakt trenutno nije konfigurisan na serveru.');
-        return;
-      }
-
-      const telegramMessage = `📩 <b>NOVI UPIT SA KONTAKT FORME</b>\n` +
+      const contactText =
+        `NOVI UPIT SA KONTAKT FORME\n` +
         `----------------------------------\n` +
-        `👤 <b>Ime i prezime:</b> ${formData.name}\n` +
-        `📧 <b>Email:</b> ${formData.email}\n` +
-        `📞 <b>Telefon:</b> ${cleanPhone}\n\n` +
-        `💬 <b>Poruka:</b>\n${formData.message}`;
+        `Ime i prezime: ${formData.name}\n` +
+        `Email: ${formData.email}\n` +
+        `Telefon: ${cleanPhone}\n\n` +
+        `Poruka:\n${formData.message}`;
 
-      const chatIds = rawChatIds.split(',').map((id: string) => id.trim()).filter(Boolean);
-      let anySuccess = false;
+      const tgRes = await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: contactText }),
+      });
 
-      for (const chatId of chatIds) {
-        const tgRes = await fetch(`https://api.telegram.org/bot${contactBotToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: telegramMessage,
-            parse_mode: 'HTML',
-          }),
-        });
-
-        const tgData = await tgRes.json();
-        if (tgRes.ok && tgData.ok) {
-          anySuccess = true;
-        } else {
-          console.error(`Telegram Kontakt Bot Greška za Chat ID (${chatId}):`, tgData);
-        }
-      }
-
-      if (anySuccess) {
+      if (tgRes.ok) {
         setStatus('success');
         setFormData({ name: '', email: '', phone: '', message: '', bot_field: '' });
       } else {
         setStatus('error');
-        setErrorMessage('Greška pri slanju. Provjerite da li ste pokrenuli bot @Casualshopbihkontakt_bot.');
+        setErrorMessage('Greška pri slanju poruke. Molimo pokušajte ponovo kasnije.');
       }
     } catch (err) {
       console.error('Mrežna greška pri slanju:', err);
