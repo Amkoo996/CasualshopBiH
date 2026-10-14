@@ -112,7 +112,7 @@ export const deleteProduct = async (id: string): Promise<void> => {
 };
 
 // ==========================================
-// NARUDŽBE (ORDERS & TRACKING)
+// NARUDŽBE (ORDERS & TRACKING) - SIGURNA TRANSAKCIJA (K1, K2, K3)
 // ==========================================
 
 export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
@@ -126,29 +126,83 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
     const trackingRef = doc(db, 'order_tracking', orderData.orderNumber);
 
     await runTransaction(db, async (transaction) => {
-      // 1. Provjera i smanjivanje zaliha
+      let calculatedSubtotal = 0;
+      const verifiedItems = [];
+
+      // 1. STROGA PROJVERA ZALIHA I PRERAČUNAVANJE PRAVE CIJENE IZ BAZI (K1, K2)
       for (const item of orderData.items) {
         const productRef = doc(db, 'products', item.id);
         const productSnap = await transaction.get(productRef);
 
-        if (productSnap.exists()) {
-          const pData = productSnap.data() as Product;
-          const currentStock = pData.sizes?.[item.size] ?? 0;
-          const newStock = Math.max(0, currentStock - item.quantity);
+        if (!productSnap.exists()) {
+          throw new Error(`Artikal "${item.name}" više ne postoji u ponudi.`);
+        }
 
-          transaction.update(productRef, {
-            [`sizes.${item.size}`]: newStock,
-          });
+        const pData = productSnap.data() as Product;
+        if (pData.isHidden) {
+          throw new Error(`Artikal "${pData.name}" trenutno nije dostupan.`);
+        }
+
+        const currentStock = pData.sizes?.[item.size] ?? 0;
+        if (currentStock < item.quantity) {
+          throw new Error(`Nema dovoljno zaliha za "${pData.name}" (Veličina: ${item.size}). Na stanju: ${currentStock}`);
+        }
+
+        const realPrice = pData.price;
+        calculatedSubtotal += realPrice * item.quantity;
+
+        verifiedItems.push({
+          ...item,
+          price: realPrice,
+        });
+
+        // Smanjivanje zalihe
+        transaction.update(productRef, {
+          [`sizes.${item.size}`]: currentStock - item.quantity,
+        });
+      }
+
+      // 2. STROGA VERIFIKACIJA PROMO KODA U TRANSAKCIJI (K3)
+      let verifiedDiscount = 0;
+      if (orderData.promoCode) {
+        const promoCodeUpper = orderData.promoCode.trim().toUpperCase();
+        const promoRef = doc(db, 'promo_codes', promoCodeUpper);
+        const promoSnap = await transaction.get(promoRef);
+
+        if (promoSnap.exists()) {
+          const promoData = promoSnap.data();
+          const isExpired = promoData.expiresAt ? new Date(promoData.expiresAt).getTime() < Date.now() : false;
+          const isMaxUsed = promoData.maxUsage ? (promoData.usageCount || 0) >= promoData.maxUsage : false;
+
+          if (promoData.active !== false && !isExpired && !isMaxUsed) {
+            const discountPercent = promoData.discountPercent || 10;
+            verifiedDiscount = (calculatedSubtotal * discountPercent) / 100;
+
+            // Povećanje broja upotreba promo koda
+            transaction.update(promoRef, {
+              usageCount: (promoData.usageCount || 0) + 1,
+            });
+          }
         }
       }
 
-      // 2. Upis kompletne narudžbe u osjetljivu kolekciju
+      // 3. PRERAČUNAVANJE FINALNOG TOTALA
+      const verifiedShippingFee = calculatedSubtotal >= 100 ? 0 : 12;
+      const verifiedTotal = Math.max(0, calculatedSubtotal - verifiedDiscount + verifiedShippingFee);
+
+      // 4. UPIS VERIFICIRANIH PODATAKA NARUDŽBE
       transaction.set(newOrderRef, {
         ...orderData,
+        items: verifiedItems,
+        subtotal: calculatedSubtotal,
+        discountAmount: verifiedDiscount,
+        shippingFee: verifiedShippingFee,
+        total: verifiedTotal,
+        status: 'Nova',
         createdAt,
       });
 
-      // 3. Upis anonimiziranih podataka za praćenje
+      // 5. UPIS ANONIMIZIRANIH PODATAKA ZA PRAĆENJE
       transaction.set(trackingRef, {
         orderNumber: orderData.orderNumber,
         status: 'Nova',
@@ -157,7 +211,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       });
     });
 
-    // 4. Slanje notifikacije na Telegram preko backend funkcije
+    // 6. Slanje notifikacije na Telegram
     sendOrderToTelegram({ ...orderData, id: newOrderRef.id }).catch((err) => {
       console.warn('Slanje Telegram obavijesti nije uspjelo:', err);
     });
