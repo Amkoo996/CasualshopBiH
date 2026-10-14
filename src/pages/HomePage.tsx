@@ -24,18 +24,6 @@ const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
   'Dodaci (Accessories)': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
 };
 
-const getOptimizedCloudinaryVideoUrl = (rawUrl?: string): string => {
-  const defaultVideo = 'https://res.cloudinary.com/rvlsak2u/video/upload/f_auto,q_auto,w_1280,vc_h264/v1791897813/hero-video.mp4';
-  const targetUrl = rawUrl || defaultVideo;
-
-  if (targetUrl.includes('res.cloudinary.com') && targetUrl.includes('/upload/')) {
-    if (targetUrl.includes('/f_auto,q_auto')) return targetUrl;
-    return targetUrl.replace('/upload/', '/upload/f_auto,q_auto,w_1280,vc_h264/');
-  }
-
-  return targetUrl;
-};
-
 export const HomePage: React.FC<HomePageProps> = ({
   products = [],
   onSelectProduct,
@@ -138,8 +126,6 @@ export const HomePage: React.FC<HomePageProps> = ({
     (p) => p.featured === true || String(p.featured) === 'true'
   ).slice(0, 4);
 
-  const heroVideoSrc = getOptimizedCloudinaryVideoUrl(cms.hero.videoUrl);
-
   return (
     <div className="pb-0 bg-[#0A0A0A] w-full font-['Inter']">
       {/* 1. TOP BANER */}
@@ -184,28 +170,19 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* 2. HERO SEKCIJA (OPTIMIZOVANO ZA MOBILNI + DESKTOP TCF SCORE) */}
+      {/* 2. HERO SEKCIJA (SA BRZOM, OPTIMIZOVANOM SLIKOM UMJESTO VIDEA) */}
       <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
-          {/* Slika za mobilne uređaje (Smanjuje LCP na mobilnim telefonima na ~1.5s) */}
           <img
-            src={OPTIMIZED_FALLBACK_IMAGE}
-            alt="Hero Background"
-            className="block md:hidden w-full h-full object-cover opacity-45 filter contrast-125"
+            src="/images/hero-streetwear.jpg"
+            alt="Casual Shop BiH Streetwear Kolekcija"
+            className="w-full h-full object-cover object-center opacity-45 filter contrast-125 scale-105 transition-transform duration-1000 ease-out"
             fetchPriority="high"
+            decoding="async"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = OPTIMIZED_FALLBACK_IMAGE;
+            }}
           />
-
-          {/* Video samo za desktop računare */}
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="none"
-            className="hidden md:block w-full h-full object-cover opacity-45 filter contrast-125 scale-105 transition-transform duration-10000 ease-out"
-          >
-            <source src={heroVideoSrc} type="video/mp4" />
-          </video>
 
           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-80" />
