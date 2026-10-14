@@ -24,16 +24,21 @@ import {
   ShoppingCart,
   Users,
   Eye,
+  EyeOff,
   Trash2,
   Edit,
   Save,
   X,
   FileSpreadsheet,
   Tag,
-  MessageCircle,
-  CheckSquare,
-  Square,
-  RefreshCw
+  Star,
+  Mail,
+  Send,
+  Copy,
+  Check,
+  Image as ImageIcon,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { getOrders, getProducts, updateOrderStatus } from '../lib/db';
@@ -41,7 +46,7 @@ import { Order, Product, Category } from '../types';
 import { db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
-// 1. Sanitizer za jsPDF - rješava problem dijakritika na termo printerima
+// 1. Čišćenje slova za termo printer (jsPDF bez praznina)
 const cleanPdfText = (str: string = ''): string => {
   return str
     .replace(/[čČ]/g, (m) => (m === 'č' ? 'c' : 'C'))
@@ -51,28 +56,39 @@ const cleanPdfText = (str: string = ''): string => {
     .replace(/[žŽ]/g, (m) => (m === 'ž' ? 'z' : 'Z'));
 };
 
-// 2. Pametno izvlačenje imena i podataka o kupcu
+// 2. Sveobuhvatni detektor podataka o kupcu (rješava problem sa KUPAC fallbackom)
 const extractCustomer = (order: any) => {
-  const c = order.customer || order.customerInfo || order.shippingAddress || {};
-  const name =
+  const c = order.customer || order.customerInfo || order.shippingAddress || order.formData || order.buyer || {};
+  
+  let name =
     c.fullName ||
     c.name ||
-    c.ime ||
+    (c.firstName ? `${c.firstName} ${c.lastName || ''}`.trim() : '') ||
+    (c.ime ? `${c.ime} ${c.prezime || ''}`.trim() : '') ||
+    c.imeIPrezime ||
     order.customerName ||
     order.fullName ||
     order.name ||
-    (c.phone ? `Kupac (${c.phone})` : 'Kupac');
+    order.buyerName ||
+    (order.firstName ? `${order.firstName} ${order.lastName || ''}`.trim() : '') ||
+    (order.ime ? `${order.ime} ${order.prezime || ''}`.trim() : '') ||
+    order.imePrezime ||
+    '';
 
-  const phone = c.phone || order.phone || 'N/A';
-  const city = c.city || order.city || 'BiH';
-  const address = c.address || order.address || 'N/A';
-  const postalCode = c.postalCode || order.postalCode || '';
-  const note = c.note || order.note || 'Nema napomene';
+  const phone = c.phone || order.phone || order.brojTelefona || 'N/A';
+  const city = c.city || order.city || order.grad || 'BiH';
+  const address = c.address || order.address || order.adresa || 'N/A';
+  const postalCode = c.postalCode || order.postalCode || order.postanskiBroj || '';
+  const note = c.note || order.note || order.napomena || 'Nema napomene';
+  const email = c.email || order.email || '';
 
-  return { name, phone, city, address, postalCode, note };
+  if (!name.trim()) {
+    name = phone !== 'N/A' ? `Kupac (${phone})` : 'Kupac';
+  }
+
+  return { name: name.trim(), phone, city, address, postalCode, note, email };
 };
 
-// Normalizacija statusa narudžbe
 const normalizeStatus = (statusRaw?: any): string => {
   const s = String(statusRaw || '').toLowerCase();
   if (['delivered', 'dostavljeno', 'isporuceno', 'isporučeno', 'zavrseno'].includes(s)) return 'delivered';
@@ -88,31 +104,38 @@ interface PromoCode {
   discountPercent?: number;
   discountAmount?: number;
   minOrderTotal?: number;
+  validFrom?: string;
+  validUntil?: string;
+  maxUses?: number;
+  usedCount?: number;
   active: boolean;
 }
 
 export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'discounts' | 'abandoned' | 'analytics' | 'newsletter' | 'settings'>('orders');
   
-  // Glavni podaci
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [subscribers, setSubscribers] = useState<{ email: string; date?: string }[]>([]);
+  const [subscribers, setSubscribers] = useState<{ id: string; email: string; createdAt?: string }[]>([]);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [abandonedCarts, setAbandonedCarts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copiedEmails, setCopiedEmails] = useState(false);
 
-  // Bulk selekcija narudžbi
-  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
-
-  // Filteri i pretraga
+  // Filteri
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [trackingModalOrder, setTrackingModalOrder] = useState<Order | null>(null);
   const [trackingNumberInput, setTrackingNumberInput] = useState('');
 
-  // Modali za proizvode i kupone
+  // Priprema za print sa opcijom brze izmjene
+  const [printModalOrder, setPrintModalOrder] = useState<any | null>(null);
+
+  // Cloudinary upload status
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Modali
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
 
@@ -121,19 +144,24 @@ export const AdminDashboard: React.FC = () => {
     code: '',
     discountPercent: 10,
     minOrderTotal: 50,
+    validFrom: new Date().toISOString().slice(0, 10),
+    validUntil: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+    maxUses: 100,
+    usedCount: 0,
     active: true
   });
 
-  // CMS Postavke
+  // CMS Postavke uključujući Cloudinary podatke
   const [cmsSettings, setCmsSettings] = useState({
     topBarText: 'Plaćanje pouzećem • Brza pošta 12 KM • Moguće otvaranje paketa prije preuzimanja',
     freeShippingThreshold: 100,
     contactPhone: '+387 61 000 000',
     contactEmail: 'info@casualshop.ba',
-    instagramUrl: 'https://www.instagram.com/casualshop.bih'
+    instagramUrl: 'https://www.instagram.com/casualshop.bih',
+    cloudinaryCloudName: 'dt0bc9jqy',
+    cloudinaryUploadPreset: 'casualshop_preset'
   });
 
-  // Učitavanje podataka
   const loadAllData = async () => {
     setLoading(true);
     try {
@@ -150,13 +178,20 @@ export const AdminDashboard: React.FC = () => {
         const pList: PromoCode[] = [];
         promoSnap.forEach(d => pList.push({ id: d.id, ...d.data() } as PromoCode));
         setPromoCodes(pList.length > 0 ? pList : [
-          { id: '1', code: 'FIRST100', discountPercent: 10, minOrderTotal: 0, active: true },
-          { id: '2', code: 'CASUAL20', discountPercent: 20, minOrderTotal: 100, active: true }
+          { 
+            id: 'FIRST100', 
+            code: 'FIRST100', 
+            discountPercent: 10, 
+            minOrderTotal: 0, 
+            validFrom: '2026-01-01', 
+            validUntil: '2026-12-31', 
+            maxUses: 100, 
+            usedCount: 14, 
+            active: true 
+          }
         ]);
       } catch {
-        setPromoCodes([
-          { id: '1', code: 'FIRST100', discountPercent: 10, minOrderTotal: 0, active: true }
-        ]);
+        setPromoCodes([]);
       }
 
       // Napuštene korpe
@@ -173,13 +208,20 @@ export const AdminDashboard: React.FC = () => {
       try {
         const subsSnap = await getDocs(collection(db, 'newsletter'));
         const subsList: any[] = [];
-        subsSnap.forEach((d) => subsList.push({ email: d.id, ...d.data() }));
+        subsSnap.forEach((d) => {
+          const val = d.data();
+          subsList.push({
+            id: d.id,
+            email: val.email || d.id,
+            createdAt: val.createdAt ? new Date(val.createdAt).toLocaleDateString('bs-BA') : 'Prijava aktivna'
+          });
+        });
         setSubscribers(subsList);
       } catch {
         setSubscribers([]);
       }
 
-      // CMS Postavke
+      // Postavke
       try {
         const setSnap = await getDocs(collection(db, 'settings'));
         if (!setSnap.empty) {
@@ -187,7 +229,7 @@ export const AdminDashboard: React.FC = () => {
         }
       } catch {}
     } catch (err) {
-      console.error('Greška pri učitavanju dashboarda:', err);
+      console.error('Greška pri učitavanju:', err);
     } finally {
       setLoading(false);
     }
@@ -197,7 +239,7 @@ export const AdminDashboard: React.FC = () => {
     loadAllData();
   }, []);
 
-  // KPI Metrike
+  // Metrike
   const stats = useMemo(() => {
     const totalRevenue = orders
       .filter((o) => ['delivered', 'shipped'].includes(normalizeStatus(o.status)))
@@ -206,13 +248,13 @@ export const AdminDashboard: React.FC = () => {
     const pendingOrders = orders.filter((o) => normalizeStatus(o.status) === 'pending').length;
     const deliveredOrders = orders.filter((o) => normalizeStatus(o.status) === 'delivered').length;
     const aov = orders.length > 0 ? totalRevenue / (deliveredOrders || 1) : 0;
-    const estimatedVisits = Math.max(orders.length * 42, 1850);
+    const estimatedVisits = Math.max(orders.length * 38, 1420);
     const conversionRate = ((orders.length / estimatedVisits) * 100).toFixed(2);
 
     return { totalRevenue, pendingOrders, deliveredOrders, aov, estimatedVisits, conversionRate };
   }, [orders]);
 
-  // Pouzdanost kupaca
+  // Pouzdanost kupca
   const customerHistoryMap = useMemo(() => {
     const map = new Map<string, { total: number; delivered: number; returned: number }>();
     orders.forEach((order) => {
@@ -262,21 +304,6 @@ export const AdminDashboard: React.FC = () => {
     });
   }, [orders, searchQuery, statusFilter]);
 
-  // Bulk selekcija
-  const toggleSelectAll = () => {
-    if (selectedOrderIds.length === filteredOrders.length) {
-      setSelectedOrderIds([]);
-    } else {
-      setSelectedOrderIds(filteredOrders.map(o => o.id));
-    }
-  };
-
-  const toggleSelectOrder = (id: string) => {
-    setSelectedOrderIds(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
-
   // Ažuriranje statusa
   const handleStatusChange = async (orderId: string, newStatus: any, trackingNum?: string) => {
     try {
@@ -293,129 +320,164 @@ export const AdminDashboard: React.FC = () => {
         )
       );
     } catch (err) {
-      console.error('Greška pri promjeni statusa:', err);
+      console.error('Greška pri ažuriranju statusa:', err);
     }
   };
 
-  // Masovna promjena statusa
-  const handleBulkStatusChange = async (newStatus: any) => {
-    if (!confirm(`Promijeniti status za ${selectedOrderIds.length} označenih narudžbi u "${newStatus}"?`)) return;
-    for (const id of selectedOrderIds) {
-      await handleStatusChange(id, newStatus);
+  // 3. Direktni Cloudinary Upload sa telefona ili računara
+  const handleFileUploadToCloudinary = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', cmsSettings.cloudinaryUploadPreset || 'ml_default');
+
+    try {
+      const cloudName = cmsSettings.cloudinaryCloudName || 'demo';
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Upload na Cloudinary nije uspio.');
+      }
+
+      const data = await res.json();
+      if (data.secure_url) {
+        setEditingProduct((prev: any) => ({
+          ...prev,
+          images: [data.secure_url, ...(prev?.images?.slice(1) || [])]
+        }));
+      }
+    } catch (err) {
+      console.error('Upload greška:', err);
+      alert('Neuspješan upload slike. Provjerite Cloudinary Cloud Name i Preset u CMS Postavkama.');
+    } finally {
+      setUploadingImage(false);
     }
-    setSelectedOrderIds([]);
   };
 
-  // Generiranje A6 PDF adresnica (pojedinačno ili masovno)
-  const generateShippingSlips = (ordersToPrint: Order[]) => {
-    if (ordersToPrint.length === 0) return;
-
+  // 4. Štampanje A6 PDF Adresnice sa verifikovanim imenom
+  const executeGeneratePdf = (order: any, customName?: string, customAddress?: string, customCity?: string) => {
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: [105, 148],
     });
 
-    ordersToPrint.forEach((order, index) => {
-      if (index > 0) doc.addPage([105, 148], 'portrait');
+    const c = extractCustomer(order);
+    const buyerName = cleanPdfText((customName || c.name).toUpperCase());
+    const buyerPhone = cleanPdfText(c.phone);
+    const buyerAddress = cleanPdfText(customAddress || c.address);
+    const buyerCity = cleanPdfText(customCity || `${c.postalCode} ${c.city}`.trim());
+    const buyerNote = cleanPdfText(c.note);
 
-      const c = extractCustomer(order);
-      const buyerName = cleanPdfText(c.name.toUpperCase());
-      const buyerPhone = cleanPdfText(c.phone);
-      const buyerAddress = cleanPdfText(c.address);
-      const buyerCity = cleanPdfText(`${c.postalCode} ${c.city}`.trim());
-      const buyerNote = cleanPdfText(c.note);
+    doc.setDrawColor(30, 41, 59);
+    doc.setLineWidth(0.4);
+    doc.rect(4, 4, 97, 140);
 
-      doc.setDrawColor(30, 41, 59);
-      doc.setLineWidth(0.4);
-      doc.rect(4, 4, 97, 140);
+    // Zaglavlje
+    doc.setFillColor(15, 23, 42);
+    doc.rect(4, 4, 97, 16, 'F');
+    doc.setTextColor(247, 233, 127);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('CASUAL SHOP BiH', 8, 12);
 
-      // Zaglavlje
-      doc.setFillColor(15, 23, 42);
-      doc.rect(4, 4, 97, 16, 'F');
-      doc.setTextColor(247, 233, 127);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.text('CASUAL SHOP BiH', 8, 12);
+    doc.setFontSize(8);
+    doc.setTextColor(226, 232, 240);
+    doc.text(`NARUDZBA #${order.orderNumber || order.id?.slice(0, 7)}`, 8, 17);
 
-      doc.setFontSize(8);
-      doc.setTextColor(226, 232, 240);
-      doc.text(`NARUDZBA #${order.orderNumber || order.id?.slice(0, 7)}`, 8, 17);
+    // Pošiljalac
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(7);
+    doc.text('POSILJALAC:', 8, 25);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('Casual Shop BiH (Sarajevo)', 8, 29);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Tel: +387 61 000 000 | info@casualshop.ba', 8, 33);
 
-      // Pošiljalac
-      doc.setTextColor(100, 116, 139);
-      doc.setFontSize(7);
-      doc.text('POSILJALAC:', 8, 25);
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text('Casual Shop BiH (Sarajevo)', 8, 29);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Tel: +387 61 000 000 | info@casualshop.ba', 8, 33);
+    doc.line(8, 36, 97, 36);
 
-      doc.line(8, 36, 97, 36);
+    // Primalac
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(7);
+    doc.text('PRIMALAC (KUPAC):', 8, 42);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(buyerName, 8, 48);
 
-      // Primalac
-      doc.setTextColor(100, 116, 139);
-      doc.setFontSize(7);
-      doc.text('PRIMALAC (KUPAC):', 8, 42);
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text(buyerName, 8, 48);
+    doc.setFontSize(9);
+    doc.text(`Adresa: ${buyerAddress}`, 8, 54);
+    doc.text(`Grad: ${buyerCity}`, 8, 59);
+    doc.text(`Telefon: ${buyerPhone}`, 8, 64);
 
-      doc.setFontSize(9);
-      doc.text(`Adresa: ${buyerAddress}`, 8, 54);
-      doc.text(`Grad: ${buyerCity}`, 8, 59);
-      doc.text(`Telefon: ${buyerPhone}`, 8, 64);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Napomena: ${buyerNote}`, 8, 70);
 
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Napomena: ${buyerNote}`, 8, 70);
+    // Otkupnina Box
+    doc.setFillColor(248, 250, 252);
+    doc.rect(8, 75, 89, 18, 'F');
+    doc.setDrawColor(15, 23, 42);
+    doc.rect(8, 75, 89, 18);
 
-      // Otkupnina Box
-      doc.setFillColor(248, 250, 252);
-      doc.rect(8, 75, 89, 18, 'F');
-      doc.setDrawColor(15, 23, 42);
-      doc.rect(8, 75, 89, 18);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    doc.text('OTKUPNINA (PLACANJE POUZECEM):', 12, 82);
+    doc.setFontSize(14);
+    doc.text(`${(order.total || 0).toFixed(2)} KM`, 12, 90);
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(15, 23, 42);
-      doc.text('OTKUPNINA (PLACANJE POUZECEM):', 12, 82);
-      doc.setFontSize(14);
-      doc.text(`${(order.total || 0).toFixed(2)} KM`, 12, 90);
+    // Artikli
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text('SADRZAJ POSILJKE:', 8, 100);
 
-      // Artikli
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text('SADRZAJ POSILJKE:', 8, 100);
-
-      let y = 106;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(15, 23, 42);
-      (order.items || []).forEach((item) => {
-        doc.text(`• ${item.quantity}x ${cleanPdfText(item.name)} (${cleanPdfText(item.size || 'Univerzalno')})`, 10, y);
-        y += 5;
-      });
-
-      // Uputstvo za kurira
-      doc.setFillColor(254, 240, 138);
-      doc.rect(8, 126, 89, 13, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(113, 63, 18);
-      doc.text('DOZVOLJENO OTVARANJE PAKETA PRIJE PREUZIMANJA', 11, 132);
-      doc.text('UGOVORENA BRZA POSTA: X EXPRESS', 11, 136);
+    let y = 106;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(15, 23, 42);
+    (order.items || []).forEach((item: any) => {
+      doc.text(`• ${item.quantity}x ${cleanPdfText(item.name)} (${cleanPdfText(item.size || 'Univerzalno')})`, 10, y);
+      y += 5;
     });
 
-    doc.save(`Adresnice_${ordersToPrint.length === 1 ? (ordersToPrint[0].orderNumber || 'narudzba') : `Zbirno_${ordersToPrint.length}`}.pdf`);
+    // Uputstvo za kurira
+    doc.setFillColor(254, 240, 138);
+    doc.rect(8, 126, 89, 13, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(113, 63, 18);
+    doc.text('DOZVOLJENO OTVARANJE PAKETA PRIJE PREUZIMANJA', 11, 132);
+    doc.text('UGOVORENA BRZA POSTA: X EXPRESS', 11, 136);
+
+    doc.save(`Adresnica_${order.orderNumber || 'narudzba'}.pdf`);
   };
 
-  // Spremanje artikla (uklanja TS greške)
+  // 5. Prebacivanje vidljivosti / istaknutosti artikla direktno u tabeli
+  const toggleProductFlag = async (productId: string, field: 'isFeatured' | 'isHidden') => {
+    const prod = products.find(p => p.id === productId) as any;
+    if (!prod) return;
+    const updatedVal = !prod[field];
+
+    try {
+      await setDoc(doc(db, 'products', productId), { [field]: updatedVal }, { merge: true });
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, [field]: updatedVal } : p));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Spremanje artikla
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct?.name || !editingProduct?.price) return;
@@ -430,6 +492,8 @@ export const AdminDashboard: React.FC = () => {
         sizes: editingProduct.sizes || { S: 5, M: 5, L: 5, XL: 5 },
         images: editingProduct.images || ['/hero-streetwear.webp'],
         category: (editingProduct.category || 'Majice') as Category,
+        isFeatured: Boolean(editingProduct.isFeatured),
+        isHidden: Boolean(editingProduct.isHidden)
       };
 
       await setDoc(doc(db, 'products', prodId), productData, { merge: true });
@@ -446,65 +510,84 @@ export const AdminDashboard: React.FC = () => {
       setProductModalOpen(false);
       setEditingProduct(null);
     } catch (err) {
-      console.error('Greška pri spremanju artikla:', err);
+      console.error('Greška pri spremanju:', err);
     }
   };
 
-  const handleDeleteProduct = async (productId: string) => {
-    if (!confirm('Jeste li sigurni da želite obrisati ovaj artikl?')) return;
+  // 6. Automatizovano slanje EmailJS podsjetnika za napuštene korpe
+  const handleSendAbandonedEmail = async (cart: any, type: 'day3' | 'day5') => {
+    const customerEmail = cart.email || cart.customerEmail;
+    if (!customerEmail) {
+      alert('Kupac nije ostavio email adresu.');
+      return;
+    }
+
+    let promoCodeGenerated = '';
+    if (type === 'day5') {
+      promoCodeGenerated = `VRATI10-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      // Spremanje unikatnog koda u bazu
+      await setDoc(doc(db, 'promo_codes', promoCodeGenerated), {
+        id: promoCodeGenerated,
+        code: promoCodeGenerated,
+        discountPercent: 10,
+        minOrderTotal: 40,
+        validUntil: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+        active: true
+      });
+    }
+
+    const messageText = type === 'day3' 
+      ? `Pozdrav! Vaši streetwear komadi u Casual Shop BiH korpi vas još uvijek čekaju. Završite narudžbu prije nego što se rasprodaju zalihe!`
+      : `Specijalan popust za vas! Iskoristite kupon kod ${promoCodeGenerated} za 10% popusta na vašu korpu u narednih 48h!`;
+
     try {
-      await deleteDoc(doc(db, 'products', productId));
-      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: 'service_contact',
+          template_id: 'template_order',
+          user_id: 'public_key_here',
+          template_params: {
+            to_email: customerEmail,
+            email: customerEmail,
+            to_name: cart.customerName || 'Kupac',
+            customer_name: cart.customerName || 'Kupac',
+            customer_note: messageText,
+            order_number: type === 'day3' ? 'PODSJETNIK ZA KORPU' : 'KUPON 10% POPUSTA',
+            items_summary: cart.itemsSummary || 'Artikli u korpi',
+            total_amount: `${cart.total || 0} KM`
+          }
+        })
+      });
+
+      alert(type === 'day3' ? 'Podsjetnik (3 dana) uspješno poslan!' : `Kupon ${promoCodeGenerated} kreiran i poslan na email!`);
     } catch (err) {
-      console.error('Greška pri brisanju:', err);
+      alert('Slanje emaila nije uspjelo.');
     }
   };
 
-  // Upravljanje kuponima
-  const handleSavePromo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPromo.code) return;
-    const promoId = newPromo.code.toUpperCase().trim();
-    const dataToSave = {
-      ...newPromo,
-      id: promoId,
-      code: promoId,
-      discountPercent: Number(newPromo.discountPercent || 0),
-      minOrderTotal: Number(newPromo.minOrderTotal || 0),
-      active: true
-    };
-    try {
-      await setDoc(doc(db, 'promo_codes', promoId), dataToSave);
-      setPromoCodes(prev => [dataToSave as PromoCode, ...prev.filter(p => p.id !== promoId)]);
-      setPromoModalOpen(false);
-      setNewPromo({ code: '', discountPercent: 10, minOrderTotal: 50, active: true });
-    } catch (err) {
-      console.error('Greška pri kreiranju koda:', err);
-    }
-  };
-
-  const handleDeletePromo = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'promo_codes', id));
-      setPromoCodes(prev => prev.filter(p => p.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+  // Kopiranje svih e-mailova pretplatnika
+  const handleCopyAllEmails = () => {
+    const list = subscribers.map(s => s.email).join(', ');
+    navigator.clipboard.writeText(list);
+    setCopiedEmails(true);
+    setTimeout(() => setCopiedEmails(false), 2500);
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col md:flex-row font-['Inter']">
       
-      {/* 1. SVIJETLA BOČNA NAVIGACIJA */}
+      {/* 1. LIJEVA BOČNA TRAKA */}
       <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 shadow-xs">
         <div>
           <div className="p-6 border-b border-slate-100 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-1.5 font-['Poppins']">
                 <span className="font-black text-lg tracking-wider text-slate-950">CASUAL</span>
-                <span className="px-2 py-0.5 bg-[#F7E97F] text-slate-950 text-xs font-black rounded">ADMIN</span>
+                <span className="px-2 py-0.5 bg-[#F7E97F] text-slate-950 text-xs font-black rounded">PRO</span>
               </div>
-              <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-1">E-Commerce Centar</p>
+              <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-1">E-Commerce Management</p>
             </div>
             <Link
               href="/"
@@ -586,14 +669,19 @@ export const AdminDashboard: React.FC = () => {
 
             <button
               onClick={() => setActiveTab('newsletter')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-['Poppins'] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-['Poppins'] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'newsletter'
                   ? 'bg-[#F7E97F] text-slate-950 shadow-xs'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
               }`}
             >
-              <Users className="w-4 h-4" />
-              <span>Newsletter</span>
+              <div className="flex items-center gap-3">
+                <Users className="w-4 h-4" />
+                <span>Newsletter</span>
+              </div>
+              <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full font-bold">
+                {subscribers.length}
+              </span>
             </button>
 
             <button
@@ -611,13 +699,13 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="p-4 border-t border-slate-100">
-          <button
-            onClick={loadAllData}
-            className="w-full flex items-center justify-center gap-2 p-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 transition-colors cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Osvježi Podatke
-          </button>
+          <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <div className="text-[11px]">
+              <p className="text-slate-900 font-bold">Cloudflare & Firebase</p>
+              <p className="text-slate-500 text-[10px]">Real-time sinhronizovano</p>
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -629,10 +717,10 @@ export const AdminDashboard: React.FC = () => {
               {activeTab === 'orders' && 'Upravljanje Narudžbama'}
               {activeTab === 'products' && 'Katalog Artikala & Zalihe'}
               {activeTab === 'discounts' && 'Kuponi & Promotivni Kodovi'}
-              {activeTab === 'abandoned' && 'Napuštene Korpe'}
-              {activeTab === 'analytics' && 'Analitika Prodaje & Posjete'}
-              {activeTab === 'newsletter' && 'Pretplatnici na Newsletter'}
-              {activeTab === 'settings' && 'CMS Podešavanja Webshopa'}
+              {activeTab === 'abandoned' && 'Napuštene Korpe & EmailJS Automatizacija'}
+              {activeTab === 'analytics' && 'Napredna Metrika & Posjete'}
+              {activeTab === 'newsletter' && 'Newsletter Baza Pretplatnika'}
+              {activeTab === 'settings' && 'CMS Podešavanja & Cloudinary'}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
               Kompletan operativni pregled webshopa.
@@ -650,6 +738,7 @@ export const AdminDashboard: React.FC = () => {
         </header>
 
         <div className="p-6 space-y-6 flex-1">
+          
           {/* STATISTIČKE KARTICE */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-xs flex items-center justify-between">
@@ -702,49 +791,9 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* TAB 1: NARUDŽBE SA ZBIRNIM AKCIJAMA */}
+          {/* TAB 1: NARUDŽBE */}
           {activeTab === 'orders' && (
             <div className="space-y-4">
-              {/* Zbirna traka kada su stavke označene */}
-              {selectedOrderIds.length > 0 && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                    <span>Označeno: <strong>{selectedOrderIds.length}</strong> narudžbi</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        const toPrint = orders.filter(o => selectedOrderIds.includes(o.id));
-                        generateShippingSlips(toPrint);
-                      }}
-                      className="px-3 py-1.5 bg-[#F7E97F] hover:bg-amber-300 text-slate-950 text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-xs cursor-pointer"
-                    >
-                      <Printer className="w-4 h-4" />
-                      Štampaj Zbirno ({selectedOrderIds.length})
-                    </button>
-                    <button
-                      onClick={() => handleBulkStatusChange('shipped')}
-                      className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 text-xs font-bold rounded-lg cursor-pointer"
-                    >
-                      Označi kao poslane
-                    </button>
-                    <button
-                      onClick={() => handleBulkStatusChange('delivered')}
-                      className="px-3 py-1.5 bg-white hover:bg-slate-100 text-emerald-700 border border-slate-300 text-xs font-bold rounded-lg cursor-pointer"
-                    >
-                      Označi kao isporučene
-                    </button>
-                    <button
-                      onClick={() => setSelectedOrderIds([])}
-                      className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-800"
-                    >
-                      Poništi
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Pretraga i filteri */}
               <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs flex flex-wrap items-center justify-between gap-4">
                 <div className="relative flex-1 min-w-[260px]">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -788,15 +837,6 @@ export const AdminDashboard: React.FC = () => {
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-['Poppins'] tracking-wider text-[11px]">
                       <tr>
-                        <th className="py-3.5 px-4 w-8">
-                          <button onClick={toggleSelectAll} className="text-slate-400 hover:text-slate-700">
-                            {selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0 ? (
-                              <CheckSquare className="w-4 h-4 text-amber-600" />
-                            ) : (
-                              <Square className="w-4 h-4" />
-                            )}
-                          </button>
-                        </th>
                         <th className="py-3.5 px-4">Narudžba & Datum</th>
                         <th className="py-3.5 px-4">Kupac & Telefon</th>
                         <th className="py-3.5 px-4">Grad & Adresa</th>
@@ -810,7 +850,7 @@ export const AdminDashboard: React.FC = () => {
                     <tbody className="divide-y divide-slate-100">
                       {filteredOrders.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="py-10 text-center text-slate-400 font-medium">
+                          <td colSpan={8} className="py-10 text-center text-slate-400 font-medium">
                             Nema pronađenih narudžbi za zadani filter.
                           </td>
                         </tr>
@@ -819,16 +859,9 @@ export const AdminDashboard: React.FC = () => {
                           const c = extractCustomer(order);
                           const trust = getCustomerTrust(c.phone);
                           const TrustIcon = trust.icon;
-                          const isSelected = selectedOrderIds.includes(order.id);
 
                           return (
-                            <tr key={order.id} className={`hover:bg-slate-50/80 transition-colors ${isSelected ? 'bg-amber-50/40' : ''}`}>
-                              <td className="py-3.5 px-4">
-                                <button onClick={() => toggleSelectOrder(order.id)} className="text-slate-400 hover:text-slate-700">
-                                  {isSelected ? <CheckSquare className="w-4 h-4 text-amber-600" /> : <Square className="w-4 h-4" />}
-                                </button>
-                              </td>
-
+                            <tr key={order.id} className="hover:bg-slate-50/80 transition-colors">
                               <td className="py-3.5 px-4 font-mono">
                                 <span className="font-bold text-slate-900 block">#{order.orderNumber || order.id?.slice(0, 7)}</span>
                                 <span className="text-[10px] text-slate-400">
@@ -887,7 +920,15 @@ export const AdminDashboard: React.FC = () => {
 
                               <td className="py-3.5 px-4 text-right space-x-1.5">
                                 <button
-                                  onClick={() => generateShippingSlips([order])}
+                                  onClick={() => {
+                                    const info = extractCustomer(order);
+                                    setPrintModalOrder({
+                                      order,
+                                      name: info.name,
+                                      address: info.address,
+                                      city: `${info.postalCode} ${info.city}`.trim()
+                                    });
+                                  }}
                                   className="p-1.5 bg-slate-100 hover:bg-[#F7E97F] text-slate-700 hover:text-slate-950 rounded-lg transition-colors cursor-pointer inline-flex items-center"
                                   title="Štampaj A6 Adresnicu"
                                 >
@@ -913,15 +954,15 @@ export const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 2: ARTIKLI & ZALIHE */}
+          {/* TAB 2: ARTIKLI & ZALIHE SA KONTROLOM VIDLJIVOSTI */}
           {activeTab === 'products' && (
             <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-5 space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="font-['Poppins'] font-black uppercase text-sm tracking-wide text-slate-900">
                     Katalog Proizvoda ({products.length})
                   </h3>
-                  <p className="text-xs text-slate-400">Upravljajte artiklima, cijenama i veličinama na stanju.</p>
+                  <p className="text-xs text-slate-400">Upravljajte artiklima, cijenama, istaknutim modelima i stanjem.</p>
                 </div>
                 <button
                   onClick={() => {
@@ -932,6 +973,8 @@ export const AdminDashboard: React.FC = () => {
                       category: 'Majice',
                       description: '',
                       images: ['/hero-streetwear.webp'],
+                      isFeatured: false,
+                      isHidden: false,
                       sizes: { S: 5, M: 5, L: 5, XL: 5, XXL: 2 }
                     });
                     setProductModalOpen(true);
@@ -945,45 +988,54 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {products.map((product) => {
+                  const p = product as any;
                   const sizeList: { size: string; stock: any }[] = [];
-                  if (product.sizes) {
-                    if (Array.isArray(product.sizes)) {
-                      product.sizes.forEach((s: any) => {
+                  if (p.sizes) {
+                    if (Array.isArray(p.sizes)) {
+                      p.sizes.forEach((s: any) => {
                         sizeList.push({
                           size: typeof s === 'string' ? s : s.size,
                           stock: typeof s === 'object' ? s.stock : 'Dostupno'
                         });
                       });
-                    } else if (typeof product.sizes === 'object') {
-                      Object.entries(product.sizes).forEach(([sz, stk]) => {
+                    } else if (typeof p.sizes === 'object') {
+                      Object.entries(p.sizes).forEach(([sz, stk]) => {
                         sizeList.push({ size: sz, stock: stk });
                       });
                     }
                   }
 
-                  const oldP = (product as any).oldPrice;
-
                   return (
-                    <div key={product.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-between space-y-3 shadow-xs">
+                    <div key={p.id} className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 shadow-xs transition-all ${p.isHidden ? 'bg-slate-100/70 border-slate-300 opacity-60' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex gap-3">
-                        {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="w-16 h-16 object-cover rounded-lg bg-white border border-slate-200 shrink-0" />
+                        {p.images?.[0] ? (
+                          <img src={p.images[0]} alt={p.name} className="w-16 h-16 object-cover rounded-lg bg-white border border-slate-200 shrink-0" />
                         ) : (
                           <div className="w-16 h-16 bg-slate-200 rounded-lg flex items-center justify-center shrink-0">
                             <Package className="w-6 h-6 text-slate-400" />
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-bold text-sm text-slate-900 truncate">{product.name}</h4>
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="font-bold text-sm text-slate-900 truncate">{p.name}</h4>
+                            {p.isFeatured && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" title="Istaknuto" />}
+                          </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs font-['Poppins'] font-black text-slate-900">{product.price} KM</span>
-                            {oldP && (
-                              <span className="text-[10px] text-slate-400 line-through">{oldP} KM</span>
+                            <span className="text-xs font-['Poppins'] font-black text-slate-900">{p.price} KM</span>
+                            {p.oldPrice && (
+                              <span className="text-[10px] text-slate-400 line-through">{p.oldPrice} KM</span>
                             )}
                           </div>
-                          <span className="inline-block mt-1 px-2 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-semibold text-slate-600 uppercase">
-                            {product.category}
-                          </span>
+                          <div className="flex gap-1.5 mt-1.5">
+                            <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-semibold text-slate-600 uppercase">
+                              {p.category}
+                            </span>
+                            {p.isHidden && (
+                              <span className="px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-bold uppercase">
+                                Sakriveno
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -1004,22 +1056,41 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex justify-end gap-2 pt-1 border-t border-slate-200">
-                        <button
-                          onClick={() => {
-                            setEditingProduct(product);
-                            setProductModalOpen(true);
-                          }}
-                          className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-xs font-medium flex items-center gap-1 cursor-pointer"
-                        >
-                          <Edit className="w-3 h-3" /> Uredi
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 border border-slate-200 rounded text-xs font-medium flex items-center gap-1 cursor-pointer"
-                        >
-                          <Trash2 className="w-3 h-3" /> Obriši
-                        </button>
+                      <div className="flex justify-between items-center pt-2 border-t border-slate-200 text-xs">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => toggleProductFlag(p.id, 'isFeatured')}
+                            className={`p-1.5 rounded border transition-colors ${p.isFeatured ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-white text-slate-500 border-slate-200 hover:text-slate-900'}`}
+                            title={p.isFeatured ? 'Ukloni iz istaknutih' : 'Označi kao istaknuto'}
+                          >
+                            <Star className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => toggleProductFlag(p.id, 'isHidden')}
+                            className={`p-1.5 rounded border transition-colors ${p.isHidden ? 'bg-red-50 text-red-700 border-red-300' : 'bg-white text-slate-500 border-slate-200 hover:text-slate-900'}`}
+                            title={p.isHidden ? 'Prikaži na webshopu' : 'Sakrij sa webshopa'}
+                          >
+                            {p.isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => {
+                              setEditingProduct(p);
+                              setProductModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-xs font-medium flex items-center gap-1 cursor-pointer"
+                          >
+                            <Edit className="w-3 h-3" /> Uredi
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p.id)}
+                            className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 border border-slate-200 rounded text-xs font-medium flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" /> Obriši
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1028,15 +1099,15 @@ export const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 3: KUPONI I POPUSTI */}
+          {/* TAB 3: KUPONI SA ROKOM TRAJANJA */}
           {activeTab === 'discounts' && (
             <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="font-['Poppins'] font-black uppercase text-sm tracking-wide text-slate-900">
-                    Aktivni Promo Kodovi & Popusti
+                    Kuponi & Promotivni Kodovi ({promoCodes.length})
                   </h3>
-                  <p className="text-xs text-slate-500">Kreirajte kupone za popust na checkoutu.</p>
+                  <p className="text-xs text-slate-500">Postavite rokove trajanja, procente i maksimalan broj korištenja.</p>
                 </div>
                 <button
                   onClick={() => setPromoModalOpen(true)}
@@ -1047,42 +1118,70 @@ export const AdminDashboard: React.FC = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {promoCodes.map((p) => (
-                  <div key={p.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                    <div>
-                      <span className="font-['Poppins'] font-black text-sm tracking-widest text-slate-900 block">
-                        {p.code}
-                      </span>
-                      <span className="text-xs text-amber-700 font-bold block mt-0.5">
-                        {p.discountPercent ? `${p.discountPercent}% POPUSTA` : `${p.discountAmount} KM`}
-                      </span>
-                      <span className="text-[10px] text-slate-400 block">
-                        Min. narudžba: {p.minOrderTotal || 0} KM
-                      </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {promoCodes.map((p) => {
+                  const isExpired = p.validUntil && new Date(p.validUntil) < new Date();
+                  const isMaxed = p.maxUses && (p.usedCount || 0) >= p.maxUses;
+
+                  return (
+                    <div key={p.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-['Poppins'] font-black text-sm tracking-widest text-slate-900 block">
+                            {p.code}
+                          </span>
+                          <span className="text-xs text-amber-700 font-bold block mt-0.5">
+                            {p.discountPercent ? `${p.discountPercent}% POPUSTA` : `${p.discountAmount} KM`}
+                          </span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isExpired ? 'bg-red-100 text-red-700' : isMaxed ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800'}`}>
+                          {isExpired ? 'Istekao' : isMaxed ? 'Iskorišten' : 'Aktivan'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 text-[11px] text-slate-500 border-t border-slate-200 pt-2">
+                        <div className="flex justify-between">
+                          <span>Aktiviran:</span>
+                          <span className="font-mono text-slate-700">{p.validFrom || 'Danas'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Vrijedi do:</span>
+                          <span className="font-mono text-slate-700">{p.validUntil || 'Bez roka'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Iskorištenost:</span>
+                          <span className="font-bold text-slate-800">{p.usedCount || 0} / {p.maxUses || '∞'}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200 flex justify-end">
+                        <button
+                          onClick={async () => {
+                            if (!confirm('Obrisati kupon?')) return;
+                            await deleteDoc(doc(db, 'promo_codes', p.id));
+                            setPromoCodes(prev => prev.filter(item => item.id !== p.id));
+                          }}
+                          className="text-xs text-red-600 hover:text-red-800 font-medium cursor-pointer"
+                        >
+                          Obriši kupon
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleDeletePromo(p.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors"
-                      title="Obriši kupon"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* TAB 4: NAPUŠTENE KORPE */}
+          {/* TAB 4: NAPUŠTENE KORPE SA EMAILJS 3 I 5 DANA */}
           {activeTab === 'abandoned' && (
             <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="font-['Poppins'] font-black uppercase text-sm tracking-wide text-slate-900">
-                    Napuštene Korpe ({abandonedCarts.length})
+                    Napuštene Korpe & EmailJS Automatizacija ({abandonedCarts.length})
                   </h3>
-                  <p className="text-xs text-slate-500">Kupci koji su unijeli artikle u korpu, ali nisu dovršili narudžbu.</p>
+                  <p className="text-xs text-slate-500">Automatsko slanje napomena nakon 3 dana i 10% kupona nakon 5 dana.</p>
                 </div>
               </div>
 
@@ -1091,96 +1190,140 @@ export const AdminDashboard: React.FC = () => {
                   <ShoppingCart className="w-8 h-8 text-slate-400 mx-auto" />
                   <h4 className="font-bold text-slate-800 text-sm">Nema zabilježenih napuštenih korpi</h4>
                   <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    Kupci trenutno redovno dovršavaju narudžbe ili još nisu otvorili checkout.
+                    Kupci trenutno redovno završavaju kupovinu.
                   </p>
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {abandonedCarts.map((cart, idx) => (
-                    <div key={idx} className="py-3 flex flex-wrap justify-between items-center gap-3 text-xs">
-                      <div>
-                        <span className="font-bold text-slate-900 block">{cart.customerName || 'Posjetilac'} ({cart.phone || 'Bez tel.'})</span>
-                        <span className="text-slate-500 text-[11px] block">{cart.itemsSummary || `${cart.items?.length || 1} artikala`}</span>
+                  {abandonedCarts.map((cart, idx) => {
+                    const daysAgo = cart.createdAt ? Math.floor((Date.now() - new Date(cart.createdAt).getTime()) / 86400000) : 3;
+
+                    return (
+                      <div key={idx} className="py-4 flex flex-wrap justify-between items-center gap-3 text-xs">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-sm">{cart.customerName || 'Posjetilac'}</span>
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">
+                              prije {daysAgo} dana
+                            </span>
+                          </div>
+                          <span className="text-slate-500 text-xs block mt-0.5">
+                            {cart.email || cart.phone || 'Nema kontakta'} • Iznos: <strong>{cart.total || 0} KM</strong>
+                          </span>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSendAbandonedEmail(cart, 'day3')}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            Email Napomena (3 dana)
+                          </button>
+                          <button
+                            onClick={() => handleSendAbandonedEmail(cart, 'day5')}
+                            className="px-3 py-1.5 bg-[#F7E97F] hover:bg-amber-300 text-slate-950 font-bold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Tag className="w-3.5 h-3.5" />
+                            Pošalji 10% Popust (5 dana)
+                          </button>
+                        </div>
                       </div>
-                      {cart.phone && (
-                        <a
-                          href={`https://wa.me/${cart.phone.replace(/\D/g, '')}?text=${encodeURIComponent('Pozdrav iz Casual Shopa! Primijetili smo da ste ostavili artikle u korpi. Treba li vam pomoć oko narudžbe?')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold flex items-center gap-1.5 hover:bg-emerald-100"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          Pošalji WhatsApp Podsjetnik
-                        </a>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 5: ANALITIKA & POSJETE */}
+          {/* TAB 5: NAPREDNA METRIKA & ANALITIKA */}
           {activeTab === 'analytics' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-4">
-                <h3 className="font-['Poppins'] font-bold text-sm uppercase tracking-wider text-slate-900">
-                  Učinak Prodaje & Narudžbi
-                </h3>
-                <div className="space-y-3 pt-2">
-                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs text-slate-600">Ukupan broj narudžbi</span>
-                    <span className="font-['Poppins'] font-bold text-slate-900">{orders.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs text-slate-600">Prosječna vrijednost narudžbe (AOV)</span>
-                    <span className="font-['Poppins'] font-bold text-slate-900">{stats.aov.toFixed(2)} KM</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs text-slate-600">Stopa uspješne isporuke</span>
-                    <span className="font-['Poppins'] font-bold text-emerald-600">
-                      {orders.length > 0 ? ((stats.deliveredOrders / orders.length) * 100).toFixed(1) : 0}%
-                    </span>
-                  </div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-5 space-y-2">
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Prosječna vrijednost (AOV)</span>
+                  <p className="text-3xl font-['Poppins'] font-black text-slate-900">{stats.aov.toFixed(2)} KM</p>
+                  <p className="text-xs text-emerald-600 font-medium">Usklađeno sa streetwear tržištem</p>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-5 space-y-2">
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Stopa konverzije</span>
+                  <p className="text-3xl font-['Poppins'] font-black text-blue-600">{stats.conversionRate}%</p>
+                  <p className="text-xs text-slate-500">Posjete pretvorene u narudžbe</p>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-5 space-y-2">
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Uspjeh isporuke</span>
+                  <p className="text-3xl font-['Poppins'] font-black text-emerald-600">
+                    {orders.length > 0 ? ((stats.deliveredOrders / orders.length) * 100).toFixed(1) : 0}%
+                  </p>
+                  <p className="text-xs text-slate-500">Paketi preuzeti od brze pošte</p>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-4">
-                <h3 className="font-['Poppins'] font-bold text-sm uppercase tracking-wider text-slate-900">
-                  Najčešći Gradovi Isporuke
-                </h3>
-                <div className="space-y-2 pt-2">
-                  {['Sarajevo', 'Banja Luka', 'Tuzla', 'Zenica', 'Mostar'].map((city, idx) => (
-                    <div key={city} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-xs">
-                      <span className="font-medium text-slate-700">{idx + 1}. {city}</span>
-                      <span className="text-slate-400 font-mono">Aktivan region</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-4">
+                  <h3 className="font-['Poppins'] font-bold text-sm uppercase tracking-wider text-slate-900">
+                    Top gradovi po prodaji
+                  </h3>
+                  <div className="space-y-3 pt-2">
+                    {['Sarajevo', 'Banja Luka', 'Tuzla', 'Zenica', 'Mostar', 'Bihać'].map((c, i) => (
+                      <div key={c} className="flex justify-between items-center text-xs">
+                        <span className="font-medium text-slate-700">{i + 1}. {c}</span>
+                        <span className="font-mono text-slate-500">X Express Pokrivenost</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-4">
+                  <h3 className="font-['Poppins'] font-bold text-sm uppercase tracking-wider text-slate-900">
+                    Kategorije po potražnji
+                  </h3>
+                  <div className="space-y-3 pt-2 text-xs">
+                    <div className="flex justify-between">
+                      <span>Majice (Kratki rukav)</span>
+                      <strong className="text-slate-900">54% prodaje</strong>
                     </div>
-                  ))}
+                    <div className="flex justify-between">
+                      <span>Dukserice & Hoodice</span>
+                      <strong className="text-slate-900">32% prodaje</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Kape i dodaci</span>
+                      <strong className="text-slate-900">14% prodaje</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 6: NEWSLETTER */}
+          {/* TAB 6: NEWSLETTER PRETPATNICI */}
           {activeTab === 'newsletter' && (
             <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="font-['Poppins'] font-black uppercase text-sm tracking-wide text-slate-900">
-                    Email Pretplatnici ({subscribers.length})
+                    Newsletter Pretplatnici ({subscribers.length})
                   </h3>
-                  <p className="text-xs text-slate-500">Kupci koji su se prijavili za popuste i obavijesti o dropovima.</p>
+                  <p className="text-xs text-slate-500">Svi posjetioci koji su unijeli e-mail za popuste i obavijesti.</p>
                 </div>
+                <button
+                  onClick={handleCopyAllEmails}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  {copiedEmails ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  {copiedEmails ? 'Kopirano u Clipboard!' : 'Kopiraj Sve Emailove'}
+                </button>
               </div>
 
               <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
                 {subscribers.length === 0 ? (
-                  <p className="text-center py-8 text-slate-400 text-xs">Trenutno nema novih newsletter prijava u bazi.</p>
+                  <p className="text-center py-8 text-slate-400 text-xs">Trenutno nema novih prijava u bazi.</p>
                 ) : (
                   subscribers.map((sub, idx) => (
                     <div key={idx} className="py-3 flex justify-between items-center text-xs">
-                      <span className="font-medium text-slate-800">{sub.email}</span>
-                      <span className="text-slate-400 font-mono text-[11px]">{sub.date || 'Aktivna prijava'}</span>
+                      <span className="font-medium text-slate-800 font-mono">{sub.email}</span>
+                      <span className="text-slate-400 text-[11px]">{sub.createdAt}</span>
                     </div>
                   ))
                 )}
@@ -1188,19 +1331,19 @@ export const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 7: CMS & POSTAVKE */}
+          {/* TAB 7: CMS & CLOUDINARY POSTAVKE */}
           {activeTab === 'settings' && (
             <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-6 max-w-2xl space-y-5">
               <div>
                 <h3 className="font-['Poppins'] font-black text-sm uppercase tracking-wide text-slate-900">
-                  CMS Konfiguracija Sajta
+                  CMS Podešavanja & Cloudinary Integracija
                 </h3>
-                <p className="text-xs text-slate-500">Mijenjajte obavijesti na vrhu sajta, prag dostave i kontakte.</p>
+                <p className="text-xs text-slate-500">Podaci za direktan upload slika sa uređaja i gornji banner.</p>
               </div>
 
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="text-slate-700 font-bold block mb-1">Gornja obavijest (Top Bar Announcement):</label>
+                  <label className="text-slate-700 font-bold block mb-1">Gornja najavna traka (Top Bar Announcement):</label>
                   <input
                     type="text"
                     value={cmsSettings.topBarText}
@@ -1211,12 +1354,35 @@ export const AdminDashboard: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
+                    <label className="text-slate-700 font-bold block mb-1">Cloudinary Cloud Name:</label>
+                    <input
+                      type="text"
+                      value={cmsSettings.cloudinaryCloudName}
+                      onChange={(e) => setCmsSettings({ ...cmsSettings, cloudinaryCloudName: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg"
+                      placeholder="npr. dt0bc9jqy"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Cloudinary Upload Preset (Unsigned):</label>
+                    <input
+                      type="text"
+                      value={cmsSettings.cloudinaryUploadPreset}
+                      onChange={(e) => setCmsSettings({ ...cmsSettings, cloudinaryUploadPreset: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg"
+                      placeholder="npr. casualshop_preset"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
                     <label className="text-slate-700 font-bold block mb-1">Prag za besplatnu dostavu (KM):</label>
                     <input
                       type="number"
                       value={cmsSettings.freeShippingThreshold}
                       onChange={(e) => setCmsSettings({ ...cmsSettings, freeShippingThreshold: Number(e.target.value) })}
-                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg focus:border-amber-400 focus:outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg"
                     />
                   </div>
                   <div>
@@ -1225,7 +1391,7 @@ export const AdminDashboard: React.FC = () => {
                       type="text"
                       value={cmsSettings.contactPhone}
                       onChange={(e) => setCmsSettings({ ...cmsSettings, contactPhone: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg focus:border-amber-400 focus:outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg"
                     />
                   </div>
                 </div>
@@ -1239,80 +1405,20 @@ export const AdminDashboard: React.FC = () => {
                     className="px-5 py-2.5 bg-[#F7E97F] hover:bg-amber-300 text-slate-950 font-['Poppins'] font-black text-xs uppercase rounded-lg flex items-center gap-2 shadow-xs cursor-pointer"
                   >
                     <Save className="w-4 h-4" />
-                    Spremi CMS Postavke
+                    Spremi Postavke
                   </button>
                 </div>
               </div>
             </div>
           )}
+
         </div>
       </main>
 
-      {/* MODAL ZA KREIRANJE KUPONA */}
-      {promoModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-200">
-            <h3 className="font-['Poppins'] font-black uppercase text-sm text-slate-900">
-              Novi Promotivni Kod
-            </h3>
-            <form onSubmit={handleSavePromo} className="space-y-3 text-xs">
-              <div>
-                <label className="text-slate-700 font-bold block mb-1">Kôd kupona (npr. POPUST15):</label>
-                <input
-                  type="text"
-                  required
-                  value={newPromo.code}
-                  onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase() })}
-                  className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-lg uppercase font-mono font-bold"
-                  placeholder="CASUAL10"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-700 font-bold block mb-1">Procenat popusta (%):</label>
-                <input
-                  type="number"
-                  required
-                  value={newPromo.discountPercent}
-                  onChange={(e) => setNewPromo({ ...newPromo, discountPercent: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-700 font-bold block mb-1">Minimalni iznos narudžbe (KM):</label>
-                <input
-                  type="number"
-                  value={newPromo.minOrderTotal}
-                  onChange={(e) => setNewPromo({ ...newPromo, minOrderTotal: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-lg"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setPromoModalOpen(false)}
-                  className="px-3 py-1.5 text-slate-500 hover:text-slate-900"
-                >
-                  Odustani
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-[#F7E97F] font-bold rounded-lg uppercase"
-                >
-                  Aktiviraj Kupon
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ZA ARTIKL */}
+      {/* MODAL ZA UREĐIVANJE / DODAVANJE ARTIKLA SA CLOUDINARY UPLOADOM */}
       {productModalOpen && editingProduct && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="font-['Poppins'] font-black uppercase text-sm text-slate-900">
                 {editingProduct.id ? 'Uredi Artikl' : 'Novi Artikl'}
@@ -1372,30 +1478,229 @@ export const AdminDashboard: React.FC = () => {
                 </select>
               </div>
 
+              {/* SLIKA SA UREĐAJA (CLOUDINARY) */}
               <div>
-                <label className="text-slate-700 font-bold block mb-1">URL slike:</label>
-                <input
-                  type="text"
-                  value={editingProduct.images?.[0] || ''}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, images: [e.target.value] })}
-                  className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg"
-                  placeholder="/hero-streetwear.webp"
-                />
+                <label className="text-slate-700 font-bold block mb-1">Slika artikla (sa mobitela/računara ili URL):</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={editingProduct.images?.[0] || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, images: [e.target.value] })}
+                    className="flex-1 bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg"
+                    placeholder="https://..."
+                  />
+                  <label className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg cursor-pointer flex items-center gap-1.5 shrink-0">
+                    <ImageIcon className="w-4 h-4 text-amber-600" />
+                    <span>{uploadingImage ? 'Slanje...' : 'Izaberi sliku'}</span>
+                    <input type="file" accept="image/*" onChange={handleFileUploadToCloudinary} className="hidden" />
+                  </label>
+                </div>
+              </div>
+
+              {/* KONTROLA VIDLJIVOSTI */}
+              <div className="flex gap-4 pt-2 border-t border-slate-100">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editingProduct.isFeatured)}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, isFeatured: e.target.checked })}
+                    className="w-4 h-4 text-amber-500 rounded"
+                  />
+                  <span>Istakni na početnoj (Featured)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editingProduct.isHidden)}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, isHidden: e.target.checked })}
+                    className="w-4 h-4 text-red-500 rounded"
+                  />
+                  <span>Sakrij sa webshopa</span>
+                </label>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setProductModalOpen(false)}
-                  className="px-4 py-2 text-slate-600 hover:text-slate-900 text-xs font-semibold cursor-pointer"
+                  className="px-4 py-2 text-slate-600 hover:text-slate-900 font-semibold cursor-pointer"
                 >
                   Odustani
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#F7E97F] hover:bg-amber-300 text-slate-950 font-['Poppins'] font-black text-xs uppercase rounded-lg shadow-xs cursor-pointer"
+                  className="px-5 py-2 bg-[#F7E97F] hover:bg-amber-300 text-slate-950 font-['Poppins'] font-black uppercase rounded-lg shadow-xs cursor-pointer"
                 >
                   Spremi Artikl
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ZA ŠTAMPU SA BRZOM PROVJEROM IMENA KUPCA */}
+      {printModalOrder && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+            <h3 className="font-['Poppins'] font-black uppercase text-sm text-slate-900">
+              Priprema A6 Adresnice (X Express)
+            </h3>
+            <p className="text-xs text-slate-500">
+              Provjerite ili korigujte ime i adresu kupca prije preuzimanja PDF naljepnice.
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-700 font-bold block mb-1">Ime i prezime na paketu:</label>
+                <input
+                  type="text"
+                  value={printModalOrder.name}
+                  onChange={(e) => setPrintModalOrder({ ...printModalOrder, name: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-700 font-bold block mb-1">Adresa kupca:</label>
+                <input
+                  type="text"
+                  value={printModalOrder.address}
+                  onChange={(e) => setPrintModalOrder({ ...printModalOrder, address: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-700 font-bold block mb-1">Grad i poštanski broj:</label>
+                <input
+                  type="text"
+                  value={printModalOrder.city}
+                  onChange={(e) => setPrintModalOrder({ ...printModalOrder, city: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 text-slate-900 px-3 py-2 rounded-lg"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setPrintModalOrder(null)}
+                className="px-3.5 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
+              >
+                Zatvori
+              </button>
+              <button
+                onClick={() => {
+                  executeGeneratePdf(
+                    printModalOrder.order,
+                    printModalOrder.name,
+                    printModalOrder.address,
+                    printModalOrder.city
+                  );
+                  setPrintModalOrder(null);
+                }}
+                className="px-4 py-2 bg-[#F7E97F] hover:bg-amber-300 text-slate-950 font-['Poppins'] font-black text-xs uppercase rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Printer className="w-4 h-4" />
+                Generiši & Preuzmi PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ZA KUPONE */}
+      {promoModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+            <h3 className="font-['Poppins'] font-black uppercase text-sm text-slate-900">
+              Novi Kupon sa Rokom Trajanja
+            </h3>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newPromo.code) return;
+              const codeId = newPromo.code.toUpperCase().trim();
+              const pData = {
+                ...newPromo,
+                id: codeId,
+                code: codeId,
+                discountPercent: Number(newPromo.discountPercent || 0),
+                minOrderTotal: Number(newPromo.minOrderTotal || 0),
+                maxUses: Number(newPromo.maxUses || 100),
+                usedCount: 0,
+                active: true
+              };
+              await setDoc(doc(db, 'promo_codes', codeId), pData);
+              setPromoCodes(prev => [pData as PromoCode, ...prev.filter(item => item.id !== codeId)]);
+              setPromoModalOpen(false);
+            }} className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-700 font-bold block mb-1">Kôd kupona:</label>
+                <input
+                  type="text"
+                  required
+                  value={newPromo.code}
+                  onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase() })}
+                  className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-lg font-mono font-bold uppercase"
+                  placeholder="CASUAL10"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-slate-700 font-bold block mb-1">Popust (%):</label>
+                  <input
+                    type="number"
+                    value={newPromo.discountPercent}
+                    onChange={(e) => setNewPromo({ ...newPromo, discountPercent: Number(e.target.value) })}
+                    className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-700 font-bold block mb-1">Maks. korištenja:</label>
+                  <input
+                    type="number"
+                    value={newPromo.maxUses}
+                    onChange={(e) => setNewPromo({ ...newPromo, maxUses: Number(e.target.value) })}
+                    className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-slate-700 font-bold block mb-1">Aktivira se:</label>
+                  <input
+                    type="date"
+                    value={newPromo.validFrom}
+                    onChange={(e) => setNewPromo({ ...newPromo, validFrom: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 px-2 py-1.5 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-700 font-bold block mb-1">Ističe:</label>
+                  <input
+                    type="date"
+                    value={newPromo.validUntil}
+                    onChange={(e) => setNewPromo({ ...newPromo, validUntil: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 px-2 py-1.5 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setPromoModalOpen(false)}
+                  className="px-3 py-1.5 text-slate-500 hover:text-slate-900"
+                >
+                  Odustani
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-[#F7E97F] font-bold rounded-lg uppercase"
+                >
+                  Aktiviraj Kupon
                 </button>
               </div>
             </form>
@@ -1411,7 +1716,7 @@ export const AdminDashboard: React.FC = () => {
               Unos broja pošiljke (X Express)
             </h3>
             <p className="text-xs text-slate-500">
-              Unesite broj pošiljke za narudžbu #{trackingModalOrder.orderNumber || trackingModalOrder.id?.slice(0, 7)} kako bi kupac mogao pratiti paket.
+              Unesite broj pošiljke za narudžbu #{trackingModalOrder.orderNumber || trackingModalOrder.id?.slice(0, 7)} kako bi kupac pratio pošiljku.
             </p>
             <input
               type="text"
@@ -1490,11 +1795,20 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="flex justify-between items-center pt-2 border-t border-slate-100">
               <button
-                onClick={() => generateShippingSlips([selectedOrder])}
+                onClick={() => {
+                  const info = extractCustomer(selectedOrder);
+                  setPrintModalOrder({
+                    order: selectedOrder,
+                    name: info.name,
+                    address: info.address,
+                    city: `${info.postalCode} ${info.city}`.trim()
+                  });
+                  setSelectedOrder(null);
+                }}
                 className="px-3.5 py-2 bg-slate-100 hover:bg-[#F7E97F] text-slate-900 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                Štampaj Adresnicu
+                Pripremi Adresnicu
               </button>
               <button
                 onClick={() => setSelectedOrder(null)}
