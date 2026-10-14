@@ -1,39 +1,41 @@
 import { Metadata } from "next";
+import { getProductById } from "../../../src/lib/db";
+import { ProductDetailPage } from "../../../src/pages/ProductDetailPage";
 
-// 1. Dinamički SEO Meta tagovi (Ovo rješava problem s dijeljenjem linkova)
+// 1. DINAMIČKI SEO (Ovo se izvršava na serveru prije nego što se stranica pošalje u preglednik)
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   
-  // Ovdje ćemo u sljedećem koraku povući podatke iz Firebasea za ovaj specifični ID
-  // Trenutno stavljamo "placeholder" podatke kako bi testirali strukturu
-  const nazivProizvoda = `Streetwear Komad #${id}`; 
-  const opisProizvoda = "Pregledajte našu najnoviju streetwear kolekciju uz brzu dostavu u cijeloj BiH.";
+  // Dohvaćamo proizvod direktno iz Firebasea
+  const product = await getProductById(id);
   
+  // Ako proizvod ne postoji, vraćamo generičke podatke (ili 404)
+  if (!product) {
+    return {
+      title: "Proizvod nije pronađen | Casualshop BiH",
+      description: "Traženi proizvod trenutno nije dostupan u našem webshopu."
+    };
+  }
+
   return {
-    title: `${nazivProizvoda} | Casualshop BiH`,
-    description: opisProizvoda,
+    title: `${product.name} | Casualshop BiH`,
+    description: product.description || `Kupite ${product.name} po cijeni od ${product.price} KM uz brzu dostavu širom BiH.`,
     openGraph: {
-      title: `${nazivProizvoda} | Casualshop BiH`,
-      description: opisProizvoda,
+      title: `${product.name} | Casualshop BiH`,
+      description: product.description || `Kupite ${product.name} po cijeni od ${product.price} KM uz brzu dostavu širom BiH.`,
       type: "website",
-      // images: [slikaProizvoda], -> ovo ćemo otključati kad spojimo bazu
+      images: [product.imageUrl], // OVDJE JE MAGIJA - Facebook/Viber sada vide pravu sliku!
     }
   };
 }
 
-// 2. Glavna SSR komponenta stranice
+// 2. PRIKAZ STRANICE PROIZVODA
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-
-  return (
-    <div className="min-h-screen bg-gray-50 pt-24 px-4 flex flex-col items-center justify-center text-center">
-      <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Proizvod ID: {id}</h1>
-      <p className="mt-4 text-lg text-gray-600 max-w-xl">
-        Ovo je dinamička stranica. Uskoro ćemo ovdje dodati logiku koja iz Firebasea povlači sliku, cijenu, dostupne veličine i gumb za dodavanje u košaricu.
-      </p>
-      <a href="/" className="mt-8 px-6 py-3 bg-black text-white font-semibold rounded-lg shadow-md hover:bg-gray-800 transition-colors">
-        Povratak na naslovnicu
-      </a>
-    </div>
-  );
+  // Komponenta ProductDetailPage (iz src/pages) je vjerojatno napisana kao klijentska komponenta
+  // i ona unutar sebe vjerojatno čita ID iz URL-a. 
+  // U Next.js-u to možemo jednostavno renderirati pozivajući tu tvoju staru komponentu.
+  
+  // Napomena: Da bi ProductDetailPage radila bez React Routera, možda ćemo morati dodati malo
+  // Next.js magije u nju, ali prvo da postavimo ovaj temelj.
+  return <ProductDetailPage />;
 }
