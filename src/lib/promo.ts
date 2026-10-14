@@ -4,13 +4,15 @@ import { db } from './firebase';
 export interface PromoCode {
   code: string;
   discountPercent: number; // npr. 10 za 10%
-  expiresAt: string; // ISO Datum
+  expiresAt: string; // ISO Datum isteka
+  activatedAt?: string; // ISO Datum aktivacije
   used: boolean;
+  usedAt?: string; // Tačno vrijeme kada je kod iskorišten
   active: boolean;
   type: 'abandoned_cart' | 'post_purchase' | 'first_100' | 'manual' | string;
   createdForEmail?: string;
   usageCount?: number;
-  maxUsage?: number;
+  maxUsage?: number; // Maksimalan broj dozvoljenih narudžbi
 }
 
 export function generateUniqueCode(prefix = 'CASUAL10'): string {
@@ -18,7 +20,7 @@ export function generateUniqueCode(prefix = 'CASUAL10'): string {
   return `${prefix}-${random}`;
 }
 
-// Dohvatanje svih promo kodova za Admin Dashboard (Samo za Admina)
+// Dohvatanje svih promo kodova za Admin Dashboard
 export async function getPromoCodes(): Promise<PromoCode[]> {
   try {
     const snap = await getDocs(collection(db, 'promo_codes'));
@@ -61,12 +63,13 @@ export async function deletePromoCode(code: string): Promise<void> {
   }
 }
 
-// Kreiranje promo koda (Zahtijeva Admin prava na Firestore-u)
+// Kreiranje promo koda sa definisanim trajanjem ili limitom upotreba
 export async function createPromoCode(
   emailOrCode: string,
   type: 'abandoned_cart' | 'post_purchase' | 'manual' | string = 'manual',
   durationHoursOrPercent: number = 720,
-  manualDiscount?: number
+  manualDiscount?: number,
+  maxUsage: number = 1
 ): Promise<PromoCode> {
   let code = '';
   let discountPercent = 10;
@@ -81,15 +84,20 @@ export async function createPromoCode(
     discountPercent = manualDiscount || durationHoursOrPercent || 10;
   }
 
-  const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
+  const now = new Date();
+  const activatedAt = now.toISOString();
+  const expiresAt = new Date(now.getTime() + durationHours * 60 * 60 * 1000).toISOString();
 
   const promoData: PromoCode = {
     code,
     discountPercent,
+    activatedAt,
     expiresAt,
     used: false,
     active: true,
     type,
+    usageCount: 0,
+    maxUsage: maxUsage || 1,
     ...(emailOrCode.includes('@') ? { createdForEmail: emailOrCode.toLowerCase().trim() } : {}),
   };
 
@@ -97,13 +105,13 @@ export async function createPromoCode(
     const promoRef = doc(db, 'promo_codes', code);
     await setDoc(promoRef, promoData);
   } catch (error) {
-    console.error('Greška pri kreiranju promo koda (potrebna Admin prava):', error);
+    console.error('Greška pri kreiranju promo koda:', error);
   }
 
   return promoData;
 }
 
-// Validacija promo koda sa klijentske strane (Sigurna samo-čitanje operacija)
+// Validacija promo koda (Aktivacija, Istek, Max upotreba)
 export async function validateAndApplyPromoCode(
   code: string
 ): Promise<{ valid: boolean; discountPercent: number; message: string }> {
@@ -112,37 +120,6 @@ export async function validateAndApplyPromoCode(
   }
 
   const cleanCode = code.trim().toUpperCase();
-
-  // Posebno pravilo za promo kod FIRST100
-  if (cleanCode === 'FIRST100') {
-    try {
-      const promoRef = doc(db, 'promo_codes', 'FIRST100');
-      const snap = await getDoc(promoRef);
-
-      if (snap.exists()) {
-        const data = snap.data() as PromoCode;
-        if (data.active === false) {
-          return { valid: false, discountPercent: 0, message: 'Promo kod FIRST100 je trenutno onemogućen.' };
-        }
-        if (data.usageCount && data.maxUsage && data.usageCount >= data.maxUsage) {
-          return { valid: false, discountPercent: 0, message: 'Iskorišten je maksimalan broj upotreba (100/100).' };
-        }
-      }
-
-      return {
-        valid: true,
-        discountPercent: 10,
-        message: 'Promotivni kod za prvih 100 narudžbi prihvaćen! (10% popusta)',
-      };
-    } catch (e) {
-      // Ako getDoc ne uspije, dozvoljavamo standardni popust bez obaranja narudžbe
-      return {
-        valid: true,
-        discountPercent: 10,
-        message: 'Promotivni kod FIRST100 prihvaćen! (10% popusta)',
-      };
-    }
-  }
 
   try {
     const promoRef = doc(db, 'promo_codes', cleanCode);
@@ -154,15 +131,28 @@ export async function validateAndApplyPromoCode(
 
     const promo = snap.data() as PromoCode;
 
+    // 1. Provjera ručne deaktivacije
     if (promo.active === false) {
-      return { valid: false, discountPercent: 0, message: 'Ovaj promo kod trenutno nije aktivan.' };
+      return { valid: false, discountPercent: 0, message: 'Ovaj promo kod više nije aktivan.' };
     }
 
-    if (promo.used) {
+    // 2. Provjera da li je jedokratan i već iskorišten
+    if (promo.used && (!promo.maxUsage || promo.maxUsage <= 1)) {
       return { valid: false, discountPercent: 0, message: 'Ovaj promo kod je već iskorišten.' };
     }
 
-    if (promo.expiresAt && new Date(promo.expiresAt).getTime() < Date.now()) {
+    // 3. Provjera maksimalnog broja narudžbi
+    if (promo.maxUsage && promo.usageCount && promo.usageCount >= promo.maxUsage) {
+      return { valid: false, discountPercent: 0, message: `Dostignut je maksimalan broj iskorištenosti (${promo.maxUsage}/${promo.maxUsage}).` };
+    }
+
+    // 4. Provjera vremenske aktivacije i isteka
+    const now = Date.now();
+    if (promo.activatedAt && new Date(promo.activatedAt).getTime() > now) {
+      return { valid: false, discountPercent: 0, message: 'Ovaj promo kod još uvijek nije aktiviran.' };
+    }
+
+    if (promo.expiresAt && new Date(promo.expiresAt).getTime() < now) {
       return { valid: false, discountPercent: 0, message: 'Ovaj promo kod je istekao.' };
     }
 
@@ -177,20 +167,48 @@ export async function validateAndApplyPromoCode(
   }
 }
 
-// Označavanje koda kao iskorištenog pri narudžbi
+// Označavanje koda kao iskorištenog pri narudžbi + Automatsko gašenje ako je dostignut limit
 export async function markPromoCodeAsUsed(code: string): Promise<void> {
   if (!code) return;
   const cleanCode = code.trim().toUpperCase();
 
   try {
     const promoRef = doc(db, 'promo_codes', cleanCode);
-    if (cleanCode === 'FIRST100') {
-      await updateDoc(promoRef, { usageCount: increment(1) });
-    } else {
-      await updateDoc(promoRef, { used: true, usedAt: new Date().toISOString() });
+    const snap = await getDoc(promoRef);
+
+    if (snap.exists()) {
+      const promo = snap.data() as PromoCode;
+      const currentUsage = (promo.usageCount || 0) + 1;
+      const maxUsage = promo.maxUsage || 1;
+      const nowISO = new Date().toISOString();
+
+      const shouldDeactivate = currentUsage >= maxUsage;
+
+      await updateDoc(promoRef, {
+        usageCount: increment(1),
+        usedAt: nowISO,
+        used: shouldDeactivate ? true : promo.used,
+        active: shouldDeactivate ? false : promo.active,
+      });
     }
   } catch (error) {
-    // Tiho hvatanje u slučaju nedovoljnih prava klijenta – narudžba se i dalje kompletira
     console.warn('Upozorenje: Označavanje promo koda nije zapisano na Firestore:', error);
   }
+}
+
+// Pomoćna funkcija za izračunavanje preostalog vremena koda (za Admin Odbrojavanje)
+export function getPromoRemainingTime(expiresAt: string): { expired: boolean; hours: number; minutes: number; seconds: number; formatted: string } {
+  const diff = new Date(expiresAt).getTime() - Date.now();
+
+  if (diff <= 0) {
+    return { expired: true, hours: 0, minutes: 0, seconds: 0, formatted: 'Istekao' };
+  }
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  const formatted = `${hours}h ${minutes}m ${seconds}s`;
+
+  return { expired: false, hours, minutes, seconds, formatted };
 }
