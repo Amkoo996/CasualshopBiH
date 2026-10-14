@@ -1,76 +1,42 @@
 @import "tailwindcss";
 
-:root {
-  --bg-color: #F4F2EC;
-  --text-color: #111111;
-  --yellow-brand: #F7E97F;
-  --scroll-track: #F4F2EC;
-  --scroll-thumb: #0A0A0A;
+@theme {
+  --color-brand-yellow: #F7E97F;
+  --color-brand-black: #0A0A0A;
   
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-heading: 'Poppins', sans-serif;
-  --base-font-size: 16px;
+  --font-inter: "Inter", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
 }
 
 @layer base {
   html {
-    font-size: var(--base-font-size);
+    scroll-behavior: smooth;
   }
-
   body {
-    font-family: var(--font-body);
-    background-color: var(--bg-color);
-    color: var(--text-color);
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading);
-    letter-spacing: -0.02em;
+    @apply bg-[#FAF9F5] text-neutral-900 font-['Inter'] antialiased;
   }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideLeft {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
-
-@keyframes slideRight {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.25s ease-out forwards;
-}
-
-.animate-slideLeft {
-  animation: slideLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-slideRight {
-  animation: slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.border-yellow-brand {
-  border-color: var(--yellow-brand);
-}
-
-.bg-yellow-brand {
-  background-color: var(--yellow-brand);
-}
-
+/* Prilagođeni scrollbar za e-commerce */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--scroll-track);
+  background: #FAF9F5;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--scroll-thumb);
+  background: #0A0A0A;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #F7E97F;
+}
+
+/* Animacije korištene u komponentama */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out forwards;
 }
