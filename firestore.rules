@@ -3,13 +3,13 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Helper funkcija za provjeru admin prava
-   function isAdmin() {
-  return request.auth != null && (
-    request.auth.uid == 'Jt35lHyxq1feiEyi1exOKRA9xJl2' || 
-    request.auth.uid == 'NSgdcTOFwXRW3nVfHa9mvgfXsDC3' || 
-    request.auth.token.admin == true
-  );
-}
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.uid == 'Jt35lHyxq1feiEyi1exOKRA9xJl2' || 
+        request.auth.uid == 'NSgdcTOFwXRW3nVfHa9mvgfXsDC3' || 
+        request.auth.token.admin == true
+      );
+    }
 
     // ==========================================
     // PROIZVODI (PRODUCTS)
@@ -18,23 +18,20 @@ service cloud.firestore {
       allow read: if true;
       allow create, delete: if isAdmin();
       
-      // Admin mijenja sve, a kupci pri kupovini mogu samo smanjivati zalihe
+      // Admin mijenja sve, kupci pri kupovini samo smanjuju zalihe
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sizes'])
       );
     }
 
     // ==========================================
-    // NARUDŽBE (ORDERS) - ZAKLJUČANO ZA JAVNOST
+    // NARUDŽBE (ORDERS) - ZAKLJUČANO
     // ==========================================
     match /orders/{orderId} {
-      // Svako može napraviti narudžbu, ali samo sa tačno definisanim poljima
       allow create: if request.resource.data.keys().hasOnly([
         'orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 
         'total', 'paymentMethod', 'status', 'createdAt', 'promoCode', 'discountAmount'
       ]);
-      
-      // Čitanje, izmjena i brisanje narudžbi dozvoljeni su ISKLJUČIVO adminu
       allow read, update, delete: if isAdmin();
     }
 
@@ -42,26 +39,43 @@ service cloud.firestore {
     // SIGURNO PRAĆENJE NARUDŽBI (ORDER TRACKING)
     // ==========================================
     match /order_tracking/{orderNumber} {
-      // Kupci mogu dohvatiti pojedinačni dokument po broju narudžbe
       allow get: if true;
-      
-      // Listanje svih praćenja dozvoljeno samo adminu
       allow list: if isAdmin();
-      
-      // Kreiranje pri narudžbi (samo anonimizirani podaci sa statusom 'Nova')
       allow create: if request.resource.data.keys().hasOnly([
         'orderNumber', 'status', 'phoneHash', 'createdAt'
       ]) && request.resource.data.status == 'Nova';
-      
-      // Ažuriranje statusa praćenja i brisanje dozvoljeno samo adminu
       allow update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // ANALITIKA I METRIKE - STRATIFIKOVANO SVE ZA ADMINA
+    // ==========================================
+    match /analytics_events/{eventId} {
+      allow create: if true; // Kupci šalju event pri posjeti
+      allow read, update, delete: if isAdmin(); // Čitanje ISKLJUČIVO za admina
+    }
+
+    match /product_stats/{statId} {
+      // Kupac može samo inkrementirati brojač pregleda, bez mogućnosti čitanja svih statistika
+      allow create, update: if true;
+      allow read, delete: if isAdmin(); // Čitanje ISKLJUČIVO za admina
+    }
+
+    match /store_metrics/{metricId} {
+      allow create, update: if true;
+      allow read, delete: if isAdmin(); // Čitanje ISKLJUČIVO za admina
+    }
+
+    match /abandoned_carts/{cartId} {
+      allow create, update: if true; // Kupac bilježi stavke u korpi
+      allow read, delete: if isAdmin(); // Čitanje ISKLJUČIVO za admina (Leads tab)
     }
 
     // ==========================================
     // PROMO KODOVI (PROMO CODES)
     // ==========================================
     match /promo_codes/{codeId} {
-      allow read: if true;
+      allow read: if true; // Kupci provjeravaju da li kod važi pri checkoutu
       allow write: if isAdmin();
     }
 
