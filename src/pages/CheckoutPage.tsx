@@ -62,13 +62,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Sigurna sinhronizacija napuštene korpe na Firebase (samo ako su uneseni osnovni validni podaci)
   const syncAbandonedCart = (dataToSync = formData) => {
     const fullName = `${dataToSync.firstName} ${dataToSync.lastName}`.trim();
     const cleanPhone = normalizePhone(dataToSync.phone);
 
-    // GDPR & Spam zaštita: Šaljemo tek kad postoji barem validan telefon ili email
-    if (dataToSync.email && isValidEmail(dataToSync.email) || cleanPhone) {
+    if ((dataToSync.email && isValidEmail(dataToSync.email)) || cleanPhone) {
       saveCartSession({
         email: dataToSync.email.trim(),
         phone: cleanPhone || dataToSync.phone.trim(),
@@ -79,7 +77,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
-  // Automatsko spašavanje sesije nakon neaktivnosti (Smanjena učestalost na 3s)
   useEffect(() => {
     const timer = setTimeout(() => {
       syncAbandonedCart();
@@ -132,7 +129,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     if (!formData.phone.trim()) {
       newErrors.phone = 'Broj telefona je obavezan';
     } else if (!normalizePhone(formData.phone)) {
-      newErrors.phone = 'Unesite ispravan broj telefona, npr. 061123456 ili +38761123456';
+      newErrors.phone = 'Unesite ispravan broj telefona (min 8 cifara, npr. 061123456 ili +38761123456)';
     }
 
     const mail = formData.email.trim();
@@ -207,6 +204,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const mm = String(date.getMonth() + 1).padStart(2, '0');
       const dd = String(date.getDate()).padStart(2, '0');
       const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+      
+      // ČISTI FORMAT BEZ ZNAKA #
       const orderNumber = `CS-${mm}${dd}-${randomStr}`;
 
       const cleanPhone = normalizePhone(formData.phone) || formData.phone.trim();
@@ -245,18 +244,19 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         id: docId,
       };
 
+      // TRENUTNO OZNAČAVANJE PROMO KODA KAO ISKORIŠTENOG I AUTOMATSKO GAŠENJE
       if (appliedPromoCode) {
         try {
           await markPromoCodeAsUsed(appliedPromoCode);
         } catch (err) {
-          console.warn('Upozorenje: Promo kod primijenjen ali nije označen kao iskorišten:', err);
+          console.warn('Upozorenje: Promo kod primijenjen ali nije označen kao iskorišten u bazi:', err);
         }
       }
 
       localStorage.setItem('casualshop_latest_order', JSON.stringify(finalizedOrder));
       localStorage.setItem('casualshop_last_order_time', Date.now().toString());
 
-      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOTA (Slati na sve navedene Chat ID-ove)
+      // 2. SLANJE NOTIFIKACIJE NA TELEGRAM BOTA
       const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
       const RAW_CHAT_IDS = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
@@ -274,19 +274,19 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           : `${activeShippingFee.toFixed(2)} KM`;
 
         const telegramText = `
-🛒 NOVA NARUDŽBA #${finalizedOrder.orderNumber}
+🛒 <b>NOVA NARUDŽBA ${finalizedOrder.orderNumber}</b>
 
-👤 Kupac: ${formData.firstName} ${formData.lastName}
-📞 Telefon: ${cleanPhone}
-📧 Email: ${cleanEmail || 'Nije navedeno'}
-📍 Adresa: ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
-📝 Napomena: ${noteDetails || 'Nema napomene'}
+👤 <b>Kupac:</b> ${formData.firstName} ${formData.lastName}
+📞 <b>Telefon:</b> ${cleanPhone}
+📧 <b>Email:</b> ${cleanEmail || 'Nije navedeno'}
+📍 <b>Adresa:</b> ${finalizedOrder.customer.address}, ${finalizedOrder.customer.postalCode} ${finalizedOrder.customer.city}
+📝 <b>Napomena:</b> ${noteDetails || 'Nema napomene'}
 
-📦 Artikli:
+📦 <b>Artikli:</b>
 ${itemsListMsg}${promoInfoText}
 
-💳 Dostava: ${shippingText}
-💰 UKUPNO ZA NAPLATU: ${finalizedOrder.total.toFixed(2)} KM
+💳 <b>Dostava:</b> ${shippingText}
+💰 <b>UKUPNO ZA NAPLATU:</b> ${finalizedOrder.total.toFixed(2)} KM
         `.trim();
 
         const chatIds = RAW_CHAT_IDS.split(',').map((id: string) => id.trim()).filter(Boolean);
@@ -298,6 +298,7 @@ ${itemsListMsg}${promoInfoText}
             body: JSON.stringify({
               chat_id: chatId,
               text: telegramText,
+              parse_mode: 'HTML',
             }),
           }).catch((err) => console.warn(`Telegram notifikacija nije poslata za Chat ID ${chatId}:`, err));
         }
@@ -314,13 +315,13 @@ ${itemsListMsg}${promoInfoText}
           ? cleanEmail
           : fallbackSellerEmail;
 
-        const emailSubjectText = `Potvrda narudžbe #${finalizedOrder.orderNumber} - Casual Shop BiH`;
+        const emailSubjectText = `Potvrda narudžbe ${finalizedOrder.orderNumber} - Casual Shop BiH`;
         const shippingFeeText = activeShippingFee === 0 ? '0.00 KM (Lično preuzimanje / Besplatna dostava)' : `${activeShippingFee.toFixed(2)} KM`;
 
         const messageBodyFormatted = `
 Pozdrav ${formData.firstName},
 
-Vaša narudžba #${finalizedOrder.orderNumber} je uspješno kreirana!
+Vaša narudžba ${finalizedOrder.orderNumber} je uspješno kreirana!
 
 Podaci o kupcu:
 - Ime i prezime: ${formData.firstName} ${formData.lastName}
@@ -425,13 +426,13 @@ Casual Shop BiH
         <h1 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-neutral-900">
           ZAVRŠETAK NARUDŽBE (CHECKOUT)
         </h1>
-        <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-['Inter']">
+        <p className="text-xs sm:text-sm text-neutral-600 mt-1">
           Izaberite način preuzimanja i unesite podatke za narudžbu.
         </p>
       </div>
 
       {submitError && (
-        <div className="mb-8 p-4 bg-red-50 border-2 border-red-500 text-red-800 text-xs font-['Inter'] flex items-center gap-3">
+        <div className="mb-8 p-4 bg-red-50 border-2 border-red-500 text-red-800 text-xs flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
           <span className="font-semibold">{submitError}</span>
         </div>
@@ -482,7 +483,7 @@ Casual Shop BiH
             </div>
 
             {deliveryMethod === 'pickup' && (
-              <div className="p-3 bg-[#F7E97F] border border-black text-black text-xs font-['Inter'] space-y-2">
+              <div className="p-3 bg-[#F7E97F] border border-black text-black text-xs space-y-2">
                 <p className="font-bold font-['Poppins'] uppercase">📍 Lokacija za lično preuzimanje:</p>
                 <p>Sarajevo. Tačnu lokaciju i kontakt dobijate nakon potvrde narudžbe.</p>
               </div>
@@ -735,7 +736,7 @@ Casual Shop BiH
                   <span className="font-['Poppins'] text-xs sm:text-sm font-black uppercase tracking-wider text-[#F7E97F]">
                     {deliveryMethod === 'pickup' ? 'Plaćanje gotovinom pri preuzimanju' : 'Plaćanje pouzećem (Gotovinom kuriru)'}
                   </span>
-                  <p className="text-xs text-neutral-300 font-['Inter']">
+                  <p className="text-xs text-neutral-300">
                     {deliveryMethod === 'pickup'
                       ? 'Plaćate u gotovini na licu mjesta prilikom preuzimanja paketa.'
                       : 'Plaćate gotovinom kuriru brze pošte. Moguće otvaranje i pregled paketa prije preuzimanja.'}
@@ -817,7 +818,7 @@ Casual Shop BiH
               </div>
 
               {promoMessage && (
-                <p className={`text-[11px] font-['Inter'] font-semibold ${promoMessage.error ? 'text-red-600' : 'text-emerald-700'}`}>
+                <p className={`text-[11px] font-semibold ${promoMessage.error ? 'text-red-600' : 'text-emerald-700'}`}>
                   {promoMessage.text}
                 </p>
               )}
@@ -839,7 +840,7 @@ Casual Shop BiH
                       <h4 className="font-['Poppins'] font-bold text-neutral-900 uppercase line-clamp-1">
                         {item.name}
                       </h4>
-                      <div className="text-[11px] text-neutral-500 mt-0.5 font-['Inter']">
+                      <div className="text-[11px] text-neutral-500 mt-0.5">
                         Veličina: <strong>{item.size}</strong> • Količina: {item.quantity} kom
                       </div>
                     </div>
@@ -851,7 +852,7 @@ Casual Shop BiH
               ))}
             </div>
 
-            <div className="space-y-2 border-t-2 border-neutral-200 pt-4 text-xs font-['Inter']">
+            <div className="space-y-2 border-t-2 border-neutral-200 pt-4 text-xs">
               <div className="flex justify-between text-neutral-700">
                 <span>Iznos artikala:</span>
                 <span className="font-['Poppins'] font-bold">{subtotal.toFixed(2)} KM</span>
