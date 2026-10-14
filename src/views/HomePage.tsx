@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // NOVO: Next.js ruter
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Instagram, Sparkles, TrendingUp, ShieldCheck, Truck, RefreshCw, ArrowUpRight, Copy, Check } from 'lucide-react';
 import { Product, CATEGORIES, Category, HomeCMSContent, DEFAULT_CMS_CONTENT } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { NewsletterSection } from '../components/common/NewsletterSection';
 import { useCart } from '../context/CartContext';
-import { getCMSContent, getProducts } from '../lib/db'; // Dodan getProducts
+import { getCMSContent, getProducts } from '../lib/db';
 
 // Optimizovani Cloudinary URL-ovi
 const OPTIMIZED_FALLBACK_IMAGE = 'https://res.cloudinary.com/rvlsak2u/image/upload/f_auto,q_auto,w_800/v1791551969/xpzi3atps6zrnkflak3c.jpg';
@@ -17,21 +17,22 @@ const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
   'Duksevi i hoodice': 'https://res.cloudinary.com/rvlsak2u/image/upload/f_auto,q_auto,w_800/v1791552262/tewfnaho5ssqt8jkraak.jpg',
   'Jakne': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80',
   'Pantalone i trenerke': 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=600&q=80',
+  'Šorcevi': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=600&q=80',
   'Sorcevi': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=600&q=80',
+  'Kape i šeširi': 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?auto=format&fit=crop&w=600&q=80',
   'Kape i SeSiri': 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?auto=format&fit=crop&w=600&q=80',
   'Dodaci (Accessories)': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
 };
 
-// UKLONJENI su stari propovi za navigaciju, komponenta sada radi samostalno
 export const HomePage: React.FC = () => {
-  const router = useRouter(); // Inicijalizacija routera
+  const router = useRouter();
   const { settings } = useCart();
   
   const [products, setProducts] = useState<Product[]>([]);
   const [cms, setCms] = useState<HomeCMSContent>(DEFAULT_CMS_CONTENT);
   const [bannerCopied, setBannerCopied] = useState(false);
 
-  // Dohvacamo podatke samo za pocetnu stranicu
+  // Dohvaćamo podatke samo za početnu stranicu
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -42,7 +43,7 @@ export const HomePage: React.FC = () => {
         setCms(cmsData);
         setProducts(productsData);
       } catch (e) {
-        console.error('GreSka pri ucitavanju podataka:', e);
+        console.error('Greška pri učitavanju podataka:', e);
       }
     };
     loadData();
@@ -140,7 +141,7 @@ export const HomePage: React.FC = () => {
         <section 
           onClick={handleBannerCopy}
           className="bg-[#0A0A0A] text-[#F7E97F] border-b border-[#F7E97F]/20 py-2.5 px-4 shadow-lg w-full relative z-20 cursor-pointer hover:bg-[#121212] transition-colors group"
-          title="Klikni da kopiraS promo kod"
+          title="Klikni da kopiraš promo kod"
         >
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 text-center md:text-left">
             <div className="flex items-center gap-2.5 font-['Poppins'] text-xs font-bold uppercase tracking-wider">
@@ -214,7 +215,7 @@ export const HomePage: React.FC = () => {
 
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
               <button
-                onClick={() => router.push('/shop')} // NOVO: Next.js routing
+                onClick={() => router.push('/shop')}
                 className="px-7 py-3.5 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-[0.18em] text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(247,233,127,0.4)] transition-all flex items-center justify-center gap-2.5 group active:scale-95 cursor-pointer rounded-xs border-2 border-[#F7E97F]"
               >
                 <span>{cms.hero.ctaPrimaryText}</span>
@@ -235,11 +236,11 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* OSTALI SADRzAJ */}
+      {/* OSTALI SADRŽAJ */}
       <div className="bg-[#F4F2EC] pt-12 pb-0 w-full">
         <div className="space-y-14 sm:space-y-20 pb-14">
           
-          {/* BENEFITI CARDS */}
+          {/* BENEFITI KARTICE */}
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-8 shadow-md rounded-xs">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-200">
@@ -290,7 +291,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 {visibleCategoryNames.length > displayCategories.length && (
                   <button
-                    onClick={() => router.push('/shop')} // NOVO
+                    onClick={() => router.push('/shop')}
                     className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 cursor-pointer group"
                   >
                     <span>Vidi sve kategorije</span>
@@ -303,7 +304,7 @@ export const HomePage: React.FC = () => {
                 {displayCategories.map((cat) => (
                   <div
                     key={cat.title}
-                    onClick={() => router.push(`/shop?category=${encodeURIComponent(cat.category)}`)} // NOVO
+                    onClick={() => router.push(`/shop?category=${encodeURIComponent(cat.category)}`)}
                     className="group relative h-56 sm:h-72 overflow-hidden bg-[#0A0A0A] cursor-pointer border-2 border-neutral-300 hover:border-[#F7E97F] transition-all shadow-sm hover:shadow-xl hover:-translate-y-1 rounded-xs"
                   >
                     <img
@@ -345,7 +346,7 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => router.push('/shop')} // NOVO
+                  onClick={() => router.push('/shop')}
                   className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer group"
                 >
                   <span>Pogledaj sve novitete</span>
@@ -358,7 +359,7 @@ export const HomePage: React.FC = () => {
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onSelect={(p) => router.push(`/proizvod/${p.id}`)} // NOVO: Redirekcija na proizvod
+                    onSelect={(p) => router.push(`/proizvod/${p.id}`)}
                   />
                 ))}
               </div>
@@ -372,7 +373,7 @@ export const HomePage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1">
                     <TrendingUp className="w-3.5 h-3.5 text-[#0A0A0A]" />
-                    <span>Preporucujemo</span>
+                    <span>Preporučujemo</span>
                   </div>
                   <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-[#0A0A0A]">
                     Istaknuti proizvodi
@@ -380,7 +381,7 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => router.push('/shop')} // NOVO
+                  onClick={() => router.push('/shop')}
                   className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-[#0A0A0A] hover:text-neutral-600 transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer group"
                 >
                   <span>Pregledaj sve</span>
@@ -393,7 +394,7 @@ export const HomePage: React.FC = () => {
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onSelect={(p) => router.push(`/proizvod/${p.id}`)} // NOVO: Redirekcija na proizvod
+                    onSelect={(p) => router.push(`/proizvod/${p.id}`)}
                   />
                 ))}
               </div>

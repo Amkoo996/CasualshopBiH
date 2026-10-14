@@ -14,33 +14,33 @@ import {
   Lock,
   ArrowRight,
   Clock,
-  Check,
-  Calendar
+  Check
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { createOrder } from '../lib/db';
-import { isValidPhone, isValidName, isValidPostalCode } from '../lib/validation';
-import { Order } from '../types';
+import { isValidPhone, isValidName } from '../lib/validation';
+import { Order, Size } from '../types';
 import { db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-interface CheckoutPageProps {
+// Provjera e-mail adrese (podržava brojeve, tačke, crtice)
+const checkValidEmail = (emailStr: string): boolean => {
+  if (!emailStr || !emailStr.trim()) return true; // Polje je opciono
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailStr.trim());
+};
+
+// Provjera poštanskog broja
+const checkValidPostal = (codeStr: string): boolean => {
+  if (!codeStr || !codeStr.trim()) return true; // Opciono
+  const digits = codeStr.trim().replace(/\D/g, '');
+  return digits.length === 5;
+};
+
+export const CheckoutPage: React.FC<{
   onBack?: () => void;
   onOrderSuccess?: (order: Order) => void;
   onNavigateToPage?: (page: string) => void;
-}
-
-// Ispravna regex provjera koja podržava tačke, crtice i brojeve u emailu
-const checkValidEmail = (emailStr: string): boolean => {
-  if (!emailStr || !emailStr.trim()) return true; // Pošto je polje opciono
-  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\$/.test(emailStr.trim());
-};
-
-export const CheckoutPage: React.FC<CheckoutPageProps> = ({ 
-  onBack, 
-  onOrderSuccess, 
-  onNavigateToPage 
-}) => {
+}> = ({ onBack, onOrderSuccess, onNavigateToPage }) => {
   const { 
     items, 
     subtotal, 
@@ -50,10 +50,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     settings 
   } = useCart();
 
-  // 1. Način preuzimanja: 'delivery' (Brza pošta) ili 'pickup' (Lično Sarajevo)
+  // Način dostave
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
 
-  // 2. Podaci o kupcu
+  // Podaci o kupcu
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -66,28 +66,26 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     note: ''
   });
 
-  // Greške pri validaciji pojedinih polja
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
 
-  // 3. Kupon kod
+  // Kupon kod
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discountPercent: number } | null>(null);
   const [promoError, setPromoError] = useState('');
   const [promoSuccess, setPromoSuccess] = useState('');
 
-  // 4. Stanja obrade i uspjeha
+  // Obrada narudžbe
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
-  // Kalkulacija dostave i popusta
   const actualShippingFee = deliveryMethod === 'pickup' ? 0 : shippingFee;
   const discountAmount = appliedPromo 
     ? (subtotal * appliedPromo.discountPercent) / 100 
     : 0;
   const finalTotal = Math.max(0, subtotal - discountAmount + actualShippingFee);
 
-  // 5. Automatsko bilježenje napuštene korpe u pozadini (Abandoned Cart Sync)
+  // Automatsko bilježenje napuštene korpe
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -112,9 +110,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             updatedAt: new Date().toISOString(),
             status: 'in_checkout'
           }, { merge: true });
-        } catch (err) {
-          // Tiho bilježenje bez ometanja kupca
-        }
+        } catch {}
       }, 2000);
     }
 
@@ -123,7 +119,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     };
   }, [formData, items, finalTotal, deliveryMethod, completedOrder]);
 
-  // Validacija emaila u realnom vremenu čim kupac unese tekst
   const handleEmailChange = (val: string) => {
     setFormData(prev => ({ ...prev, email: val }));
     if (val.trim() && !checkValidEmail(val)) {
@@ -137,7 +132,19 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
-  // Primjena kupon koda
+  const handlePostalChange = (val: string) => {
+    setFormData(prev => ({ ...prev, postalCode: val }));
+    if (val.trim() && !checkValidPostal(val)) {
+      setErrors(prev => ({ ...prev, postalCode: 'Poštanski broj mora imati tačno 5 cifara (npr. 71000)' }));
+    } else {
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy.postalCode;
+        return copy;
+      });
+    }
+  };
+
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
     setPromoError('');
@@ -157,7 +164,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
-  // Validacija i slanje narudžbe
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setGeneralError('');
@@ -183,7 +189,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       if (!formData.address.trim()) {
         newErrors.address = 'Molimo unesite ulicu i kućni broj.';
       }
-      if (formData.postalCode.trim() && !isValidPostalCode(formData.postalCode)) {
+      if (formData.postalCode.trim() && !checkValidPostal(formData.postalCode)) {
         newErrors.postalCode = 'Poštanski broj mora imati 5 cifara (npr. 71000).';
       }
     } else {
@@ -208,6 +214,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         ? `Lično preuzimanje Sarajevo (${formData.pickupTime})`
         : formData.address.trim();
 
+      // Tačno usklađeno sa tipom Order i CartItem
       const orderPayload: Omit<Order, 'id'> = {
         orderNumber,
         items: items.map((item) => ({
@@ -216,22 +223,23 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           price: item.price,
           size: item.size,
           quantity: item.quantity,
-          image: item.image || '/hero-streetwear.webp'
+          image: item.image || '/hero-streetwear.webp',
+          maxStock: item.maxStock ?? 99
         })),
         customer: {
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
           phone: formData.phone.trim(),
           city: deliveryMethod === 'pickup' ? 'Sarajevo (Lično)' : formData.city.trim(),
-          postalCode: deliveryMethod === 'pickup' ? '71000' : (formData.postalCode.trim() || 'BiH'),
+          postalCode: deliveryMethod === 'pickup' ? '71000' : (formData.postalCode.trim() || '71000'),
           address: deliveryAddressText,
           email: formData.email.trim() || '',
-          note: formData.note.trim() || (deliveryMethod === 'pickup' ? `Vrijeme preuzimanja: ${formData.pickupTime}` : 'Nema napomene')
+          note: formData.note.trim() || (deliveryMethod === 'pickup' ? `Vrijeme: ${formData.pickupTime}` : 'Nema napomene')
         },
         subtotal: Number(subtotal.toFixed(2)),
         shippingFee: Number(actualShippingFee.toFixed(2)),
         total: Number(finalTotal.toFixed(2)),
-        paymentMethod: deliveryMethod === 'pickup' ? 'Lično (Gotovina)' : 'Pouzećem',
+        paymentMethod: 'cash_on_delivery',
         status: 'Nova',
         createdAt: new Date().toISOString(),
         promoCode: appliedPromo?.code || undefined,
@@ -255,7 +263,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
-  // Ako je narudžba uspješno poslana, prikaži potvrdu
   if (completedOrder) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center bg-[#FAF9F5] px-4 py-12 font-['Inter']">
@@ -287,7 +294,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             </div>
             <div className="flex justify-between border-b border-neutral-200 pb-2">
               <span className="text-neutral-500">Način preuzimanja:</span>
-              <span className="font-bold text-black">{completedOrder.paymentMethod === 'Lično (Gotovina)' ? 'Lično preuzimanje (Sarajevo)' : 'Brza pošta X Express'}</span>
+              <span className="font-bold text-black">{deliveryMethod === 'pickup' ? 'Lično preuzimanje (Sarajevo)' : 'Brza pošta X Express'}</span>
             </div>
             <div className="flex justify-between pt-1 font-['Poppins'] font-black text-sm">
               <span>Iznos za plaćanje:</span>
@@ -316,7 +323,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     );
   }
 
-  // Prazna korpa
   if (items.length === 0) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center bg-[#FAF9F5] px-4 font-['Inter']">
@@ -345,7 +351,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     <div className="bg-[#FAF9F5] text-neutral-900 min-h-screen py-8 sm:py-14 font-['Inter']">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
-        {/* Navigacija */}
         <div className="flex items-center justify-between border-b border-neutral-200 pb-4">
           <button
             onClick={onBack ? onBack : () => window.history.back()}
@@ -360,10 +365,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           </span>
         </div>
 
-        {/* Glavni Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 items-start">
           
-          {/* LIJEVA STRANA: OBRAZAC */}
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-white border-2 border-[#0A0A0A] p-6 sm:p-8 shadow-xl space-y-6">
               
@@ -374,10 +377,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
               )}
 
-              {/* 1. NAČIN DOSTAVE */}
+              {/* 1. Način dostave */}
               <div className="space-y-3">
                 <span className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black block">
-                  1. Način preuzimanja pošiljke
+                  1. Način dostave i preuzimanja
                 </span>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -398,7 +401,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         Brza pošta (BiH)
                       </span>
                       <span className="text-[11px] text-neutral-500 block mt-0.5">
-                        X Express • Isporuka 24–48h
+                        Dostava na vašu adresu (12.00 KM)
                       </span>
                       <span className="font-['Poppins'] font-black text-xs text-black block mt-1">
                         {shippingFee === 0 ? 'Besplatna dostava' : `${shippingFee.toFixed(2)} KM`}
@@ -423,7 +426,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         Lično preuzimanje
                       </span>
                       <span className="text-[11px] text-neutral-500 block mt-0.5">
-                        Sarajevo • Po dogovoru
+                        Sarajevo • 0.00 KM
                       </span>
                       <span className="font-['Poppins'] font-black text-xs text-emerald-700 block mt-1">
                         0.00 KM (Besplatno)
@@ -433,13 +436,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
               </div>
 
-              {/* 2. PODACI O KUPCU */}
+              {/* 2. Podaci o kupcu */}
               <form onSubmit={handleSubmitOrder} id="checkout-form" className="space-y-4 text-xs pt-4 border-t border-neutral-100">
                 <span className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black block mb-2">
                   2. Podaci o kupcu
                 </span>
 
-                {/* Ime i Prezime */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
@@ -450,7 +452,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       required
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      placeholder="npr. Tarik"
+                      placeholder="npr. Ahmed"
                       className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.firstName ? 'border-red-500' : 'border-neutral-300'}`}
                     />
                     {errors.firstName && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.firstName}</p>}
@@ -465,14 +467,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       required
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      placeholder="npr. Dizdar"
+                      placeholder="npr. Pupalović"
                       className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.lastName ? 'border-red-500' : 'border-neutral-300'}`}
                     />
                     {errors.lastName && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.lastName}</p>}
                   </div>
                 </div>
 
-                {/* Telefon i Email */}
                 <div>
                   <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                     Broj telefona (Mobitel) *
@@ -482,11 +483,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="npr. +387 61 909 700"
+                    placeholder="npr. +38761909700"
                     className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none font-bold ${errors.phone ? 'border-red-500' : 'border-neutral-300'}`}
                   />
                   <span className="text-[10px] text-neutral-400 mt-0.5 block">
-                    Nazvat ćemo vas radi potvrde narudžbe.
+                    Nazvat ćemo vas radi potvrde.
                   </span>
                   {errors.phone && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.phone}</p>}
                 </div>
@@ -499,8 +500,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    placeholder="npr. tarik.dizdar@gmail.com"
-                    className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.email ? 'border-red-500 text-red-700' : 'border-neutral-300'}`}
+                    placeholder="npr. pupalovicahmed96@gmail.com"
+                    className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.email ? 'border-red-500' : 'border-neutral-300'}`}
                   />
                   <span className="text-[10px] text-neutral-400 mt-0.5 block">
                     Za slanje potvrde narudžbe.
@@ -513,13 +514,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   )}
                 </div>
 
-                {/* Dinamična polja u zavisnosti od načina preuzimanja */}
                 {deliveryMethod === 'delivery' ? (
                   <div className="space-y-4 pt-2">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="sm:col-span-2">
                         <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
-                          Grad / Mjesto *
+                          Grad / Mjesto u BiH *
                         </label>
                         <input
                           type="text"
@@ -540,30 +540,34 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                           type="text"
                           maxLength={5}
                           value={formData.postalCode}
-                          onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                          onChange={(e) => handlePostalChange(e.target.value)}
                           placeholder="71000"
-                          className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 focus:border-black focus:outline-none font-mono"
+                          className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none font-mono ${errors.postalCode ? 'border-red-500' : 'border-neutral-300'}`}
                         />
+                        {errors.postalCode && (
+                          <p className="text-[10px] text-red-600 mt-0.5 font-bold">
+                            {errors.postalCode}
+                          </p>
+                        )}
                       </div>
                     </div>
 
                     <div>
                       <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
-                        Adresa dostave (Ulica i broj) *
+                        Adresa stanovanja (Ulica i kućni broj) *
                       </label>
                       <input
                         type="text"
                         required
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="npr. Alipašino polje 1"
+                        placeholder="npr. Zeleni put 192"
                         className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.address ? 'border-red-500' : 'border-neutral-300'}`}
                       />
                       {errors.address && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.address}</p>}
                     </div>
                   </div>
                 ) : (
-                  /* Polje za lično preuzimanje sa slike */
                   <div className="pt-2">
                     <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                       Željeni dan i vrijeme preuzimanja *
@@ -576,13 +580,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       placeholder="npr. Sutra u 12:00h"
                       className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 focus:border-black focus:outline-none font-bold"
                     />
-                    <span className="text-[10px] text-neutral-500 mt-1 block">
-                      Lokacija preuzimanja u Sarajevu se dogovara pozivom nakon narudžbe.
-                    </span>
                   </div>
                 )}
 
-                {/* Napomena */}
                 <div>
                   <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                     Napomena za narudžbu <span className="text-neutral-400 font-normal">(Opciono)</span>
@@ -591,12 +591,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     rows={2}
                     value={formData.note}
                     onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    placeholder="Dodatne napomene za kurira ili preuzimanje..."
+                    placeholder="Dodatne napomene..."
                     className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 focus:border-black focus:outline-none"
                   />
                 </div>
 
-                {/* 3. NAČIN PLAĆANJA */}
                 <div className="pt-4 border-t border-neutral-100">
                   <span className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black block mb-2">
                     3. Način plaćanja
@@ -624,14 +623,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             </div>
           </div>
 
-          {/* DESNA STRANA: SAŽETAK NARUDŽBE */}
+          {/* DESNA STRANA */}
           <div className="lg:col-span-5 space-y-5">
             <div className="bg-white border-2 border-neutral-300 p-6 space-y-5 shadow-sm">
               <h2 className="font-['Poppins'] font-black text-sm uppercase text-black border-b border-neutral-100 pb-3">
-                Pregled korpe ({items.length})
+                Pregled narudžbe ({items.length})
               </h2>
 
-              {/* Lista stavki */}
               <div className="divide-y divide-neutral-100 max-h-72 overflow-y-auto pr-1">
                 {items.map((item) => (
                   <div key={`${item.id}-${item.size}`} className="py-3 flex gap-3 text-xs">
@@ -655,7 +653,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               {/* Kupon kod */}
               <form onSubmit={handleApplyPromo} className="pt-2 border-t border-neutral-200">
                 <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
-                  Imate li promo kod?
+                  Imate li promo kod za popust?
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -696,7 +694,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
                 {appliedPromo && (
                   <div className="flex justify-between text-emerald-700 font-bold">
-                    <span>Popust ({appliedPromo.code}):</span>
+                    <span>Popust ({appliedPromo.discountPercent}%):</span>
                     <span>-{discountAmount.toFixed(2)} KM</span>
                   </div>
                 )}
@@ -715,7 +713,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
 
                 <div className="flex justify-between text-base font-black text-black pt-3 border-t-2 border-neutral-200 font-['Poppins']">
-                  <span>UKUPNO ZA PLAĆANJE:</span>
+                  <span>UKUPNO:</span>
                   <span className="text-lg text-black">{finalTotal.toFixed(2)} KM</span>
                 </div>
               </div>
@@ -728,7 +726,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 border-2 border-[#0A0A0A] shadow-xl cursor-pointer disabled:opacity-50 active:scale-98"
               >
                 <Lock className="w-4 h-4" />
-                <span>{isSubmitting ? 'OBRADA NARUDŽBE...' : (deliveryMethod === 'pickup' ? 'POTVRDI LIČNO PREUZIMANJE' : 'POTVRDI NARUDŽBU POUZEĆEM')}</span>
+                <span>{isSubmitting ? 'OBRADA NARUDŽBE...' : 'POTVRDI NARUDŽBU'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
