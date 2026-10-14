@@ -3,9 +3,13 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Helper funkcija za provjeru admin prava
-    function isAdmin() {
-      return request.auth != null && request.auth.token.admin == true;
-    }
+   function isAdmin() {
+  return request.auth != null && (
+    request.auth.uid == 'Jt35lHyxq1feiEyi1exOKRA9xJl2' || 
+    request.auth.uid == 'NSgdcTOFwXRW3nVfHa9mvgfXsDC3' || 
+    request.auth.token.admin == true
+  );
+}
 
     // ==========================================
     // PROIZVODI (PRODUCTS)
