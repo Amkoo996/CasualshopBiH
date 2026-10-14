@@ -8,7 +8,7 @@ import {
   updateDoc,
   query,
   where,
-  runTransaction
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import {
@@ -19,7 +19,7 @@ import {
   OrderStatus,
   DEFAULT_STORE_SETTINGS,
   HomeCMSContent,
-  DEFAULT_CMS_CONTENT
+  DEFAULT_CMS_CONTENT,
 } from '../types';
 
 // ==========================================
@@ -123,7 +123,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
   const orderId = newOrderRef.id;
 
   await runTransaction(db, async (transaction) => {
-    // 1. FAZA: Sva čitanja prije bilo kojeg upisa
+    // 1. FAZA: Sva čitanja moraju biti izvršena prije bilo kojeg upisa
     const productReads = [];
     for (const item of orderData.items) {
       const prodRef = doc(db, 'products', item.id);
@@ -131,7 +131,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       productReads.push({ item, prodRef, prodSnap });
     }
 
-    // 2. FAZA: Sva pisanja nakon što su podaci pročitani
+    // 2. FAZA: Ažuriranje zaliha po veličinama
     for (const { item, prodRef, prodSnap } of productReads) {
       if (prodSnap.exists()) {
         const prodData = prodSnap.data() as any;
@@ -143,20 +143,32 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       }
     }
 
-    transaction.set(newOrderRef, {
-      ...orderData,
+    // 3. FAZA: Upis narudžbe sa tačnim ključevima definisanim u Firebase pravilima
+    const cleanOrderPayload = {
       id: orderId,
+      orderNumber: orderData.orderNumber,
+      items: orderData.items,
+      customer: orderData.customer,
+      subtotal: orderData.subtotal,
+      shippingFee: orderData.shippingFee,
+      total: orderData.total,
+      paymentMethod: orderData.paymentMethod || 'Pouzećem',
+      status: 'Nova',
       createdAt: orderData.createdAt || new Date().toISOString(),
-      status: orderData.status || 'Nova',
-    });
+      promoCode: orderData.promoCode || null,
+      discountAmount: orderData.discountAmount || 0,
+    };
+
+    transaction.set(newOrderRef, cleanOrderPayload);
   });
 
+  // 4. Slanje Telegram obavijesti o novoj narudžbi
   try {
     const c = (orderData as any).customer || {};
     const buyerName = c.fullName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.name || 'Kupac';
     const itemsText = orderData.items.map((i) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
 
-    const telegramText = 
+    const telegramText =
       `🛍️ NOVA NARUDŽBA #${orderData.orderNumber || orderId.slice(0, 7)}\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `👤 Kupac: ${buyerName}\n` +
@@ -173,7 +185,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       body: JSON.stringify({ text: telegramText, type: 'order' }),
     }).catch(() => {});
   } catch (err) {
-    console.error('Greška pri slanju notifikacije:', err);
+    console.error('Greška pri slanju Telegram notifikacije:', err);
   }
 
   return orderId;
@@ -211,6 +223,7 @@ export const getProductReviews = async (productId: string) => {
       reviews.push({ id: d.id, ...d.data() });
     });
 
+    // Sortiranje u radnoj memoriji uklanja potrebu za Firebase kompozitnim indeksom
     reviews.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     return reviews;
   } catch (err) {
@@ -223,24 +236,28 @@ export const submitProductReview = async (reviewData: any): Promise<string> => {
   const newReviewRef = doc(collection(db, 'reviews'));
   const reviewId = newReviewRef.id;
 
-  await setDoc(newReviewRef, {
-    ...reviewData,
-    id: reviewId,
+  const payload = {
+    productId: reviewData.productId,
+    author: reviewData.author || reviewData.userName || 'Kupac',
+    userName: reviewData.userName || reviewData.author || 'Kupac',
+    rating: Number(reviewData.rating) || 5,
+    comment: reviewData.comment || '',
     createdAt: reviewData.createdAt || new Date().toISOString(),
-  });
+  };
 
+  await setDoc(newReviewRef, payload);
   return reviewId;
 };
 
 export const addReview = submitProductReview;
 
 // ==========================================
-// 4. NEWSLETTER PRETPLATA
+// 4. NEWSLETTER PRETPLATA (SUBSCRIBERS)
 // ==========================================
 
 export const getSubscribers = async (): Promise<NewsletterSubscriber[]> => {
   try {
-    const snap = await getDocs(collection(db, 'newsletter'));
+    const snap = await getDocs(collection(db, 'subscribers'));
     const subs: NewsletterSubscriber[] = [];
 
     snap.forEach((d) => {
@@ -263,12 +280,13 @@ export const getSubscribers = async (): Promise<NewsletterSubscriber[]> => {
 export const subscribeNewsletter = async (email: string): Promise<boolean> => {
   try {
     const cleanEmail = email.trim().toLowerCase();
-    const docRef = doc(db, 'newsletter', cleanEmail);
+    const docRef = doc(db, 'subscribers', cleanEmail);
     await setDoc(docRef, {
       email: cleanEmail,
       subscribedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       consent: true,
-    }, { merge: true });
+    });
     return true;
   } catch (error) {
     console.error('Greška pri newsletter prijavi:', error);
