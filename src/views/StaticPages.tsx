@@ -299,7 +299,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-4">
               
-              {/* LIJEVA KARTICA: PODACI ZA KONTAKT (BEZ VIBERA/WHATSAPPA) */}
+              {/* LIJEVA KARTICA: PODACI ZA KONTAKT */}
               <div className="lg:col-span-5 space-y-4">
                 <div className="bg-white border-2 border-black p-6 sm:p-7 shadow-lg space-y-5">
                   <div className="border-b border-neutral-100 pb-3">
@@ -448,7 +448,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                         type="email"
                         value={contactForm.email}
                         onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                        placeholder="npr. pupalovicahmed96@gmail.com"
+                        placeholder="npr. adresa@gmail.com"
                         className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs text-black font-medium focus:border-black focus:bg-white focus:outline-none transition-colors"
                       />
                     </div>

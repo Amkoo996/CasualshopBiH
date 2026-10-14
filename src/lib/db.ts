@@ -21,17 +21,14 @@ import {
   HomeCMSContent,
   DEFAULT_CMS_CONTENT,
 } from '../types';
-import { sendTelegramNotification, sendOrderConfirmationEmail } from './notifications';
 
 // ==========================================
 // 1. UPRAVLJANJE PROIZVODIMA (PRODUCTS)
 // ==========================================
-
 export const getProducts = async (includeHidden = false): Promise<Product[]> => {
   try {
     const querySnapshot = await getDocs(collection(db, 'products'));
     const products: Product[] = [];
-
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data() as Product;
       const product = { ...data, id: docSnap.id };
@@ -39,7 +36,6 @@ export const getProducts = async (includeHidden = false): Promise<Product[]> => 
         products.push(product);
       }
     });
-
     return products;
   } catch (error) {
     console.error('Greška pri dohvatanju proizvoda:', error);
@@ -51,7 +47,6 @@ export const getProductById = async (id: string): Promise<Product | null> => {
   try {
     const docRef = doc(db, 'products', id);
     const docSnap = await getDoc(docRef);
-
     if (docSnap.exists()) {
       return { ...(docSnap.data() as Product), id: docSnap.id };
     }
@@ -75,16 +70,13 @@ export const deleteProduct = async (id: string): Promise<void> => {
 // ==========================================
 // 2. UPRAVLJANJE NARUDŽBAMA (ORDERS)
 // ==========================================
-
 export const getOrders = async (): Promise<Order[]> => {
   try {
     const querySnapshot = await getDocs(collection(db, 'orders'));
     const orders: Order[] = [];
-
     querySnapshot.forEach((docSnap) => {
       orders.push({ ...(docSnap.data() as Order), id: docSnap.id });
     });
-
     orders.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     return orders;
   } catch (error) {
@@ -97,21 +89,17 @@ export const getOrderByNumberAndPhone = async (orderNumber: string, phone: strin
   try {
     const cleanNum = orderNumber.trim().replace(/^#/, '').toLowerCase();
     const cleanPhone = phone.trim().replace(/[\s\-().\/]/g, '');
-
     const snap = await getDocs(collection(db, 'orders'));
     let found: Order | null = null;
-
     snap.forEach((d) => {
       const data = { ...(d.data() as Order), id: d.id };
       const oNum = (data.orderNumber || data.id || '').replace(/^#/, '').trim().toLowerCase();
       const c = (data.customer as any) || {};
       const oPhone = (c.phone || (data as any).phone || '').replace(/[\s\-().\/]/g, '');
-
       if (oNum === cleanNum && (oPhone.includes(cleanPhone) || cleanPhone.includes(oPhone))) {
         found = data;
       }
     });
-
     return found;
   } catch (error) {
     console.error('Greška pri traženju narudžbe:', error);
@@ -123,7 +111,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
   const newOrderRef = doc(collection(db, 'orders'));
   const orderId = newOrderRef.id;
 
-  // 1. FAZA: Provjera i smanjivanje zaliha u Firestore transakciji
+  // 1. Upis u bazu i ažuriranje zaliha
   await runTransaction(db, async (transaction) => {
     const productReads = [];
     for (const item of orderData.items) {
@@ -138,7 +126,6 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
         const currentSizes = { ...(prodData.sizes || {}) };
         const currentStock = currentSizes[item.size] ?? 0;
         currentSizes[item.size] = Math.max(0, currentStock - item.quantity);
-
         transaction.update(prodRef, { sizes: currentSizes });
       }
     }
@@ -163,13 +150,13 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
 
   const fullOrderObject: Order = { ...orderData, id: orderId };
 
-  // 2. FAZA: Sigurno slanje na Telegram
+  // 2. Slanje notifikacije na Telegram i EmailJS
   try {
     const c = orderData.customer || ({} as any);
     const buyerName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Kupac';
     const itemsText = orderData.items.map((i) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
     const isPickup = c.address?.includes('Lično');
-    const deliveryStatus = isPickup ? 'Preuzimanje: Lično Sarajevo' : `Dostava: ${c.city || 'N/A'}, ${c.address || ''}`;
+    const deliveryStatus = isPickup ? `Preuzimanje: Lično Sarajevo (${c.note || ''})` : `Dostava: ${c.city || 'N/A'}, ${c.address || ''}`;
 
     const telegramText =
       `🛍️ NOVA NARUDŽBA #${orderData.orderNumber}\n` +
@@ -182,18 +169,17 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       `━━━━━━━━━━━━━━━━━━\n` +
       `💰 Iznos: ${orderData.total.toFixed(2)} KM (${isPickup ? 'Lično plaćanje' : 'Pouzećem'})`;
 
-    sendTelegramNotification(telegramText, 'order').catch(() => {});
+    fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: telegramText,
+        type: 'order',
+        orderData: fullOrderObject,
+      }),
+    }).catch(() => {});
   } catch (err) {
-    console.error('Greška pri pripremi Telegram poruke:', err);
-  }
-
-  // 3. FAZA: Slanje e-mail potvrde kupcu preko EmailJS-a
-  try {
-    if (orderData.customer?.email) {
-      sendOrderConfirmationEmail(fullOrderObject).catch(() => {});
-    }
-  } catch (err) {
-    console.error('Greška pri slanju email potvrde:', err);
+    console.error('Greška pri pripremi notifikacije:', err);
   }
 
   return orderId;
@@ -206,31 +192,26 @@ export const updateOrderStatus = async (
 ): Promise<void> => {
   const orderRef = doc(db, 'orders', orderId);
   const updateData: any = { status };
-
   if (trackingInfo?.trackingNumber !== undefined) {
     updateData.trackingNumber = trackingInfo.trackingNumber;
   }
   if (trackingInfo?.courierName !== undefined) {
     updateData.courierName = trackingInfo.courierName;
   }
-
   await updateDoc(orderRef, updateData);
 };
 
 // ==========================================
 // 3. RECENZIJE PROIZVODA (REVIEWS)
 // ==========================================
-
 export const getProductReviews = async (productId: string) => {
   try {
     const q = query(collection(db, 'reviews'), where('productId', '==', productId));
     const snap = await getDocs(q);
     const reviews: any[] = [];
-
     snap.forEach((d) => {
       reviews.push({ id: d.id, ...d.data() });
     });
-
     reviews.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     return reviews;
   } catch (err) {
@@ -242,7 +223,6 @@ export const getProductReviews = async (productId: string) => {
 export const submitProductReview = async (reviewData: any): Promise<string> => {
   const newReviewRef = doc(collection(db, 'reviews'));
   const reviewId = newReviewRef.id;
-
   const payload = {
     productId: reviewData.productId,
     author: reviewData.author || reviewData.userName || 'Kupac',
@@ -251,7 +231,6 @@ export const submitProductReview = async (reviewData: any): Promise<string> => {
     comment: reviewData.comment || '',
     createdAt: reviewData.createdAt || new Date().toISOString(),
   };
-
   await setDoc(newReviewRef, payload);
   return reviewId;
 };
@@ -261,12 +240,10 @@ export const addReview = submitProductReview;
 // ==========================================
 // 4. NEWSLETTER PRETPLATA (SUBSCRIBERS)
 // ==========================================
-
 export const getSubscribers = async (): Promise<NewsletterSubscriber[]> => {
   try {
     const snap = await getDocs(collection(db, 'subscribers'));
     const subs: NewsletterSubscriber[] = [];
-
     snap.forEach((d) => {
       const data = d.data();
       subs.push({
@@ -276,7 +253,6 @@ export const getSubscribers = async (): Promise<NewsletterSubscriber[]> => {
         consent: data.consent !== undefined ? Boolean(data.consent) : true,
       } as NewsletterSubscriber);
     });
-
     return subs;
   } catch (error) {
     console.error('Greška pri dohvatanju pretplatnika:', error);
@@ -306,12 +282,10 @@ export const subscribeToNewsletter = subscribeNewsletter;
 // ==========================================
 // 5. POSTAVKE TRGOVINE I CMS
 // ==========================================
-
 export const getStoreSettings = async (): Promise<StoreSettings> => {
   try {
     const docRef = doc(db, 'settings', 'general');
     const docSnap = await getDoc(docRef);
-
     if (docSnap.exists()) {
       return { ...DEFAULT_STORE_SETTINGS, ...(docSnap.data() as StoreSettings) };
     }
@@ -331,7 +305,6 @@ export const getCMSContent = async (): Promise<HomeCMSContent> => {
   try {
     const docRef = doc(db, 'settings', 'cms');
     const docSnap = await getDoc(docRef);
-
     if (docSnap.exists()) {
       return { ...DEFAULT_CMS_CONTENT, ...(docSnap.data() as HomeCMSContent) };
     }
