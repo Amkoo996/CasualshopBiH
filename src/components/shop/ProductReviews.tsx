@@ -209,7 +209,7 @@ export const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => 
           ) : (
             <div className="space-y-3">
               {reviews.map((rev) => {
-                const displayName = rev.author || rev.userName || 'Kupac';
+                const displayName = rev.userName || (rev as any).author || 'Kupac';
 
                 return (
                   <div key={rev.id} className="bg-white border-2 border-neutral-200 p-4 sm:p-5 space-y-2 shadow-xs">

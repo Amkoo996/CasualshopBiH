@@ -48,7 +48,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
   const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
   const [trackingError, setTrackingError] = useState('');
 
-  // Slanje kontakt forme sa Telegram i Email integracijom
+  // Slanje kontakt forme
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setContactError('');
@@ -95,7 +95,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     }
   };
 
-  // Pretraga pošiljke za kupce
+  // Pretraga pošiljke
   const handleTrackOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setTrackingError('');
@@ -313,7 +313,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                     <Phone className="w-4 h-4 text-black" />
                     <div>
                       <p className="text-[10px] uppercase font-['Poppins'] font-bold text-neutral-400">Telefon / Viber / WhatsApp</p>
-                      <p className="text-xs font-bold text-black">{settings?.contactPhone || '+387 61 000 000'}</p>
+                      <p className="text-xs font-bold text-black">{(settings as any)?.contactPhone || '+387 61 000 000'}</p>
                     </div>
                   </div>
 
@@ -321,7 +321,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                     <Mail className="w-4 h-4 text-black" />
                     <div>
                       <p className="text-[10px] uppercase font-['Poppins'] font-bold text-neutral-400">E-mail adresa</p>
-                      <p className="text-xs font-bold text-black">{settings?.contactEmail || 'info@casualshop.ba'}</p>
+                      <p className="text-xs font-bold text-black">{(settings as any)?.contactEmail || 'info@casualshop.ba'}</p>
                     </div>
                   </div>
 
@@ -330,7 +330,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                     <div>
                       <p className="text-[10px] uppercase font-['Poppins'] font-bold text-neutral-400">Instagram DM</p>
                       <a 
-                        href={settings?.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+                        href={(settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
                         target="_blank"
                         rel="noreferrer"
                         className="text-xs font-bold text-black hover:text-amber-700 underline"

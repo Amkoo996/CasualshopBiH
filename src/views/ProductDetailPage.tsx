@@ -23,21 +23,25 @@ import { getProductById, getProducts } from '../lib/db';
 import { Product, Size } from '../types';
 import { ProductReviews } from '../components/shop/ProductReviews';
 
-interface ProductDetailPageProps {
+export interface ProductDetailPageProps {
   productId?: string;
+  product?: Product;
 }
 
-export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId: propId }) => {
+export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ 
+  productId: propId, 
+  product: propProduct 
+}) => {
   const router = useRouter();
   const params = useParams();
-  const activeId = propId || (params?.id as string);
+  const activeId = propId || propProduct?.id || (params?.id as string);
 
   const { addToCart, setIsCartOpen, settings } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<Product | null>(propProduct || null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!propProduct);
 
   // Odabir veličine i slike
   const [selectedSize, setSelectedSize] = useState<Size | ''>('');
@@ -50,13 +54,34 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId:
 
   useEffect(() => {
     async function loadProductData() {
+      if (propProduct) {
+        setProduct(propProduct);
+        const availableSizes = Object.entries(propProduct.sizes || {})
+          .filter(([_, stock]) => (stock as number) > 0)
+          .map(([sz]) => sz as Size);
+        if (availableSizes.length > 0) {
+          setSelectedSize(availableSizes[0]);
+        }
+
+        try {
+          const allProds = await getProducts();
+          const related = allProds
+            .filter((p) => p.id !== propProduct.id && p.category === propProduct.category && !p.isHidden)
+            .slice(0, 4);
+          setRelatedProducts(related);
+        } catch (err) {
+          console.error('Greška pri učitavanju povezanih artikala:', err);
+        }
+        setLoading(false);
+        return;
+      }
+
       if (!activeId) return;
       setLoading(true);
       try {
         const data = await getProductById(activeId);
         if (data) {
           setProduct(data);
-          // Postavi prvu dostupnu veličinu kao preporučenu
           const availableSizes = Object.entries(data.sizes || {})
             .filter(([_, stock]) => (stock as number) > 0)
             .map(([sz]) => sz as Size);
@@ -64,7 +89,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId:
             setSelectedSize(availableSizes[0]);
           }
 
-          // Učitaj slične artikle iz iste kategorije
           const allProds = await getProducts();
           const related = allProds
             .filter((p) => p.id !== data.id && p.category === data.category && !p.isHidden)
@@ -78,7 +102,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId:
       }
     }
     loadProductData();
-  }, [activeId]);
+  }, [activeId, propProduct]);
 
   if (loading) {
     return (
@@ -415,7 +439,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId:
 
       </div>
 
-      {/* SKOČNI PROZOR NAKON DODAVANJA U KORPU (RJEŠENJE ZA ZAMRZAVANJE) */}
+      {/* SKOČNI PROZOR NAKON DODAVANJA U KORPU */}
       {showAddedModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full p-6 border-2 border-[#0A0A0A] shadow-2xl space-y-5 animate-fadeIn">
