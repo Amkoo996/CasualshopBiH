@@ -11,7 +11,7 @@ import { CATEGORIES, Category } from '../../types';
 
 export const Navbar: React.FC = () => {
   const router = useRouter();
-  const pathname = usePathname(); // Govori nam na kojem smo trenutno linku
+  const pathname = usePathname();
   
   const { totalCount, setIsCartOpen, settings } = useCart();
   const { wishlistIds = [] } = useWishlist();
@@ -27,7 +27,6 @@ export const Navbar: React.FC = () => {
     (cat) => !hiddenCats.includes(cat as Category)
   );
 
-  // Definiramo prave URL putanje za Next.js
   const navLinks = [
     { href: '/', label: 'Početna' },
     { href: '/shop', label: 'Kolekcija' },
@@ -39,7 +38,6 @@ export const Navbar: React.FC = () => {
   const handleCategoryClick = (category: string) => {
     setMobileMenuOpen(false);
     setCategoriesDropdownOpen(false);
-    // Šaljemo korisnika na shop s odabranom kategorijom u URL-u
     router.push(`/shop?category=${encodeURIComponent(category)}`);
   };
 
@@ -47,7 +45,6 @@ export const Navbar: React.FC = () => {
     e.preventDefault();
     if (searchValue.trim()) {
       setSearchOpen(false);
-      // Šaljemo korisnika na shop s pojmom za pretragu u URL-u
       router.push(`/shop?search=${encodeURIComponent(searchValue)}`);
     }
   };
@@ -59,8 +56,10 @@ export const Navbar: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-1 flex-nowrap w-full overflow-hidden">
-          {/* Lijeve akcije: Burger meni na mobilnim */}
+        {/* UKLONJEN overflow-hidden kako padajući meni ne bi bio odsječen */}
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-1 flex-nowrap w-full relative">
+          
+          {/* Burger meni (mobilni) */}
           <div className="flex items-center lg:hidden shrink-0">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -71,11 +70,11 @@ export const Navbar: React.FC = () => {
             </button>
           </div>
 
-          {/* Logo u sredini / lijevo */}
+          {/* Logo */}
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center focus:outline-none text-left py-1 cursor-pointer shrink min-w-0 max-w-[150px] xs:max-w-[180px] sm:max-w-none overflow-hidden"
+            className="flex items-center focus:outline-none text-left py-1 cursor-pointer shrink min-w-0 max-w-[150px] xs:max-w-[180px] sm:max-w-none"
           >
             <div className="scale-90 origin-left sm:scale-100 transition-transform">
               <Logo />
@@ -99,8 +98,12 @@ export const Navbar: React.FC = () => {
             ))}
 
             {visibleCategories.length > 0 && (
-              <div className="relative group">
+              <div 
+                className="relative group"
+                onMouseLeave={() => setCategoriesDropdownOpen(false)}
+              >
                 <button
+                  type="button"
                   onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
                   className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-neutral-300 hover:text-[#F7E97F] flex items-center gap-1 py-1 cursor-pointer"
                 >
@@ -108,12 +111,18 @@ export const Navbar: React.FC = () => {
                   <span className="text-[10px]">▼</span>
                 </button>
 
-                <div className="absolute top-full left-0 hidden group-hover:block w-52 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50 animate-fadeIn">
+                {/* Padajući meni s potpunim prikazom (radi na hover i na klik) */}
+                <div 
+                  className={`absolute top-full left-0 mt-2 w-56 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50 animate-fadeIn ${
+                    categoriesDropdownOpen ? 'block' : 'hidden group-hover:block'
+                  }`}
+                >
                   {visibleCategories.map((cat) => (
                     <button
                       key={cat}
+                      type="button"
                       onClick={() => handleCategoryClick(cat)}
-                      className="w-full text-left px-4 py-2 text-xs font-['Inter'] font-semibold text-neutral-200 hover:bg-[#171717] hover:text-[#F7E97F] transition-colors block cursor-pointer"
+                      className="w-full text-left px-4 py-2.5 text-xs font-['Inter'] font-semibold text-neutral-200 hover:bg-[#171717] hover:text-[#F7E97F] transition-colors block cursor-pointer"
                     >
                       {cat}
                     </button>
@@ -169,6 +178,7 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
 
+        {/* Polje za pretragu */}
         {searchOpen && (
           <div className="py-3 border-t border-neutral-800 animate-fadeIn">
             <form onSubmit={handleSearchSubmit} className="relative flex items-center">
@@ -191,6 +201,7 @@ export const Navbar: React.FC = () => {
         )}
       </div>
 
+      {/* Mobilni meni */}
       {mobileMenuOpen && (
         <div className="lg:hidden absolute top-full left-0 right-0 bg-black/80 backdrop-blur-sm z-50 flex min-h-screen">
           <div className="bg-[#0A0A0A] border-r-2 border-[#F7E97F] w-4/5 max-w-sm p-6 flex flex-col justify-between shadow-2xl animate-slideRight">
