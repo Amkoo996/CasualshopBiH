@@ -6,27 +6,24 @@ import {
   ArrowLeft, 
   ShieldCheck, 
   Truck, 
-  MapPin, 
   CheckCircle2, 
   AlertCircle, 
   ShoppingBag, 
-  Tag, 
   Lock,
   ArrowRight,
-  Clock,
   Check
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { createOrder } from '../lib/db';
 import { isValidPhone, isValidName } from '../lib/validation';
-import { Order, Size } from '../types';
+import { Order } from '../types';
 import { db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
 // Provjera e-mail adrese (podržava brojeve, tačke, crtice)
 const checkValidEmail = (emailStr: string): boolean => {
   if (!emailStr || !emailStr.trim()) return true; // Polje je opciono
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailStr.trim());
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(emailStr.trim());
 };
 
 // Provjera poštanskog broja
@@ -46,8 +43,7 @@ export const CheckoutPage: React.FC<{
     subtotal, 
     shippingFee, 
     total, 
-    clearCart, 
-    settings 
+    clearCart 
   } = useCart();
 
   // Način dostave
@@ -91,18 +87,22 @@ export const CheckoutPage: React.FC<{
   useEffect(() => {
     if (items.length === 0 || completedOrder) return;
 
-    if (formData.phone.length >= 6 || formData.email.includes('@')) {
+    const safePhone = formData.phone || '';
+    const safeEmail = formData.email || '';
+    const cleanPhone = safePhone.replace(/\D/g, '');
+
+    if (cleanPhone.length >= 6 || safeEmail.includes('@')) {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
       syncTimeoutRef.current = setTimeout(async () => {
         try {
-          const cartSessionId = `cart-${formData.phone.replace(/\D/g, '') || formData.email.replace(/[^a-zA-Z0-9]/g, '') || 'guest'}`;
+          const cartSessionId = `cart-${cleanPhone || safeEmail.replace(/[^a-zA-Z0-9]/g, '')}`;
           await setDoc(doc(db, 'abandoned_carts', cartSessionId), {
             customerName: `${formData.firstName} ${formData.lastName}`.trim() || 'Posjetilac',
-            phone: formData.phone,
-            email: formData.email,
-            city: formData.city,
-            address: formData.address,
+            phone: safePhone,
+            email: safeEmail,
+            city: formData.city || '',
+            address: formData.address || '',
             deliveryMethod,
             items: items.map(i => ({ name: i.name, size: i.size, quantity: i.quantity, price: i.price })),
             itemsSummary: items.map(i => `${i.quantity}x ${i.name} (${i.size})`).join(', '),
@@ -110,7 +110,9 @@ export const CheckoutPage: React.FC<{
             updatedAt: new Date().toISOString(),
             status: 'in_checkout'
           }, { merge: true });
-        } catch {}
+        } catch (err) {
+          console.warn('Silent fail: Abandoned cart sync failed.');
+        }
       }, 2000);
     }
 
@@ -214,7 +216,6 @@ export const CheckoutPage: React.FC<{
         ? `Lično preuzimanje Sarajevo (${formData.pickupTime})`
         : formData.address.trim();
 
-      // Tačno usklađeno sa tipom Order i CartItem
       const orderPayload: Omit<Order, 'id'> = {
         orderNumber,
         items: items.map((item) => ({
@@ -242,7 +243,7 @@ export const CheckoutPage: React.FC<{
         paymentMethod: 'cash_on_delivery',
         status: 'Nova',
         createdAt: new Date().toISOString(),
-        promoCode: appliedPromo?.code || undefined,
+        promoCode: appliedPromo?.code || null,
         discountAmount: Number(discountAmount.toFixed(2))
       };
 
@@ -314,7 +315,7 @@ export const CheckoutPage: React.FC<{
 
           <Link
             href="/"
-            className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-black block"
+            className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-black block text-center"
           >
             Nazad na početnu stranicu
           </Link>
@@ -500,7 +501,7 @@ export const CheckoutPage: React.FC<{
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    placeholder="npr. pupalovicahmed96@gmail.com"
+                    placeholder="npr. adresa@gmail.com"
                     className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.email ? 'border-red-500' : 'border-neutral-300'}`}
                   />
                   <span className="text-[10px] text-neutral-400 mt-0.5 block">
