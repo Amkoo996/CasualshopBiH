@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Product } from '../../src/types';
-import { ShopPage } from '../../src/pages/ShopPage';
+import { ShopPage } from '../../src/views/ShopPage';
 
 export function ShopPageClient({ initialProducts }: { initialProducts: Product[] }) {
   const router = useRouter();

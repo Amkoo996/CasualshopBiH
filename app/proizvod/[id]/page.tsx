@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { getProductById } from "../../../src/lib/db";
-import { ProductDetailPage } from "../../../src/pages/ProductDetailPage";
+import { ProductDetailPage } from "../../../src/views/ProductDetailPage";
 
 // 1. DINAMIČKI SEO (Ovo se izvršava na serveru prije nego što se stranica pošalje u preglednik)
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {

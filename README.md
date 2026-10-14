@@ -42,7 +42,7 @@ Idite redom po prioritetima: **P0 ➔ P1 ➔ P2 ➔ P3 ➔ P4**.
      git checkout <ID_PRETHODNOG_COMMITA> src/lib/tracking.ts
      npm run build
      ```
-  2. Provjerite da li funkcija `saveCartSession` i dalje postoji u `tracking.ts` jer je uvoze `src/pages/CheckoutPage.tsx` i `src/context/CartContext.tsx`[cite: 2].
+  2. Provjerite da li funkcija `saveCartSession` i dalje postoji u `tracking.ts` jer je uvoze `src/views/CheckoutPage.tsx` i `src/context/CartContext.tsx`[cite: 2].
   3. Pokrenite `npx tsc --noEmit` i ispravite sve prijavljene greške[cite: 2].
 
 ---
@@ -65,7 +65,7 @@ Ažurirajte fajl `firestore.rules` u repozitoriju, a zatim isti sadržaj kopiraj
 
 #### P1.2: Admin prijava preko UID-a (bez demo pristupa)
 * **Fajl:** `src/context/AuthContext.tsx` – zamijenite provjeru tako da učitava dokument `/admins/{uid}` iz Firestore-a umjesto provere e-maila[cite: 6, 7].
-* **Fajl:** `src/pages/AdminDashboard.tsx` – uklonite sledeće:
+* **Fajl:** `src/views/AdminDashboard.tsx` – uklonite sledeće:
   1. `loginAsDemoAdmin` i `isDemoAdmin` iz `useAuth()`[cite: 9].
   2. Sekciju i dugme za "Brzi Demo Admin Pristup"[cite: 9].
   3. Paragraf koji javno prikazuje admin e-mail adresu (`redemption19@gmail.com`)[cite: 9].
@@ -76,7 +76,7 @@ Ažurirajte fajl `firestore.rules` u repozitoriju, a zatim isti sadržaj kopiraj
 * **Fajl:** `src/lib/db.ts`
   * Zamijenite funkciju `createOrder` da koristi `runTransaction`.
   * Transaction prvo mora pročitati sve stavke, provjeriti ima li dovoljno zaliha na stanju, te istovremeno upisati novu narudžbu i umanjiti zalihu[cite: 9, 10].
-* **Fajl:** `src/pages/CheckoutPage.tsx`
+* **Fajl:** `src/views/CheckoutPage.tsx`
   * U `catch` bloku prikazati poruku o grešci kupcu (npr. ako nema dovoljno zaliha) i osigurati da se korpa ne prazni u slučaju greške[cite: 10].
 
 #### P1.4: Obrisati lažnu statistiku
@@ -93,7 +93,7 @@ Ažurirajte fajl `firestore.rules` u repozitoriju, a zatim isti sadržaj kopiraj
 1. Otvorite besplatan nalog na **Cloudinary.com** i kreirajte *Unsigned* Upload Preset[cite: 11, 12].
 2. U Cloudflare Pages varijable dodajte `VITE_CLOUDINARY_CLOUD` i `VITE_CLOUDINARY_PRESET`[cite: 12].
 3. Kreirajte pomoćni fajl `src/lib/upload.ts` sa funkcijom za slanje slika na Cloudinary API[cite: 12].
-4. U `src/pages/AdminDashboard.tsx` dodajte `<input type="file" accept="image/*" multiple />` dugme koje poziva upload funkciju i dodaje dobijene URL-ove u proizvod[cite: 12, 13].
+4. U `src/views/AdminDashboard.tsx` dodajte `<input type="file" accept="image/*" multiple />` dugme koje poziva upload funkciju i dodaje dobijene URL-ove u proizvod[cite: 12, 13].
 
 #### P2.2: Cookie baner, Google Analytics i Meta Pixel
 1. **Fajl:** `src/components/common/CookieConsent.tsx` – Omogućite korisniku izbor između "Samo neophodni" i "Prihvati sve"[cite: 14, 15].

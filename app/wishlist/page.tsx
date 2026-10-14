@@ -1,3 +1,3 @@
 "use client";
-import { WishlistPage } from '../../src/pages/WishlistPage';
+import { WishlistPage } from '../../src/views/WishlistPage';
 export default function Wishlist() { return <WishlistPage />; }
