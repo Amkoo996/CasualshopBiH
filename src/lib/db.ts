@@ -21,6 +21,7 @@ import {
   HomeCMSContent,
   DEFAULT_CMS_CONTENT,
 } from '../types';
+import { sendTelegramNotification, sendOrderConfirmationEmail } from './notifications';
 
 // ==========================================
 // 1. UPRAVLJANJE PROIZVODIMA (PRODUCTS)
@@ -162,35 +163,37 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
 
   const fullOrderObject: Order = { ...orderData, id: orderId };
 
-  // 2. FAZA: Sigurno slanje na Telegram i EmailJS preko serverless funkcije
+  // 2. FAZA: Sigurno slanje na Telegram
   try {
     const c = orderData.customer || ({} as any);
     const buyerName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Kupac';
     const itemsText = orderData.items.map((i) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
     const isPickup = c.address?.includes('Lično');
+    const deliveryStatus = isPickup ? 'Preuzimanje: Lično Sarajevo' : `Dostava: ${c.city || 'N/A'}, ${c.address || ''}`;
 
     const telegramText =
       `🛍️ NOVA NARUDŽBA #${orderData.orderNumber}\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `👤 Kupac: ${buyerName}\n` +
       `📞 Tel: ${c.phone || 'N/A'}\n` +
-      `📍 ${isPickup ? 'Preuzimanje: Lično Sarajevo' : `Dostava: ${c.city \vert{}\vert{} 'N/A'},${c.address || ''}`}\n` +
+      `📍 ${deliveryStatus}\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `📦 Artikli:\n${itemsText}\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `💰 Iznos: ${orderData.total.toFixed(2)} KM (${isPickup ? 'Lično plaćanje' : 'Pouzećem'})`;
 
-    fetch('/api/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: telegramText,
-        type: 'order',
-        orderData: fullOrderObject,
-      }),
-    }).catch(() => {});
+    sendTelegramNotification(telegramText, 'order').catch(() => {});
   } catch (err) {
-    console.error('Greška pri pozivanju notifikacija:', err);
+    console.error('Greška pri pripremi Telegram poruke:', err);
+  }
+
+  // 3. FAZA: Slanje e-mail potvrde kupcu preko EmailJS-a
+  try {
+    if (orderData.customer?.email) {
+      sendOrderConfirmationEmail(fullOrderObject).catch(() => {});
+    }
+  } catch (err) {
+    console.error('Greška pri slanju email potvrde:', err);
   }
 
   return orderId;
