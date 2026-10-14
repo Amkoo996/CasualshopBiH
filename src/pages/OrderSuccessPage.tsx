@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, Package, Phone, MapPin, FileText } from 'lucide-react';
+import { CheckCircle2, Package, Phone, MapPin } from 'lucide-react';
 import { Order } from '../types';
-import { useCart } from '../context/CartContext';
-import { generateOrderInvoicePDF } from '../lib/pdfInvoice';
 
 interface OrderSuccessPageProps {
   order: Order;
@@ -14,8 +12,6 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
   order,
   onContinueShopping,
 }) => {
-  const { settings } = useCart();
-
   useEffect(() => {
     try {
       confetti({
@@ -30,8 +26,11 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  // Uklanjanje eventualnog preostalog # znaka iz naziva narudžbe
+  const cleanOrderNumber = order.orderNumber.replace(/^#/, '');
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 font-['Inter']">
       <div className="bg-white border-2 border-[#F7E97F] p-6 sm:p-10 space-y-8 shadow-2xl text-center">
         {/* Success Icon & Header */}
         <div className="space-y-3">
@@ -50,13 +49,13 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
           </div>
         </div>
 
-        {/* Order Number Box */}
+        {/* Order Number Box - BEZ ZNAKA # */}
         <div className="bg-[#0A0A0A] text-white p-5 border-2 border-[#F7E97F] max-w-md mx-auto space-y-1">
           <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-[0.2em] text-[#F7E97F] block">
             BROJ NARUDŽBE:
           </span>
           <div className="text-2xl sm:text-3xl font-['Poppins'] font-black tracking-wider text-white select-all">
-            #{order.orderNumber}
+            {cleanOrderNumber}
           </div>
           <span className="text-[10px] text-neutral-400 block">
             Sačuvaj ovaj broj za kontakt s podrškom ili zamjenu veličine
@@ -127,19 +126,11 @@ export const OrderSuccessPage: React.FC<OrderSuccessPageProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="pt-6 border-t-2 border-neutral-200 flex flex-col sm:flex-row gap-4 justify-center">
-          <button
-            onClick={() => generateOrderInvoicePDF(order, settings)}
-            className="px-6 py-3.5 bg-white hover:bg-neutral-100 text-black font-['Poppins'] text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-neutral-300 cursor-pointer"
-          >
-            <FileText className="w-4 h-4" />
-            <span>Preuzmi PDF Fakturu</span>
-          </button>
-
+        {/* Action Button */}
+        <div className="pt-6 border-t-2 border-neutral-200 flex justify-center">
           <button
             onClick={onContinueShopping}
-            className="px-6 py-3.5 bg-[#F7E97F] hover:bg-[#ebd965] text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-[#F7E97F] cursor-pointer"
+            className="w-full sm:w-auto px-8 py-4 bg-[#F7E97F] hover:bg-[#ebd965] text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-2 border-black cursor-pointer shadow-md"
           >
             <Package className="w-4 h-4" />
             <span>Nastavi kupovinu</span>
