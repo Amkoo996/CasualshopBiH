@@ -1,23 +1,18 @@
+"use client";
+
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { ShoppingBag, Menu, X, Instagram, Search, Heart } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { CATEGORIES, Category } from '../../types';
 
-interface NavbarProps {
-  currentTab: string;
-  setCurrentTab: (tab: string) => void;
-  onSearch?: (term: string) => void;
-  onSelectCategory?: (category: string) => void;
-}
-
-export const Navbar: React.FC<NavbarProps> = ({
-  currentTab,
-  setCurrentTab,
-  onSearch,
-  onSelectCategory,
-}) => {
+export const Navbar: React.FC = () => {
+  const router = useRouter();
+  const pathname = usePathname(); // Govori nam na kojem smo trenutno linku
+  
   const { totalCount, setIsCartOpen, settings } = useCart();
   const { wishlistIds = [] } = useWishlist();
   const wishlistCount = wishlistIds.length;
@@ -32,44 +27,35 @@ export const Navbar: React.FC<NavbarProps> = ({
     (cat) => !hiddenCats.includes(cat as Category)
   );
 
+  // Definiramo prave URL putanje za Next.js
   const navLinks = [
-    { id: 'home', label: 'Početna' },
-    { id: 'shop', label: 'Kolekcija' },
-    { id: 'about', label: 'O nama' },
-    { id: 'shipping', label: 'Dostava i povrat' },
-    { id: 'contact', label: 'Kontakt' },
+    { href: '/', label: 'Početna' },
+    { href: '/shop', label: 'Kolekcija' },
+    { href: '/o-nama', label: 'O nama' },
+    { href: '/dostava-i-povrat', label: 'Dostava i povrat' },
+    { href: '/kontakt', label: 'Kontakt' },
   ];
 
-  const handleNavClick = (id: string) => {
-    setCurrentTab(id);
-    setMobileMenuOpen(false);
-    setCategoriesDropdownOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const handleCategoryClick = (category: string) => {
-    if (onSelectCategory) {
-      onSelectCategory(category);
-    }
     setMobileMenuOpen(false);
     setCategoriesDropdownOpen(false);
-    setCurrentTab('shop');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Šaljemo korisnika na shop s odabranom kategorijom u URL-u
+    router.push(`/shop?category=${encodeURIComponent(category)}`);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSearch) {
-      onSearch(searchValue);
-      setCurrentTab('shop');
+    if (searchValue.trim()) {
       setSearchOpen(false);
+      // Šaljemo korisnika na shop s pojmom za pretragu u URL-u
+      router.push(`/shop?search=${encodeURIComponent(searchValue)}`);
     }
   };
 
   return (
     <header className="relative z-40 bg-[#0A0A0A] text-white border-b border-neutral-800">
       <div className="bg-[#0A0A0A] text-[#F7E97F] text-[11px] font-['Poppins'] font-bold tracking-widest uppercase py-1.5 px-4 text-center border-b border-neutral-900 flex items-center justify-center gap-3">
-        <span>{settings.topBarText || 'Plaćanje pouzećem • Dostava širom BiH'}</span>
+        <span>{settings?.topBarText || 'Plaćanje pouzećem • Dostava širom BiH'}</span>
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
@@ -85,30 +71,31 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Logo u sredini / lijevo (sa zaštitom od širenja) */}
-          <button
-            onClick={() => handleNavClick('home')}
+          {/* Logo u sredini / lijevo */}
+          <Link
+            href="/"
+            onClick={() => setMobileMenuOpen(false)}
             className="flex items-center focus:outline-none text-left py-1 cursor-pointer shrink min-w-0 max-w-[150px] xs:max-w-[180px] sm:max-w-none overflow-hidden"
           >
             <div className="scale-90 origin-left sm:scale-100 transition-transform">
               <Logo />
             </div>
-          </button>
+          </Link>
 
           {/* Desktop Navigacija */}
           <nav className="hidden lg:flex items-center space-x-7 shrink-0">
             {navLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => handleNavClick(link.id)}
+              <Link
+                key={link.href}
+                href={link.href}
                 className={`text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] transition-colors py-1 cursor-pointer ${
-                  currentTab === link.id
+                  pathname === link.href
                     ? 'text-[#F7E97F] border-b-2 border-[#F7E97F]'
                     : 'text-neutral-300 hover:text-[#F7E97F]'
                 }`}
               >
                 {link.label}
-              </button>
+              </Link>
             ))}
 
             {visibleCategories.length > 0 && (
@@ -136,7 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </nav>
 
-          {/* Desne akcije: Pretraga, Instagram, Favoriti, Korpa (Striktno bez prelamanja) */}
+          {/* Desne akcije: Pretraga, Instagram, Favoriti, Korpa */}
           <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             <button
               onClick={() => setSearchOpen(!searchOpen)}
@@ -147,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <a
-              href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+              href={settings?.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:flex p-1.5 text-neutral-300 hover:text-[#F7E97F] transition-colors"
@@ -156,8 +143,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Instagram className="w-5 h-5" />
             </a>
 
-            <button
-              onClick={() => handleNavClick('wishlist')}
+            <Link
+              href="/wishlist"
               className="relative p-1 text-neutral-300 hover:text-[#F7E97F] transition-colors flex items-center justify-center cursor-pointer"
               title="Moji Favoriti"
             >
@@ -167,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {wishlistCount}
                 </span>
               )}
-            </button>
+            </Link>
 
             <button
               onClick={() => setIsCartOpen(true)}
@@ -214,15 +201,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <nav className="flex flex-col space-y-3">
                 {navLinks.map((link) => (
-                  <button
-                    key={link.id}
-                    onClick={() => handleNavClick(link.id)}
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
                     className={`text-left text-sm font-['Poppins'] font-bold uppercase tracking-wider py-1.5 border-b border-neutral-900 cursor-pointer ${
-                      currentTab === link.id ? 'text-[#F7E97F]' : 'text-neutral-300'
+                      pathname === link.href ? 'text-[#F7E97F]' : 'text-neutral-300'
                     }`}
                   >
                     {link.label}
-                  </button>
+                  </Link>
                 ))}
 
                 {visibleCategories.length > 0 && (
@@ -248,7 +236,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <div className="border-t border-neutral-800 pt-4 text-xs text-neutral-400 space-y-2 mt-6">
               <a
-                href={settings.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+                href={settings?.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-white hover:text-[#F7E97F]"
