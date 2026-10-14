@@ -194,7 +194,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
           </div>
         </div>
 
-        {/* LOGISTIKA SA DEDIKOVANIM DIMENZIJAMA ZA LIGHTHOUSE CLS FIX */}
+        {/* LOGISTIKA SA FALLBACK KODOM ZA SLIKU KURIRA */}
         <div className="bg-[#121212] border border-neutral-800 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-center md:text-left space-y-1">
             <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-[#F7E97F]">
@@ -215,7 +215,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateToPage }) 
               decoding="async"
               className="h-9 w-auto object-contain bg-white px-3 py-1 border border-neutral-800 rounded"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/images/logo-xexpress.webp';
+                const target = e.target as HTMLImageElement;
+                if (!target.dataset.failedOnce) {
+                  target.dataset.failedOnce = 'true';
+                  target.src = 'https://placehold.co/140x36/ffffff/000000?text=X+EXPRESS';
+                }
               }}
             />
           </div>
