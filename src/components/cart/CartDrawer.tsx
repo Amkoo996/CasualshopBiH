@@ -9,7 +9,6 @@ interface CartDrawerProps {
   onCheckout: () => void;
 }
 
-// Optimizacija Cloudinary slika
 const optimizeCloudinaryUrl = (url: string, width: number = 200) => {
   if (!url) return '/hero-streetwear.webp';
   if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
@@ -46,7 +45,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden font-['Inter']">
-      {/* Pozadinski zatamnjeni overlay */}
       <div
         className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
         onClick={() => setIsCartOpen(false)}
@@ -55,7 +53,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-0 sm:pl-10">
         <div className="w-screen max-w-md bg-white border-l-2 border-neutral-300 shadow-2xl flex flex-col justify-between">
           
-          {/* Zaglavlje korpe */}
+          {/* Header korpe */}
           <div className="p-4 sm:p-6 border-b-2 border-neutral-200 bg-[#0A0A0A] text-white space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -75,7 +73,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
               </button>
             </div>
 
-            {/* Traka napretka za besplatnu dostavu */}
             {items.length > 0 && (
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between text-[11px] font-['Poppins'] font-bold">
@@ -101,7 +98,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
             )}
           </div>
 
-          {/* Lista artikala ili prazno stanje */}
+          {/* Lista artikala */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             {items.length === 0 ? (
               <div className="text-center py-16 space-y-4">
@@ -113,7 +110,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                     Vaša korpa je prazna
                   </p>
                   <p className="text-xs text-neutral-500 max-w-xs mx-auto">
-                    Pregledajte najnoviju streetwear kolekciju i odaberite artikle.
+                    Dodajte artikle iz kolekcije kako biste završili kupovinu.
                   </p>
                 </div>
                 <button
@@ -162,7 +159,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                       </div>
 
                       <div className="flex items-center justify-between pt-2">
-                        {/* Selector količine */}
                         <div className="flex items-center border border-neutral-300 bg-white">
                           <button
                             type="button"
@@ -197,7 +193,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
             )}
           </div>
 
-          {/* Podnožje korpe */}
+          {/* Footer korpe */}
           {items.length > 0 && (
             <div className="p-4 sm:p-6 border-t-2 border-neutral-200 bg-[#F4F2EC] space-y-4">
               <div className="space-y-1.5 text-xs">
@@ -235,7 +231,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
               </button>
 
               <p className="text-[10px] text-center text-neutral-500">
-                Plaćanje pouzećem gotovinom prilikom preuzimanja pošiljke od kurira.
+                Plaćanje pouzećem gotovinom prilikom preuzimanja od kurira.
               </p>
             </div>
           )}

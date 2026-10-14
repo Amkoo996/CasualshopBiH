@@ -122,8 +122,8 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
   const newOrderRef = doc(collection(db, 'orders'));
   const orderId = newOrderRef.id;
 
+  // 1. FAZA: Provjera i smanjivanje zaliha u Firestore transakciji
   await runTransaction(db, async (transaction) => {
-    // 1. FAZA: Sva čitanja moraju biti izvršena prije bilo kojeg upisa
     const productReads = [];
     for (const item of orderData.items) {
       const prodRef = doc(db, 'products', item.id);
@@ -131,7 +131,6 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       productReads.push({ item, prodRef, prodSnap });
     }
 
-    // 2. FAZA: Ažuriranje zaliha po veličinama
     for (const { item, prodRef, prodSnap } of productReads) {
       if (prodSnap.exists()) {
         const prodData = prodSnap.data() as any;
@@ -143,7 +142,6 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       }
     }
 
-    // 3. FAZA: Upis narudžbe sa tačnim ključevima definisanim u Firebase pravilima
     const cleanOrderPayload = {
       id: orderId,
       orderNumber: orderData.orderNumber,
@@ -152,7 +150,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       subtotal: orderData.subtotal,
       shippingFee: orderData.shippingFee,
       total: orderData.total,
-      paymentMethod: orderData.paymentMethod || 'Pouzećem',
+      paymentMethod: orderData.paymentMethod || 'cash_on_delivery',
       status: 'Nova',
       createdAt: orderData.createdAt || new Date().toISOString(),
       promoCode: orderData.promoCode || null,
@@ -162,30 +160,37 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
     transaction.set(newOrderRef, cleanOrderPayload);
   });
 
-  // 4. Slanje Telegram obavijesti o novoj narudžbi
+  const fullOrderObject: Order = { ...orderData, id: orderId };
+
+  // 2. FAZA: Sigurno slanje na Telegram i EmailJS preko serverless funkcije
   try {
-    const c = (orderData as any).customer || {};
-    const buyerName = c.fullName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.name || 'Kupac';
+    const c = orderData.customer || ({} as any);
+    const buyerName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Kupac';
     const itemsText = orderData.items.map((i) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
+    const isPickup = c.address?.includes('Lično');
 
     const telegramText =
-      `🛍️ NOVA NARUDŽBA #${orderData.orderNumber || orderId.slice(0, 7)}\n` +
+      `🛍️ NOVA NARUDŽBA #${orderData.orderNumber}\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `👤 Kupac: ${buyerName}\n` +
       `📞 Tel: ${c.phone || 'N/A'}\n` +
-      `📍 Grad: ${c.city || 'N/A'}, ${c.address || ''}\n` +
+      `📍 ${isPickup ? 'Preuzimanje: Lično Sarajevo' : `Dostava: ${c.city \vert{}\vert{} 'N/A'},${c.address || ''}`}\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
       `📦 Artikli:\n${itemsText}\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
-      `💰 Ukupno za naplatu: ${orderData.total.toFixed(2)} KM (Pouzećem)`;
+      `💰 Iznos: ${orderData.total.toFixed(2)} KM (${isPickup ? 'Lično plaćanje' : 'Pouzećem'})`;
 
     fetch('/api/notify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: telegramText, type: 'order' }),
+      body: JSON.stringify({
+        text: telegramText,
+        type: 'order',
+        orderData: fullOrderObject,
+      }),
     }).catch(() => {});
   } catch (err) {
-    console.error('Greška pri slanju Telegram notifikacije:', err);
+    console.error('Greška pri pozivanju notifikacija:', err);
   }
 
   return orderId;
@@ -223,7 +228,6 @@ export const getProductReviews = async (productId: string) => {
       reviews.push({ id: d.id, ...d.data() });
     });
 
-    // Sortiranje u radnoj memoriji uklanja potrebu za Firebase kompozitnim indeksom
     reviews.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     return reviews;
   } catch (err) {
