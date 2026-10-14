@@ -170,11 +170,11 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* 2. HERO SEKCIJA (SA BRZOM, OPTIMIZOVANOM SLIKOM UMJESTO VIDEA) */}
+      {/* 2. HERO SEKCIJA (SA BRZOM, OPTIMIZOVANOM SLIKOM /hero-streetwear.webp) */}
       <section className="relative bg-[#0A0A0A] text-white w-full min-h-[75vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden border-b-2 border-[#F7E97F]">
         <div className="absolute inset-0 z-0">
           <img
-            src="/images/hero-streetwear.jpg"
+            src="/hero-streetwear.webp"
             alt="Casual Shop BiH Streetwear Kolekcija"
             className="w-full h-full object-cover object-center opacity-45 filter contrast-125 scale-105 transition-transform duration-1000 ease-out"
             fetchPriority="high"
