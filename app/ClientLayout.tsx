@@ -17,7 +17,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <CartProvider>
         <WishlistProvider>
           <Navbar />
-          <CartDrawer />
+          <CartDrawer onCheckout={() => {}} />
           <main className="min-h-screen">
             {children}
           </main>
