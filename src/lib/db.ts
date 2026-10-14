@@ -12,6 +12,7 @@ import {
   limit,
   setDoc,
   onSnapshot,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import {
@@ -25,7 +26,7 @@ import {
   HomeCMSContent,
   DEFAULT_CMS_CONTENT,
 } from '../types';
-import { normalizePhone } from './validation';
+import { normalizePhone, sha256 } from './validation';
 
 // ==========================================
 // PROIZVODI (PRODUCTS)
@@ -111,39 +112,57 @@ export const deleteProduct = async (id: string): Promise<void> => {
 };
 
 // ==========================================
-// NARUDŽBE (ORDERS)
+// NARUDŽBE (ORDERS & TRACKING)
 // ==========================================
 
 export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
   try {
+    const phoneKey = normalizePhone(orderData.customer?.phone || '') || orderData.customer?.phone || '';
+    const phoneHash = await sha256(phoneKey);
+    const createdAt = new Date().toISOString();
+
     const ordersRef = collection(db, 'orders');
-    const docRef = await addDoc(ordersRef, {
-      ...orderData,
-      createdAt: new Date().toISOString(),
+    const newOrderRef = doc(ordersRef);
+    const trackingRef = doc(db, 'order_tracking', orderData.orderNumber);
+
+    await runTransaction(db, async (transaction) => {
+      // 1. Provjera i smanjivanje zaliha
+      for (const item of orderData.items) {
+        const productRef = doc(db, 'products', item.id);
+        const productSnap = await transaction.get(productRef);
+
+        if (productSnap.exists()) {
+          const pData = productSnap.data() as Product;
+          const currentStock = pData.sizes?.[item.size] ?? 0;
+          const newStock = Math.max(0, currentStock - item.quantity);
+
+          transaction.update(productRef, {
+            [`sizes.${item.size}`]: newStock,
+          });
+        }
+      }
+
+      // 2. Upis kompletne narudžbe u osjetljivu kolekciju
+      transaction.set(newOrderRef, {
+        ...orderData,
+        createdAt,
+      });
+
+      // 3. Upis anonimiziranih podataka za praćenje
+      transaction.set(trackingRef, {
+        orderNumber: orderData.orderNumber,
+        status: 'Nova',
+        phoneHash,
+        createdAt,
+      });
     });
 
-    // Smanjivanje zaliha kupljenih artikala
-    for (const item of orderData.items) {
-      const productRef = doc(db, 'products', item.id);
-      const productSnap = await getDoc(productRef);
-
-      if (productSnap.exists()) {
-        const pData = productSnap.data() as Product;
-        const currentStock = pData.sizes?.[item.size] ?? 0;
-        const newStock = Math.max(0, currentStock - item.quantity);
-
-        await updateDoc(productRef, {
-          [`sizes.${item.size}`]: newStock,
-        });
-      }
-    }
-
-    // Automatsko slanje Telegram obavijesti za narudžbu
-    sendOrderToTelegram({ ...orderData, id: docRef.id }).catch((err) => {
+    // 4. Slanje notifikacije na Telegram preko backend funkcije
+    sendOrderToTelegram({ ...orderData, id: newOrderRef.id }).catch((err) => {
       console.warn('Slanje Telegram obavijesti nije uspjelo:', err);
     });
 
-    return docRef.id;
+    return newOrderRef.id;
   } catch (error) {
     console.error('Greška pri kreiranju narudžbe:', error);
     throw error;
@@ -173,6 +192,13 @@ export const updateOrderStatus = async (
 ): Promise<void> => {
   try {
     const docRef = doc(db, 'orders', orderId);
+    const orderSnap = await getDoc(docRef);
+
+    if (!orderSnap.exists()) {
+      throw new Error('Narudžba ne postoji');
+    }
+
+    const currentOrder = orderSnap.data() as Order;
     const payload: Partial<Order> = { status };
 
     if (trackingData?.trackingNumber !== undefined) {
@@ -183,9 +209,46 @@ export const updateOrderStatus = async (
     }
 
     await updateDoc(docRef, payload);
+
+    // Sinhronizacija javnog statusa za praćenje
+    if (currentOrder.orderNumber) {
+      await updateDoc(doc(db, 'order_tracking', currentOrder.orderNumber), { status }).catch(() => {});
+    }
   } catch (error) {
     console.error('Greška pri ažuriranju statusa narudžbe:', error);
     throw error;
+  }
+};
+
+// ==========================================
+// PRETRAGA NARUDŽBE ZA KUPCA (SIGURNO)
+// ==========================================
+
+export const getOrderByNumberAndPhone = async (
+  orderNumber: string,
+  phone: string
+): Promise<{ orderNumber: string; status: string; createdAt: string } | null> => {
+  try {
+    const num = orderNumber.trim().toUpperCase();
+    const snap = await getDoc(doc(db, 'order_tracking', num));
+
+    if (!snap.exists()) return null;
+
+    const data = snap.data();
+    const normalized = normalizePhone(phone);
+
+    if (!normalized || (await sha256(normalized)) !== data.phoneHash) {
+      return null;
+    }
+
+    return {
+      orderNumber: data.orderNumber,
+      status: data.status,
+      createdAt: data.createdAt,
+    };
+  } catch (error) {
+    console.error('Greška pri pretrazi statusa narudžbe:', error);
+    return null;
   }
 };
 
@@ -254,7 +317,7 @@ export const saveCMSContent = async (cmsData: HomeCMSContent): Promise<void> => 
 };
 
 // ==========================================
-// NEWSLETTER (SA MAILERLITE SINHRONIZACIJOM)
+// NEWSLETTER
 // ==========================================
 
 export const subscribeNewsletter = async (email: string): Promise<void> => {
@@ -262,7 +325,6 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
     const cleanEmail = email.trim().toLowerCase();
     const nowISO = new Date().toISOString();
 
-    // 1. Zapis pretplatnika na Firebase Firestore
     const subscriberDocRef = doc(db, 'subscribers', cleanEmail);
     await setDoc(
       subscriberDocRef,
@@ -275,7 +337,6 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
       { merge: true }
     );
 
-    // 2. Poziv Cloudflare API funkcije za MailerLite
     try {
       const res = await fetch('/api/subscribe', {
         method: 'POST',
@@ -287,14 +348,11 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        console.warn('MailerLite API sinhronizacija nije uspjela:', res.status, errData);
-      } else {
-        console.log('Korisnik uspješno poslan u MailerLite bazu.');
+        console.warn('API sinhronizacija nije uspjela:', res.status, errData);
       }
     } catch (apiErr) {
       console.warn('Mrežna greška pri slanju na /api/subscribe:', apiErr);
     }
-
   } catch (error) {
     console.error('Greška pri prijavi na newsletter:', error);
     throw error;
@@ -304,7 +362,6 @@ export const subscribeNewsletter = async (email: string): Promise<void> => {
 export const unsubscribeNewsletter = async (email: string): Promise<void> => {
   try {
     const cleanEmail = email.trim().toLowerCase();
-    
     const subscriberDocRef = doc(db, 'subscribers', cleanEmail);
     await deleteDoc(subscriberDocRef);
   } catch (error) {
@@ -377,85 +434,35 @@ export const submitProductReview = async (
 };
 
 // ==========================================
-// PRETRAGA NARUDŽBE ZA KUPCA
-// ==========================================
-
-export const getOrderByNumberAndPhone = async (
-  orderNumber: string,
-  phone: string
-): Promise<Order | null> => {
-  try {
-    const cleanPhone = normalizePhone(phone) || phone.trim();
-    const cleanOrderNum = orderNumber.trim().toUpperCase();
-
-    const q = query(
-      collection(db, 'orders'),
-      where('orderNumber', '==', cleanOrderNum)
-    );
-
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
-
-    const docSnap = snapshot.docs[0];
-    const orderData = { id: docSnap.id, ...docSnap.data() } as Order;
-
-    const dbPhone = normalizePhone(orderData.customer.phone) || orderData.customer.phone;
-
-    if (dbPhone === cleanPhone || orderData.customer.phone.includes(phone.trim())) {
-      return orderData;
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Greška pri pretrazi narudžbe:', error);
-    return null;
-  }
-};
-
-// ==========================================
-// TELEGRAM NOTIFIKACIJE (NARUDŽBE BOT - @Casualshopbihbot)
+// TELEGRAM NOTIFIKACIJE (PREKO SERVERLESS PROXY-JA)
 // ==========================================
 
 export async function sendOrderToTelegram(orderData: any) {
   try {
-    const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-    const RAW_CHAT_IDS = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-
-    if (!BOT_TOKEN || !RAW_CHAT_IDS) {
-      console.warn('VITE_TELEGRAM_BOT_TOKEN ili VITE_TELEGRAM_CHAT_ID nisu konfigurisani.');
-      return;
-    }
-
-    const customerName = (
+    const name = (
       orderData.customer?.name ||
       `${orderData.customer?.firstName || ''} ${orderData.customer?.lastName || ''}`
     ).trim() || 'Nije navedeno';
 
-    const itemsText = (orderData.items || [])
-      .map((item: any) => `• ${item.name} (${item.size || 'Univerzalna'}) x${item.quantity || 1} - ${item.price} KM`)
+    const items = (orderData.items || [])
+      .map((i: any) => `- ${i.name} (${i.size || 'Univerzalna'}) x${i.quantity || 1} - ${i.price} KM`)
       .join('\n');
 
-    const message = `🛍️ <b>NOVA NARUDŽBA!</b>\n\n` +
-      `👤 <b>Ime:</b> ${customerName}\n` +
-      `📞 <b>Telefon:</b> ${orderData.customer?.phone || 'Nije navedeno'}\n` +
-      `📍 <b>Adresa:</b> ${orderData.customer?.address || ''}, ${orderData.customer?.city || ''}\n\n` +
-      `🛒 <b>Artikli:</b>\n${itemsText}\n\n` +
-      `💰 <b>Ukupno:</b> ${orderData.total || 0} KM`;
+    const text =
+      `NOVA NARUDŽBA ${orderData.orderNumber || ''}\n\n` +
+      `Ime: ${name}\n` +
+      `Telefon: ${orderData.customer?.phone || 'Nije navedeno'}\n` +
+      `Adresa: ${orderData.customer?.address || ''}, ${orderData.customer?.city || ''}\n\n` +
+      `Artikli:\n${items}\n\n` +
+      `Ukupno: ${orderData.total || 0} KM` +
+      (orderData.promoCode ? `\nPromo kod: ${orderData.promoCode}` : '');
 
-    const chatIds = RAW_CHAT_IDS.split(',').map((id: string) => id.trim()).filter(Boolean);
-
-    for (const chatId of chatIds) {
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'HTML',
-        }),
-      });
-    }
+    await fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
   } catch (error) {
-    console.error('Greška pri slanju narudžbe na Telegram:', error);
+    console.warn('Telegram obavijest nije poslana:', error);
   }
 }
