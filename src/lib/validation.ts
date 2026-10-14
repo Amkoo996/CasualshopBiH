@@ -53,3 +53,12 @@ export const isValidName = (v: string): boolean =>
 // Validacija poštanskog broja - tačno 5 cifara (BiH standard)
 export const isValidPostalCode = (v: string): boolean => 
   /^\d{5}$/.test(v.trim());
+
+// SHA-256 Hashing funkcija za sigurno praćenje narudžbi
+export async function sha256(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
