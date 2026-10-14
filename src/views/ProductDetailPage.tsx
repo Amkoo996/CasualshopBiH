@@ -206,9 +206,15 @@ Podaci za dostavu:
               <Check className="w-4 h-4 text-emerald-400" />
               <span>DODANO U KORPU!</span>
             </span>
-            <button onClick={() => setAddedSuccess(false)} className="text-neutral-400 hover:text-white text-xs">
-              <X className="w-4 h-4" />
-            </button>
+            <button
+  onClick={() => {
+    setAddedSuccess(false);
+    router.push('/checkout');
+  }}
+  className="w-full py-2 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider hover:bg-[#ebd965] transition-colors mt-1 cursor-pointer"
+>
+  NASTAVI NA CHECKOUT →
+</button>
           </div>
           <div className="flex items-center gap-3">
             <img src={currentImageUrl} alt={product.name} className="w-12 h-14 object-cover border border-neutral-700 bg-neutral-900" />
