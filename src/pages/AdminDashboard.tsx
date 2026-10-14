@@ -28,6 +28,7 @@ import {
   BarChart3,
   Layout,
   Truck,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS } from '../types';
@@ -43,7 +44,7 @@ import {
 } from '../lib/db';
 import { uploadImage } from '../lib/upload';
 import { getProductViewStats } from '../lib/tracking';
-import { getAllPromoCodes, createPromoCode, togglePromoCodeStatus, deletePromoCode } from '../lib/promo';
+import { getAllPromoCodes, createPromoCode, togglePromoCodeStatus, deletePromoCode, getPromoRemainingTime } from '../lib/promo';
 import { useCart } from '../context/CartContext';
 import { SalesTrendChart } from '../components/admin/SalesTrendChart';
 import { FunnelAnalytics } from '../components/admin/FunnelAnalytics';
@@ -64,7 +65,7 @@ export const AdminDashboard: React.FC = () => {
   const [promoCodes, setPromoCodes] = useState<any[]>([]);
   const [productViewsMap, setProductViewsMap] = useState<Record<string, number>>({});
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   // Tracking modal state
@@ -75,6 +76,7 @@ export const AdminDashboard: React.FC = () => {
   // Promo Code Creation State
   const [newPromoCode, setNewPromoCode] = useState('');
   const [newPromoDiscount, setNewPromoDiscount] = useState(10);
+  const [newPromoMaxUsage, setNewPromoMaxUsage] = useState(100);
   const [promoLoading, setPromoLoading] = useState(false);
 
   // Email & Password login state
@@ -96,8 +98,11 @@ export const AdminDashboard: React.FC = () => {
 
   const availableSizesList: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 
-  const loadData = async () => {
-    setLoading(true);
+  // SIGURNO UČITAVANJE PODATAKA - ISKLJUČIVO ZA LOGOVANOG ADMINA
+  const loadData = async (silent = false) => {
+    if (!isAdmin) return;
+    if (!silent) setLoading(true);
+
     try {
       const [prodsData, ordersData, subsData, settingsData, viewsData, promoData] = await Promise.all([
         getProducts(true),
@@ -108,7 +113,6 @@ export const AdminDashboard: React.FC = () => {
         getAllPromoCodes().catch(() => []),
       ]);
 
-      // Deduplikacija pretplatnika po e-mail adresi (ostavljamo najnoviji zapis po datumu)
       const uniqueSubscribersMap = new Map<string, NewsletterSubscriber>();
       subsData.forEach((sub) => {
         const cleanEmail = sub.email.trim().toLowerCase();
@@ -137,13 +141,20 @@ export const AdminDashboard: React.FC = () => {
     } catch (e) {
       console.error('Failed to load admin data:', e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
+  // EFFEKT: Učitavanje i Auto-Refresh na svakih 15 sekundi kad je admin prijavljen
   useEffect(() => {
     if (isAdmin) {
       loadData();
+
+      const interval = setInterval(() => {
+        loadData(true); // Osvježava u pozadini bez skakanja loading spinnera
+      }, 15000);
+
+      return () => clearInterval(interval);
     }
   }, [isAdmin]);
 
@@ -166,7 +177,13 @@ export const AdminDashboard: React.FC = () => {
     if (!newPromoCode.trim()) return;
     setPromoLoading(true);
     try {
-      await createPromoCode(newPromoCode.trim().toUpperCase(), 'manual', newPromoDiscount);
+      await createPromoCode(
+        newPromoCode.trim().toUpperCase(),
+        'manual',
+        720,
+        newPromoDiscount,
+        newPromoMaxUsage
+      );
       setNewPromoCode('');
       await loadData();
     } catch (err) {
@@ -217,9 +234,10 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  // AKO ADMIN NIJE ULOGOVAN -> RENDERUJES FORMULAR BEZ BILO KAKVIH UPITA BAZI
   if (!isAdmin) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
+      <div className="min-h-[70vh] flex items-center justify-center px-4 py-12 font-['Inter']">
         <div className="max-w-md w-full bg-white border-2 border-[#F7E97F] p-8 shadow-2xl space-y-6 text-center">
           <div className="w-14 h-14 bg-[#0A0A0A] text-[#F7E97F] border-2 border-[#F7E97F] flex items-center justify-center mx-auto rounded-full">
             <Lock className="w-7 h-7" />
@@ -228,13 +246,13 @@ export const AdminDashboard: React.FC = () => {
             <h2 className="font-['Poppins'] text-xl font-black uppercase tracking-wider text-black">
               ADMIN PRIJAVA
             </h2>
-            <p className="text-xs text-neutral-600 font-['Inter']">
+            <p className="text-xs text-neutral-600">
               Casual Shop BiH kontrolna tabla za upravljanje artiklima, narudžbama i postavkama.
             </p>
           </div>
 
           {loginError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs font-['Inter'] text-left rounded">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs text-left rounded font-medium">
               {loginError}
             </div>
           )}
@@ -253,7 +271,7 @@ export const AdminDashboard: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Unesite vaš email"
-                className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-['Inter'] focus:border-black focus:outline-none"
+                className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
               />
             </div>
 
@@ -270,7 +288,7 @@ export const AdminDashboard: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-['Inter'] focus:border-black focus:outline-none"
+                className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs focus:border-black focus:outline-none"
               />
             </div>
 
@@ -284,7 +302,7 @@ export const AdminDashboard: React.FC = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="accent-black h-4 w-4"
                 />
-                <span className="text-xs text-neutral-600 font-['Inter']">Zapamti me na ovom uređaju</span>
+                <span className="text-xs text-neutral-600">Zapamti me na ovom uređaju</span>
               </label>
             </div>
 
@@ -472,7 +490,8 @@ export const AdminDashboard: React.FC = () => {
     const rows = monthlyOrders
       .map((o) => {
         const deliveryMethod = o.customer.address.includes('Lično') ? 'Lično preuzimanje' : 'Brza pošta';
-        return `"${o.orderNumber}","${o.customer.firstName} ${o.customer.lastName}","${o.customer.phone}","${o.customer.city}","${deliveryMethod}","${o.total.toFixed(2)}","${o.status}","${o.trackingNumber || '/'}","${new Date(o.createdAt).toLocaleString('bs-BA')}"`;
+        const cleanNum = o.orderNumber.replace(/^#/, '');
+        return `"${cleanNum}","${o.customer.firstName} ${o.customer.lastName}","${o.customer.phone}","${o.customer.city}","${deliveryMethod}","${o.total.toFixed(2)}","${o.status}","${o.trackingNumber || '/'}","${new Date(o.createdAt).toLocaleString('bs-BA')}"`;
       })
       .join('\n');
 
@@ -528,7 +547,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 font-['Inter']">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b-2 border-neutral-300 gap-4">
         <div>
@@ -540,7 +559,7 @@ export const AdminDashboard: React.FC = () => {
           <h1 className="font-['Poppins'] text-2xl sm:text-3xl font-black uppercase tracking-tight text-neutral-900 mt-1">
             KONTROLNA TABLA • CASUAL SHOP BIH
           </h1>
-          <p className="text-xs text-neutral-600 font-['Inter']">
+          <p className="text-xs text-neutral-600">
             Prijavljeni admin: {user?.email || 'Administrator'}
           </p>
         </div>
@@ -615,7 +634,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">
                 {totalRevenue.toFixed(2)} KM
               </div>
-              <span className="text-[11px] text-emerald-600 font-semibold block font-['Inter']">
+              <span className="text-[11px] text-emerald-600 font-semibold block">
                 Iz realizovanih narudžbi
               </span>
             </div>
@@ -627,7 +646,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">
                 {totalOrdersCount}
               </div>
-              <span className="text-[11px] text-neutral-600 font-medium block font-['Inter']">
+              <span className="text-[11px] text-neutral-600 font-medium block">
                 {newOrdersCount} novih narudžbi čeka potvrdu
               </span>
             </div>
@@ -639,7 +658,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">
                 {products.length}
               </div>
-              <span className="text-[11px] text-neutral-600 font-medium block font-['Inter']">
+              <span className="text-[11px] text-neutral-600 font-medium block">
                 U katalogu trgovine
               </span>
             </div>
@@ -651,7 +670,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">
                 {subscribersCount}
               </div>
-              <span className="text-[11px] text-neutral-600 font-medium block font-['Inter']">
+              <span className="text-[11px] text-neutral-600 font-medium block">
                 Prijavljenih korisnika
               </span>
             </div>
@@ -666,9 +685,9 @@ export const AdminDashboard: React.FC = () => {
                 Najprodavaniji artikli
               </h3>
               {bestSellers.length === 0 ? (
-                <p className="text-xs text-neutral-500 py-4 font-['Inter']">Još nema realizovanih prodaja.</p>
+                <p className="text-xs text-neutral-500 py-4">Još nema realizovanih prodaja.</p>
               ) : (
-                <div className="divide-y divide-neutral-100 font-['Inter']">
+                <div className="divide-y divide-neutral-100">
                   {bestSellers.map((item, idx) => (
                     <div key={idx} className="py-2.5 flex justify-between items-center text-xs">
                       <div>
@@ -696,13 +715,13 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               {orders.length === 0 ? (
-                <p className="text-xs text-neutral-500 py-4 font-['Inter']">Nema pristiglih narudžbi.</p>
+                <p className="text-xs text-neutral-500 py-4">Nema pristiglih narudžbi.</p>
               ) : (
-                <div className="divide-y divide-neutral-100 font-['Inter']">
+                <div className="divide-y divide-neutral-100">
                   {orders.slice(0, 5).map((ord) => (
                     <div key={ord.orderNumber} className="py-2.5 flex justify-between items-center text-xs">
                       <div>
-                        <span className="font-['Poppins'] font-bold text-neutral-900 block">{ord.orderNumber}</span>
+                        <span className="font-['Poppins'] font-bold text-neutral-900 block">{ord.orderNumber.replace(/^#/, '')}</span>
                         <span className="text-neutral-500 text-[11px]">
                           {ord.customer.firstName} {ord.customer.lastName} ({ord.customer.city})
                         </span>
@@ -757,7 +776,7 @@ export const AdminDashboard: React.FC = () => {
               <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black">
                 Upravljanje proizvodima ({products.length})
               </h2>
-              <p className="text-xs text-neutral-500 font-['Inter']">
+              <p className="text-xs text-neutral-500">
                 Dodajte, uredite ili sakrijte artikle. Pratite statistiku otvaranja po proizvodu.
               </p>
             </div>
@@ -801,7 +820,7 @@ export const AdminDashboard: React.FC = () => {
                   <th className="p-3 text-right">Akcije</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-200 font-['Inter']">
+              <tbody className="divide-y divide-neutral-200">
                 {products.map((p) => {
                   const totalStock = Object.values(p.sizes || {}).reduce((sum, v) => sum + (v || 0), 0);
                   const isSoldOut = totalStock <= 0;
@@ -955,9 +974,9 @@ export const AdminDashboard: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-200 pb-3 gap-2">
                     <div className="flex items-center gap-3">
                       <span className="font-['Poppins'] font-black text-sm text-black">
-                        #{order.orderNumber}
+                        {order.orderNumber.replace(/^#/, '')}
                       </span>
-                      <span className="text-xs text-neutral-500 font-['Inter']">
+                      <span className="text-xs text-neutral-500">
                         {new Date(order.createdAt).toLocaleString('bs-BA')}
                       </span>
                     </div>
@@ -988,7 +1007,7 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-['Inter']">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div className="space-y-1.5 bg-[#F4F2EC] p-3.5 border border-neutral-300">
                       <span className="font-['Poppins'] font-bold uppercase text-neutral-700 block">
                         Podaci o kupcu i dostavi:
@@ -1049,13 +1068,13 @@ export const AdminDashboard: React.FC = () => {
 
       {/* PROMO KODOVI TAB */}
       {activeTab === 'promo' && (
-        <div className="space-y-6 animate-fadeIn max-w-5xl font-['Inter']">
+        <div className="space-y-6 animate-fadeIn max-w-5xl">
           <div>
             <h2 className="font-['Poppins'] text-base font-black uppercase tracking-wider text-black">
-              Upravljanje i Statistika Promo Kodova
+              Upravljanje i Odbrojavanje Promo Kodova
             </h2>
             <p className="text-xs text-neutral-600">
-              Generišite nove kodove, ugasite ih, pratite tačan broj narudžbi u kojima su iskorišteni.
+              Generišite nove kodove, ograničite broj upotreba i pratite točno odbrojavanje vremena do isteka.
             </p>
           </div>
 
@@ -1083,12 +1102,12 @@ export const AdminDashboard: React.FC = () => {
               Kreiraj novi promo kod
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2">
+              <div>
                 <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Naziv Koda *</label>
                 <input
                   type="text"
                   required
-                  placeholder="npr. LJETI10"
+                  placeholder="npr. FIRST100"
                   value={newPromoCode}
                   onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
                   className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold uppercase focus:border-black focus:outline-none"
@@ -1103,6 +1122,17 @@ export const AdminDashboard: React.FC = () => {
                   max="100"
                   value={newPromoDiscount}
                   onChange={(e) => setNewPromoDiscount(Number(e.target.value))}
+                  className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Max Narudžbi *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={newPromoMaxUsage}
+                  onChange={(e) => setNewPromoMaxUsage(Number(e.target.value))}
                   className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none"
                 />
               </div>
@@ -1122,8 +1152,8 @@ export const AdminDashboard: React.FC = () => {
                 <tr>
                   <th className="p-3">Kod</th>
                   <th className="p-3">Popust</th>
-                  <th className="p-3">Tip</th>
-                  <th className="p-3">Iskorišteno u narudžbama</th>
+                  <th className="p-3">Limit Iskorištenosti</th>
+                  <th className="p-3">Preostalo Vrijeme (Timer)</th>
                   <th className="p-3">Status</th>
                   <th className="p-3 text-right">Akcije</th>
                 </tr>
@@ -1136,25 +1166,36 @@ export const AdminDashboard: React.FC = () => {
                 ) : (
                   promoCodes.map((codeItem, idx) => {
                     const codeUpper = (codeItem.code || '').trim().toUpperCase();
-                    const timesUsedInOrders = promoUsageCountMap[codeUpper] || (codeItem.used ? 1 : 0);
+                    const timesUsedInOrders = promoUsageCountMap[codeUpper] || codeItem.usageCount || 0;
+                    const maxUsage = codeItem.maxUsage || 100;
+                    const timer = codeItem.expiresAt ? getPromoRemainingTime(codeItem.expiresAt) : null;
 
                     return (
                       <tr key={idx} className="hover:bg-neutral-50">
                         <td className="p-3 font-mono font-bold text-black">{codeItem.code}</td>
                         <td className="p-3 font-['Poppins'] font-bold text-amber-700">-{codeItem.discountPercent || 10}%</td>
-                        <td className="p-3 text-neutral-600">{codeItem.type || 'Ručni'}</td>
                         <td className="p-3">
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 rounded font-['Poppins'] font-bold text-amber-900 text-[11px]">
-                            <BarChart3 className="w-3.5 h-3.5 text-amber-600" />
-                            <span>{timesUsedInOrders}x iskorišten</span>
-                          </div>
+                          <span className="font-mono font-bold text-neutral-800">
+                            {timesUsedInOrders} / {maxUsage} narudžbi
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          {timer ? (
+                            <span className={`inline-flex items-center gap-1 font-mono font-bold px-2 py-0.5 text-[11px] ${
+                              timer.expired ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-900'
+                            }`}>
+                              <Clock className="w-3 h-3 shrink-0" />
+                              <span>{timer.formatted}</span>
+                            </span>
+                          ) : (
+                            <span className="text-neutral-400">Bez limita</span>
+                          )}
                         </td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 text-[10px] font-['Poppins'] font-bold uppercase ${
-                            codeItem.active === false ? 'bg-neutral-200 text-neutral-700' :
-                            codeItem.used || timesUsedInOrders > 0 ? 'bg-blue-100 text-blue-900' : 'bg-emerald-100 text-emerald-800'
+                            codeItem.active === false || timer?.expired ? 'bg-neutral-200 text-neutral-700' : 'bg-emerald-100 text-emerald-800'
                           }`}>
-                            {codeItem.active === false ? 'Ugašen' : (codeItem.used || timesUsedInOrders > 0) ? 'U upotrebi' : 'Aktivan'}
+                            {codeItem.active === false ? 'Ugašen' : timer?.expired ? 'Istekao' : 'Aktivan'}
                           </span>
                         </td>
                         <td className="p-3 text-right">
@@ -1220,7 +1261,7 @@ export const AdminDashboard: React.FC = () => {
                   <th className="p-3">Saglasnost</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-200 font-['Inter']">
+              <tbody className="divide-y divide-neutral-200">
                 {subscribers.map((sub, idx) => (
                   <tr key={sub.id || idx} className="hover:bg-neutral-50">
                     <td className="p-3 text-neutral-400 font-mono">{idx + 1}</td>
@@ -1348,13 +1389,13 @@ export const AdminDashboard: React.FC = () => {
 
       {/* TRACKING MODAL */}
       {trackingModalOrder && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 font-['Inter']">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full p-6 border-2 border-[#F7E97F] shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b border-neutral-200 pb-3">
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-black" />
                 <h3 className="font-['Poppins'] text-xs font-black uppercase text-black">
-                  Označavanje narudžbe #{trackingModalOrder.orderNumber} kao POSLANA
+                  Označavanje narudžbe #{trackingModalOrder.orderNumber.replace(/^#/, '')} kao POSLANA
                 </h3>
               </div>
               <button onClick={() => setTrackingModalOrder(null)} className="p-1 text-neutral-400 hover:text-black cursor-pointer">
@@ -1396,9 +1437,6 @@ export const AdminDashboard: React.FC = () => {
                   placeholder="npr. XE-987654321"
                   className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold uppercase focus:border-black focus:outline-none"
                 />
-                <p className="text-[10px] text-neutral-500 mt-1">
-                  Ako ostavite prazno, status će se promijeniti u "Poslana", a kupac dobija Viber poruku od X Expressa.
-                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-neutral-200">
@@ -1437,7 +1475,7 @@ export const AdminDashboard: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveProductSubmit} className="space-y-4 text-xs font-['Inter']">
+            <form onSubmit={handleSaveProductSubmit} className="space-y-4 text-xs">
               <div>
                 <label htmlFor="product-name-input" className="block font-['Poppins'] font-bold uppercase text-neutral-800 mb-1">
                   Naziv artikla *
