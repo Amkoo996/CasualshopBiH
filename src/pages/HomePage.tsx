@@ -12,11 +12,12 @@ interface HomePageProps {
   onNavigateToShop: (category?: string) => void;
 }
 
-const OPTIMIZED_FALLBACK_IMAGE = 'https://res.cloudinary.com/rvlsak2u/image/upload/f_webp,q_auto,w_800,c_limit/v1791551969/xpzi3atps6zrnkflak3c.jpg';
+// Optimizovani Cloudinary URL-ovi za brže učitavanje na mobilnim mrežama bez gubitka oštrine
+const OPTIMIZED_FALLBACK_IMAGE = 'https://res.cloudinary.com/rvlsak2u/image/upload/f_auto,q_auto,w_800/v1791551969/xpzi3atps6zrnkflak3c.jpg';
 
 const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
   'Majice': OPTIMIZED_FALLBACK_IMAGE,
-  'Duksevi i hoodice': 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
+  'Duksevi i hoodice': 'https://res.cloudinary.com/rvlsak2u/image/upload/f_auto,q_auto,w_800/v1791552262/tewfnaho5ssqt8jkraak.jpg',
   'Jakne': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80',
   'Pantalone i trenerke': 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=600&q=80',
   'Šorcevi': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=600&q=80',
@@ -93,7 +94,12 @@ export const HomePage: React.FC<HomePageProps> = ({
     });
 
     const firstProduct = activeProducts.find((p) => p.images?.[0]);
-    const image = firstProduct?.images[0] || FALLBACK_CATEGORY_IMAGES[cat] || OPTIMIZED_FALLBACK_IMAGE;
+    const rawImage = firstProduct?.images[0] || FALLBACK_CATEGORY_IMAGES[cat] || OPTIMIZED_FALLBACK_IMAGE;
+
+    // Automatska transformacija Cloudinary slika ako nisu prethodno formatirane
+    const image = rawImage.includes('res.cloudinary.com') && !rawImage.includes('f_auto')
+      ? rawImage.replace('/upload/', '/upload/f_auto,q_auto,w_800/')
+      : rawImage;
 
     return { title: cat, category: cat, count: activeProducts.length, image };
   });
@@ -170,9 +176,9 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* 2. HERO SEKCIJA - POBOLJŠAN PRIKAZ SLIKE I ČITLJIVOST TEKSTA */}
+      {/* 2. HERO SEKCIJA - SAVRŠENO PODEŠENA VIDLJIVOST SLIKE I ČITLJIVOST TEKSTA */}
       <section className="relative bg-[#0A0A0A] text-white w-full min-h-[80vh] lg:min-h-[88vh] flex items-center overflow-hidden border-b-2 border-[#F7E97F]">
-        {/* Pozadinska slika sa ublaženim zatamnjenjem */}
+        {/* Pozadinska slika sa optimalnim osvjetljenjem */}
         <div className="absolute inset-0 z-0">
           <img
             src="/hero-streetwear.webp"
@@ -185,7 +191,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             }}
           />
 
-          {/* Suptilni lijevi gradijent koji daje čitljivost tekstu bez gušenja slike */}
+          {/* Gradijent preklop koji daje kontrast tekstu bez pretamnjivanja lica na slici */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/90 via-[#0A0A0A]/60 to-transparent w-full md:w-3/4" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-60" />
         </div>
@@ -397,7 +403,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           )}
         </div>
 
-        {/* NEWSLETTER NALIJEŽE DIREKTNO NA FOOTER */}
+        {/* NEWSLETTER */}
         <div className="bg-[#0A0A0A] -mb-12">
           <NewsletterSection />
         </div>
