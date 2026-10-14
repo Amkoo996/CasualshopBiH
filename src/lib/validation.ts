@@ -47,8 +47,15 @@ export function suggestEmail(v: string): string | null {
 }
 
 // Validacija imena i prezimena
-export const isValidName = (v: string): boolean => 
-  /^[\p{L}][\p{L} .'-]{1,49}$/u.test(v.trim());
+export const isValidName = (v: string): boolean => {
+  const trimmed = v.trim();
+  if (trimmed.length < 2 || trimmed.length > 50) return false;
+  try {
+    return new RegExp("^[\\p{L}][\\p{L} .'-]{1,49}$", "u").test(trimmed);
+  } catch {
+    return /^[a-zA-ZčćžšđČĆŽŠĐ][a-zA-ZčćžšđČĆŽŠĐ .'-]{1,49}$/i.test(trimmed);
+  }
+};
 
 // Validacija poštanskog broja - tačno 5 cifara (BiH standard)
 export const isValidPostalCode = (v: string): boolean => 

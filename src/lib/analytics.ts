@@ -14,8 +14,15 @@ declare global {
   }
 }
 
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-RL3ZGMND3K';
-const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID;
+const getEnv = (key: string): string => {
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key] as string;
+  }
+  return '';
+};
+
+const GA_ID = getEnv('NEXT_PUBLIC_GA_MEASUREMENT_ID') || getEnv('VITE_GA_MEASUREMENT_ID') || 'G-RL3ZGMND3K';
+const META_PIXEL_ID = getEnv('NEXT_PUBLIC_META_PIXEL_ID') || getEnv('VITE_META_PIXEL_ID');
 
 export const initAnalytics = (consentGranted: boolean) => {
   if (!consentGranted || typeof window === 'undefined') return;

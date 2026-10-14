@@ -128,8 +128,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   sellerName: '',
   sellerAddress: '',
   sellerIdNumber: '',
-  telegramChatId: import.meta.env.VITE_TELEGRAM_CHAT_ID || '',
-  hiddenCategories: [
+  telegramChatId: (typeof process !== 'undefined' && process.env ? (process.env['NEXT_PUBLIC_TELEGRAM_CHAT_ID'] || process.env['VITE_TELEGRAM_CHAT_ID'] || '') : ''),  hiddenCategories: [
     'Duksevi i hoodice',
     'Pantalone i trenerke',
     'Šorcevi',
