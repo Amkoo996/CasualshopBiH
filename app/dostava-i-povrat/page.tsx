@@ -2,5 +2,5 @@
 import { StaticPages } from '../../src/pages/StaticPages';
 
 export default function Shipping() { 
-  return <StaticPages />; 
+  return <StaticPages page="shipping" />; 
 }
