@@ -11,6 +11,17 @@ service cloud.firestore {
       );
     }
 
+    // Helper funkcija: osigurava da kupac može samo smanjiti zalihu (K1 fix)
+    function sizeOk(s) {
+      return !(s in request.resource.data.sizes) || (
+        !(s in resource.data.sizes) || (
+          request.resource.data.sizes[s] is int &&
+          request.resource.data.sizes[s] >= 0 &&
+          request.resource.data.sizes[s] <= resource.data.sizes[s]
+        )
+      );
+    }
+
     // ==========================================
     // PROIZVODI (PRODUCTS)
     // ==========================================
@@ -18,20 +29,24 @@ service cloud.firestore {
       allow read: if true;
       allow create, delete: if isAdmin();
       
-      // Admin mijenja sve, kupci pri kupovini samo smanjuju zalihe
+      // Admin mijenja sve; Kupci pri kupovini mogu isključivo smanjiti postojeće zalihe
       allow update: if isAdmin() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sizes'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sizes']) &&
+        sizeOk('S') && sizeOk('M') && sizeOk('L') && sizeOk('XL') &&
+        sizeOk('XXL') && sizeOk('3XL') && sizeOk('One size')
       );
     }
 
     // ==========================================
-    // NARUDŽBE (ORDERS) - ZAKLJUČANO
+    // NARUDŽBE (ORDERS) - ZAKLJUČANO ZA JAVNOST
     // ==========================================
     match /orders/{orderId} {
       allow create: if request.resource.data.keys().hasOnly([
         'orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 
         'total', 'paymentMethod', 'status', 'createdAt', 'promoCode', 'discountAmount'
-      ]);
+      ]) && request.resource.data.status == 'Nova'
+         && request.resource.data.total >= 0;
+
       allow read, update, delete: if isAdmin();
     }
 
@@ -48,34 +63,35 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // ANALITIKA I METRIKE - STRATIFIKOVANO SVE ZA ADMINA
+    // ANALITIKA I METRIKE - STRATIFIKOVANO SVE ZA ADMINA (V1)
     // ==========================================
     match /analytics_events/{eventId} {
       allow create: if true; // Kupci šalju event pri posjeti
-      allow read, update, delete: if isAdmin(); // Čitanje ISKLJUČIVO za admina
+      allow read, update, delete: if isAdmin();
     }
 
     match /product_stats/{statId} {
-      // Kupac može samo inkrementirati brojač pregleda, bez mogućnosti čitanja svih statistika
       allow create, update: if true;
-      allow read, delete: if isAdmin(); // Čitanje ISKLJUČIVO za admina
+      allow read, delete: if isAdmin();
     }
 
     match /store_metrics/{metricId} {
       allow create, update: if true;
-      allow read, delete: if isAdmin(); // Čitanje ISKLJUČIVO za admina
+      allow read, delete: if isAdmin();
     }
 
     match /abandoned_carts/{cartId} {
-      allow create, update: if true; // Kupac bilježi stavke u korpi
-      allow read, delete: if isAdmin(); // Čitanje ISKLJUČIVO za admina (Leads tab)
+      allow create, update: if true;
+      allow read, delete: if isAdmin();
     }
 
     // ==========================================
-    // PROMO KODOVI (PROMO CODES)
+    // PROMO KODOVI (PROMO CODES) - SPREČAVANJE CURENJA (K3 fix)
     // ==========================================
     match /promo_codes/{codeId} {
-      allow read: if true; // Kupci provjeravaju da li kod važi pri checkoutu
+      // Kupac može dohvatiti samo konkretan kod pri unosa u checkout (get), ali NE MOŽE listati sve kodove (list)
+      allow get: if true;
+      allow list: if isAdmin();
       allow write: if isAdmin();
     }
 
@@ -85,28 +101,34 @@ service cloud.firestore {
     match /contact_messages/{messageId} {
       allow create: if request.resource.data.keys().hasOnly([
         'name', 'email', 'phone', 'message', 'createdAt', 'read'
+      ]) && request.resource.data.message.size() <= 2000;
+
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // NEWSLETTER PRETPATNICI (SUBSCRIBERS) - ONEMOGUĆENO PREPISIVANJE (V4 fix)
+    // ==========================================
+    match /subscribers/{email} {
+      // Onemogućen update anonimnim korisnicima kako ne bi mogli mijenjati/prepisivati tuđe e-mailove
+      allow create: if request.resource.data.keys().hasOnly([
+        'email', 'subscribedAt', 'createdAt', 'consent'
       ]);
       allow read, update, delete: if isAdmin();
     }
 
     // ==========================================
-    // NEWSLETTER PRETPATNICI (SUBSCRIBERS)
-    // ==========================================
-    match /subscribers/{email} {
-      allow create, update: if request.resource.data.keys().hasOnly([
-        'email', 'subscribedAt', 'createdAt', 'consent'
-      ]);
-      allow read, delete: if isAdmin();
-    }
-
-    // ==========================================
-    // RECENZIJE PROIZVODA (REVIEWS)
+    // RECENZIJE PROIZVODA (REVIEWS) - STRATEŠKA VALIDACIJA (V3 fix)
     // ==========================================
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if request.resource.data.keys().hasOnly([
         'productId', 'author', 'rating', 'comment', 'createdAt'
-      ]);
+      ]) && request.resource.data.rating is int
+         && request.resource.data.rating >= 1
+         && request.resource.data.rating <= 5
+         && request.resource.data.comment.size() <= 1000;
+
       allow update, delete: if isAdmin();
     }
 
