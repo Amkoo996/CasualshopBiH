@@ -1,6 +1,19 @@
 import { Metadata } from "next";
-import { getProductById } from "../../../src/lib/db";
+import { getProductById, getProducts } from "../../../src/lib/db";
 import { ProductDetailPage } from "../../../src/views/ProductDetailPage";
+
+// Generira statičke rute za sve postojeće artikle
+export async function generateStaticParams() {
+  try {
+    const products = await getProducts();
+    return products.map((product) => ({
+      id: product.id,
+    }));
+  } catch (e) {
+    console.error("Greška pri generiranju parametara proizvoda:", e);
+    return [];
+  }
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
