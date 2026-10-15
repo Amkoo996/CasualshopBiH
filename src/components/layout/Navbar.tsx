@@ -65,12 +65,23 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-20">
           
-          {/* Logo */}
+          {/* Sređeni Logo */}
           <Link href="/" className="flex items-center gap-3 group z-50">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 border-2 border-[#F7E97F] rounded-full flex items-center justify-center shrink-0">
-              <span className="font-['Poppins'] text-[11px] font-black text-[#F7E97F] tracking-tighter">CS</span>
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-[#F7E97F] flex items-center justify-center p-1.5 shrink-0 bg-black group-hover:border-white transition-colors">
+              <img 
+                src="/logo-favicon.svg" 
+                alt="Casual Shop BiH Logo" 
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  // Fallback ako SVG ne postoji
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.parentElement) {
+                    e.currentTarget.parentElement.innerHTML = `<span class="font-['Poppins'] font-black text-xs text-[#F7E97F] leading-none">CS</span>`;
+                  }
+                }}
+              />
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col justify-center">
               <span className="font-['Poppins'] text-base sm:text-lg font-black tracking-widest text-white leading-none">
                 CASUAL <span className="text-[#F7E97F] text-xs">shop</span>
               </span>
@@ -174,7 +185,7 @@ export const Navbar = () => {
         )}
       </div>
 
-      {/* Žuta promo traka ispod navbara */}
+      {/* Promo traka ispod navbara */}
       <div className="bg-[#F7E97F] text-[#0A0A0A] text-center py-1.5 text-[9px] sm:text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em]">
         PLAĆANJE POUZEĆEM • DOSTAVA 48-72h ŠIROM BiH
       </div>
