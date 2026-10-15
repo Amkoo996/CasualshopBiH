@@ -63,13 +63,15 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
       return;
     }
 
-    // Sigurna inline validacija e-maila
-    if (safeEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+\$/.test(safeEmail)) {
+    // E-mail adresa je OBAVEZNA
+    if (!safeEmail) {
+      setContactError('E-mail adresa je obavezna.');
+      return;
+    } else if (!/^\S+@\S+\.\S+\$/.test(safeEmail)) {
       setContactError('Molimo unesite ispravnu e-mail adresu.');
       return;
     }
 
-    // Sigurna inline validacija telefona (najmanje 6 cifara)
     if (safePhone && safePhone.replace(/\D/g, '').length < 6) {
       setContactError('Molimo unesite ispravan broj telefona.');
       return;
@@ -187,12 +189,12 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
               <form onSubmit={handleTrackOrder} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label htmlFor="track-order-number" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                  <label htmlFor="trackOrderNumber" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                     Broj narudžbe *
                   </label>
                   <input
-                    id="track-order-number"
-                    name="orderNumber"
+                    id="trackOrderNumber"
+                    name="trackOrderNumber"
                     type="text"
                     required
                     placeholder="npr. CS-1014-4R03"
@@ -203,12 +205,12 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 </div>
 
                 <div>
-                  <label htmlFor="track-phone" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                  <label htmlFor="trackPhone" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                     Broj telefona *
                   </label>
                   <input
-                    id="track-phone"
-                    name="phone"
+                    id="trackPhone"
+                    name="trackPhone"
                     type="tel"
                     required
                     placeholder="npr. 061 123 456"
@@ -400,7 +402,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 </div>
               </div>
 
-              {/* DESNA KARTICA: FORMULAR */}
+              {/* DESNA KARTICA: REDIZAJNIRANI FORMULAR */}
               <div className="lg:col-span-7 bg-white border-2 border-black p-6 sm:p-8 shadow-2xl">
                 {contactSuccess ? (
                   <div className="text-center py-12 space-y-4 animate-fadeIn">
@@ -440,15 +442,15 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="contact-name" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
+                        <label htmlFor="contactName" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
                           Vaše ime i prezime *
                         </label>
                         <input
-                          id="contact-name"
-                          name="name"
+                          id="contactName"
+                          name="contactName"
+                          autoComplete="name"
                           type="text"
                           required
-                          autoComplete="name"
                           value={contactForm.name}
                           onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                           placeholder="npr. Amar Hadžić"
@@ -457,14 +459,14 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                       </div>
 
                       <div>
-                        <label htmlFor="contact-phone" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
+                        <label htmlFor="contactPhone" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
                           Broj telefona
                         </label>
                         <input
-                          id="contact-phone"
-                          name="phone"
-                          type="tel"
+                          id="contactPhone"
+                          name="contactPhone"
                           autoComplete="tel"
+                          type="tel"
                           value={contactForm.phone}
                           onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
                           placeholder="npr. 061 497 938"
@@ -474,14 +476,15 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                     </div>
 
                     <div>
-                      <label htmlFor="contact-email" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
-                        E-mail adresa
+                      <label htmlFor="contactEmail" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
+                        E-mail adresa *
                       </label>
                       <input
-                        id="contact-email"
-                        name="email"
-                        type="email"
+                        id="contactEmail"
+                        name="contactEmail"
                         autoComplete="email"
+                        type="email"
+                        required
                         value={contactForm.email}
                         onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                         placeholder="npr. adresa@gmail.com"
@@ -490,12 +493,12 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                     </div>
 
                     <div>
-                      <label htmlFor="contact-message" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
+                      <label htmlFor="contactMessage" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
                         Vaša poruka *
                       </label>
                       <textarea
-                        id="contact-message"
-                        name="message"
+                        id="contactMessage"
+                        name="contactMessage"
                         rows={5}
                         required
                         value={contactForm.message}

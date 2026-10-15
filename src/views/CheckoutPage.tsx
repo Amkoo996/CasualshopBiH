@@ -23,15 +23,15 @@ import { Order, Size } from '../types';
 import { db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-// Provjera e-mail adrese (podržava brojeve, tačke, crtice)
+// Jednostavna, robusna provjera e-mail adrese
 const checkValidEmail = (emailStr: string): boolean => {
-  if (!emailStr || !emailStr.trim()) return true; // Polje je opciono
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(emailStr.trim());
+  if (!emailStr) return false;
+  return /^\S+@\S+\.\S+\$/.test(emailStr.trim());
 };
 
 // Provjera poštanskog broja
 const checkValidPostal = (codeStr: string): boolean => {
-  if (!codeStr || !codeStr.trim()) return true; // Opciono
+  if (!codeStr || !codeStr.trim()) return true; 
   const digits = codeStr.trim().replace(/\D/g, '');
   return digits.length === 5;
 };
@@ -127,9 +127,8 @@ export const CheckoutPage: React.FC<{
 
   const handleEmailChange = (val: string) => {
     setFormData(prev => ({ ...prev, email: val }));
-    if (val.trim() && !checkValidEmail(val)) {
-      setErrors(prev => ({ ...prev, email: 'Unesite ispravnu e-mail adresu (npr. ime@gmail.com)' }));
-    } else {
+    // Brišemo grešku dok korisnik kuca kako ga ne bi iritiralo crveno upozorenje
+    if (errors.email) {
       setErrors(prev => {
         const copy = { ...prev };
         delete copy.email;
@@ -140,9 +139,7 @@ export const CheckoutPage: React.FC<{
 
   const handlePostalChange = (val: string) => {
     setFormData(prev => ({ ...prev, postalCode: val }));
-    if (val.trim() && !checkValidPostal(val)) {
-      setErrors(prev => ({ ...prev, postalCode: 'Poštanski broj mora imati tačno 5 cifara (npr. 71000)' }));
-    } else {
+    if (errors.postalCode) {
       setErrors(prev => {
         const copy = { ...prev };
         delete copy.postalCode;
@@ -185,8 +182,10 @@ export const CheckoutPage: React.FC<{
       newErrors.phone = 'Molimo unesite ispravan broj telefona (npr. 061 123 456).';
     }
     
-    // Validacija Emaila je obavezna
-    if (!formData.email.trim() || !checkValidEmail(formData.email)) {
+    // E-mail je strogo obavezan i validira se tek na submit
+    if (!formData.email || !formData.email.trim()) {
+      newErrors.email = 'E-mail adresa je obavezna.';
+    } else if (!checkValidEmail(formData.email)) {
       newErrors.email = 'Unesite ispravnu e-mail adresu.';
     }
 
@@ -240,7 +239,7 @@ export const CheckoutPage: React.FC<{
           city: deliveryMethod === 'pickup' ? 'Sarajevo (Lično)' : formData.city.trim(),
           postalCode: deliveryMethod === 'pickup' ? '71000' : (formData.postalCode.trim() || '71000'),
           address: deliveryAddressText,
-          email: formData.email.trim() || '',
+          email: formData.email.trim(),
           note: formData.note.trim() || (deliveryMethod === 'pickup' ? `Vrijeme: ${formData.pickupTime}` : 'Nema napomene')
         },
         subtotal: Number(subtotal.toFixed(2)),
@@ -321,7 +320,7 @@ export const CheckoutPage: React.FC<{
 
           <button
             onClick={onNavigateToPage ? () => onNavigateToPage('home') : () => window.location.href = '/'}
-            className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-black block"
+            className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-black block text-center cursor-pointer"
           >
             Nazad na početnu stranicu
           </button>
@@ -451,10 +450,13 @@ export const CheckoutPage: React.FC<{
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                    <label htmlFor="firstName" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                       Ime *
                     </label>
                     <input
+                      id="firstName"
+                      name="firstName"
+                      autoComplete="given-name"
                       type="text"
                       required
                       value={formData.firstName}
@@ -466,10 +468,13 @@ export const CheckoutPage: React.FC<{
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                    <label htmlFor="lastName" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                       Prezime *
                     </label>
                     <input
+                      id="lastName"
+                      name="lastName"
+                      autoComplete="family-name"
                       type="text"
                       required
                       value={formData.lastName}
@@ -482,10 +487,13 @@ export const CheckoutPage: React.FC<{
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                  <label htmlFor="phone" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                     Broj telefona (Mobitel) *
                   </label>
                   <input
+                    id="phone"
+                    name="phone"
+                    autoComplete="tel"
                     type="tel"
                     required
                     value={formData.phone}
@@ -500,10 +508,13 @@ export const CheckoutPage: React.FC<{
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                  <label htmlFor="email" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                     E-mail adresa *
                   </label>
                   <input
+                    id="email"
+                    name="email"
+                    autoComplete="email"
                     type="email"
                     required
                     value={formData.email}
@@ -526,10 +537,13 @@ export const CheckoutPage: React.FC<{
                   <div className="space-y-4 pt-2">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="sm:col-span-2">
-                        <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                        <label htmlFor="city" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                           Grad / Mjesto u BiH *
                         </label>
                         <input
+                          id="city"
+                          name="city"
+                          autoComplete="address-level2"
                           type="text"
                           required
                           value={formData.city}
@@ -541,10 +555,13 @@ export const CheckoutPage: React.FC<{
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                        <label htmlFor="postalCode" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                           Poštanski broj
                         </label>
                         <input
+                          id="postalCode"
+                          name="postalCode"
+                          autoComplete="postal-code"
                           type="text"
                           maxLength={5}
                           value={formData.postalCode}
@@ -561,10 +578,13 @@ export const CheckoutPage: React.FC<{
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                      <label htmlFor="address" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                         Adresa stanovanja (Ulica i kućni broj) *
                       </label>
                       <input
+                        id="address"
+                        name="address"
+                        autoComplete="street-address"
                         type="text"
                         required
                         value={formData.address}
@@ -577,10 +597,12 @@ export const CheckoutPage: React.FC<{
                   </div>
                 ) : (
                   <div className="pt-2">
-                    <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                    <label htmlFor="pickupTime" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                       Željeni dan i vrijeme preuzimanja *
                     </label>
                     <input
+                      id="pickupTime"
+                      name="pickupTime"
                       type="text"
                       required
                       value={formData.pickupTime}
@@ -592,10 +614,12 @@ export const CheckoutPage: React.FC<{
                 )}
 
                 <div>
-                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                  <label htmlFor="note" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                     Napomena za narudžbu <span className="text-neutral-400 font-normal">(Opciono)</span>
                   </label>
                   <textarea
+                    id="note"
+                    name="note"
                     rows={2}
                     value={formData.note}
                     onChange={(e) => setFormData({ ...formData, note: e.target.value })}
@@ -660,11 +684,13 @@ export const CheckoutPage: React.FC<{
 
               {/* Kupon kod */}
               <form onSubmit={handleApplyPromo} className="pt-2 border-t border-neutral-200">
-                <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                <label htmlFor="promoCodeInput" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                   Imate li promo kod za popust?
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id="promoCodeInput"
+                    name="promoCodeInput"
                     type="text"
                     value={promoCodeInput}
                     onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
