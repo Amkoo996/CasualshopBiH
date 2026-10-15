@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { AuthProvider } from '../src/context/AuthContext';
 import { CartProvider, useCart } from '../src/context/CartContext';
 import { WishlistProvider } from '../src/context/WishlistContext';
@@ -12,7 +12,7 @@ import { FloatingActions } from '../src/components/layout/FloatingActions';
 import { CookieConsent } from '../src/components/common/CookieConsent';
 import { NewsletterPopup } from '../src/components/common/NewsletterPopup';
 
-// Omotac koji povezuje korpu sa Next.js ruterom za checkout
+// Omotač koji povezuje korpu sa Next.js ruterom za checkout
 function CartDrawerWithRouter() {
   const router = useRouter();
   const { setIsCartOpen } = useCart();
@@ -28,19 +28,27 @@ function CartDrawerWithRouter() {
 }
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  
+  // Provjeravamo da li je korisnik trenutno na admin ruti
+  const isAdminRoute = pathname?.startsWith('/admin');
+
   return (
     <AuthProvider>
       <CartProvider>
         <WishlistProvider>
-          <Navbar />
-          <CartDrawerWithRouter />
-          <main className="min-h-screen">
+          {/* Prikazuj elemente trgovine SAMO ako nismo u admin panelu */}
+          {!isAdminRoute && <Navbar />}
+          {!isAdminRoute && <CartDrawerWithRouter />}
+          
+          <main className={isAdminRoute ? "h-screen overflow-hidden" : "min-h-screen"}>
             {children}
           </main>
-          <FloatingActions />
-          <NewsletterPopup />
-          <CookieConsent />
-          <Footer />
+          
+          {!isAdminRoute && <FloatingActions />}
+          {!isAdminRoute && <NewsletterPopup />}
+          {!isAdminRoute && <CookieConsent />}
+          {!isAdminRoute && <Footer />}
         </WishlistProvider>
       </CartProvider>
     </AuthProvider>
