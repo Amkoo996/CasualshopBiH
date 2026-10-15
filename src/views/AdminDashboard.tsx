@@ -26,6 +26,7 @@ import { StockManagementTab } from '../components/admin/StockManagementTab';
 import { HomeCMSEditor } from '../components/admin/HomeCMSEditor';
 import DevSettings from '../components/admin/DevSettings';
 
+// Zamjena specifičnih karaktera za pravilno procesuiranje u PDF Adresnici
 const cleanPdfText = (str: string = ''): string => {
   return str
     .replace(/[čČ]/g, (m) => (m === 'č' ? 'c' : 'C'))
@@ -319,8 +320,8 @@ export const AdminDashboard: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF9F5] px-4 font-['Inter']">
-        <div className="max-w-md w-full bg-white border-2 border-[#0A0A0A] p-8 shadow-2xl space-y-6 text-center">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[#FAF9F5] px-4 font-['Inter']">
+        <div className="max-w-md w-full bg-white border-2 border-[#0A0A0A] p-6 sm:p-8 shadow-2xl space-y-6 text-center">
           <div className="w-14 h-14 bg-[#0A0A0A] text-[#F7E97F] flex items-center justify-center mx-auto rounded-full">
             <Lock className="w-7 h-7" />
           </div>
@@ -390,18 +391,23 @@ export const AdminDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-[#FAF9F5] font-['Inter'] overflow-hidden">
+    <div className="flex h-[100dvh] bg-[#FAF9F5] font-['Inter'] overflow-hidden">
       
       {/* MOBILE HAMBURGER HEADER */}
-      <div className="md:hidden absolute top-0 left-0 right-0 h-14 bg-[#0A0A0A] text-white flex items-center justify-between px-4 z-40">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#0A0A0A] text-white flex items-center justify-between px-4 z-[60] shadow-md">
         <span className="font-['Poppins'] font-black uppercase text-sm tracking-widest text-[#F7E97F]">Casual Admin</span>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 cursor-pointer">
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 cursor-pointer z-50">
           {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
+      {/* OVERLAY FOR MOBILE MENU */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 bg-black/60 z-[50]" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+
       {/* LEFT SIDEBAR NAVIGATION */}
-      <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-[#0A0A0A] text-neutral-300 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 mt-14 md:mt-0' : '-translate-x-full'} flex flex-col h-full overflow-y-auto`}>
+      <div className={`fixed inset-y-0 left-0 z-[55] w-64 bg-[#0A0A0A] text-neutral-300 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 mt-14' : '-translate-x-full'} flex flex-col h-[calc(100dvh-3.5rem)] md:h-full overflow-y-auto`}>
         <div className="p-6 hidden md:block border-b border-neutral-800">
           <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 rounded-sm">
             Control Panel
@@ -446,40 +452,50 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 h-full overflow-y-auto mt-14 md:mt-0 p-4 sm:p-8">
+      <div className="flex-1 h-[100dvh] overflow-y-auto pt-14 md:pt-0 p-4 sm:p-8 bg-[#FAF9F5]">
         
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
-          <div className="space-y-8 animate-fadeIn max-w-6xl">
-            <div className="flex justify-between items-end">
+          <div className="space-y-6 sm:space-y-8 animate-fadeIn max-w-6xl">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
               <div>
                 <h1 className="font-['Poppins'] text-2xl font-black uppercase text-black">Pregled i Prodaja</h1>
                 <p className="text-xs text-neutral-500">Statistika poslovanja na prvi pogled.</p>
               </div>
-              <button onClick={() => loadData()} className="px-4 py-2 bg-white border-2 border-black text-xs font-bold uppercase cursor-pointer hover:bg-neutral-100">Osvježi podatke</button>
+              <button onClick={() => loadData()} className="w-full sm:w-auto px-4 py-2 bg-white border-2 border-black text-xs font-bold uppercase cursor-pointer hover:bg-neutral-100">Osvježi podatke</button>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              <div className="bg-white p-5 border-2 border-neutral-200 shadow-sm space-y-1">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              <div className="bg-white p-4 sm:p-5 border-2 border-neutral-200 shadow-sm space-y-1">
                 <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-400">UKUPAN PRIHOD</span>
-                <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">{totalRevenue.toFixed(2)} KM</div>
+                <div className="font-['Poppins'] text-xl sm:text-3xl font-black text-black">{totalRevenue.toFixed(2)} KM</div>
               </div>
-              <div className="bg-white p-5 border-2 border-neutral-200 shadow-sm space-y-1">
+              <div className="bg-white p-4 sm:p-5 border-2 border-neutral-200 shadow-sm space-y-1">
                 <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-400">BROJ NARUDŽBI</span>
-                <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">{orders.length}</div>
-                <span className="text-[11px] text-amber-700 font-medium block">{newOrdersCount} novih narudžbi</span>
+                <div className="font-['Poppins'] text-xl sm:text-3xl font-black text-black">{orders.length}</div>
+                <span className="text-[10px] text-amber-700 font-medium block">{newOrdersCount} novih narudžbi</span>
               </div>
-              <div className="bg-white p-5 border-2 border-neutral-200 shadow-sm space-y-1">
+              <div className="bg-white p-4 sm:p-5 border-2 border-neutral-200 shadow-sm space-y-1">
                 <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-400">UKUPNO ARTIKALA</span>
-                <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">{products.length}</div>
+                <div className="font-['Poppins'] text-xl sm:text-3xl font-black text-black">{products.length}</div>
               </div>
-              <div className="bg-white p-5 border-2 border-neutral-200 shadow-sm space-y-1">
+              <div className="bg-white p-4 sm:p-5 border-2 border-neutral-200 shadow-sm space-y-1">
                 <span className="text-[10px] font-['Poppins'] font-bold uppercase tracking-wider text-neutral-400">NEWSLETTER</span>
-                <div className="font-['Poppins'] text-2xl sm:text-3xl font-black text-black">{subscribers.length}</div>
+                <div className="font-['Poppins'] text-xl sm:text-3xl font-black text-black">{subscribers.length}</div>
               </div>
             </div>
-            <SalesTrendChart orders={orders} />
-            <TrafficAndCartStatsTable orders={orders} />
+            
+            <div className="overflow-x-auto pb-4">
+              <div className="min-w-[600px]">
+                <SalesTrendChart orders={orders} />
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto pb-4">
+              <div className="min-w-[600px]">
+                <TrafficAndCartStatsTable orders={orders} />
+              </div>
+            </div>
           </div>
         )}
 
@@ -487,7 +503,7 @@ export const AdminDashboard: React.FC = () => {
         {activeTab === 'cms' && <div className="animate-fadeIn max-w-5xl"><HomeCMSEditor /></div>}
 
         {/* ANALYTICS TAB */}
-        {activeTab === 'analytics' && <div className="animate-fadeIn max-w-5xl"><FunnelAnalytics ordersCount={orders.length} /></div>}
+        {activeTab === 'analytics' && <div className="animate-fadeIn max-w-5xl overflow-x-auto"><div className="min-w-[700px]"><FunnelAnalytics ordersCount={orders.length} /></div></div>}
 
         {/* LEADS TAB */}
         {activeTab === 'leads' && <div className="animate-fadeIn max-w-6xl"><AbandonedCartsPromo /></div>}
@@ -495,7 +511,7 @@ export const AdminDashboard: React.FC = () => {
         {/* PRODUCTS TAB */}
         {activeTab === 'products' && (
           <div className="space-y-6 animate-fadeIn max-w-6xl">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="font-['Poppins'] text-xl font-black uppercase text-black">Proizvodi ({products.length})</h2>
               <button
                 onClick={() => {
@@ -506,14 +522,14 @@ export const AdminDashboard: React.FC = () => {
                   });
                   setIsSidebarOpen(true);
                 }}
-                className="px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold uppercase flex items-center gap-2 border-2 border-[#0A0A0A] cursor-pointer shadow-md"
+                className="w-full sm:w-auto px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold uppercase flex items-center justify-center gap-2 border-2 border-[#0A0A0A] cursor-pointer shadow-md"
               >
                 <Plus className="w-4 h-4" /><span>Novi Artikal</span>
               </button>
             </div>
 
             <div className="bg-white border-2 border-neutral-200 overflow-x-auto shadow-sm">
-              <table className="w-full text-xs text-left">
+              <table className="w-full text-xs text-left min-w-[700px]">
                 <thead className="bg-[#0A0A0A] text-white font-['Poppins'] font-bold uppercase">
                   <tr>
                     <th className="p-3">Artikal</th>
@@ -560,7 +576,7 @@ export const AdminDashboard: React.FC = () => {
         )}
 
         {/* STOCK TAB */}
-        {activeTab === 'stock' && <div className="animate-fadeIn max-w-6xl"><StockManagementTab products={products} onRefreshData={loadData} /></div>}
+        {activeTab === 'stock' && <div className="animate-fadeIn max-w-6xl overflow-x-auto"><div className="min-w-[600px]"><StockManagementTab products={products} onRefreshData={loadData} /></div></div>}
 
         {/* ORDERS TAB */}
         {activeTab === 'orders' && (
@@ -568,14 +584,14 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex justify-between items-center">
               <h2 className="font-['Poppins'] text-xl font-black uppercase text-black">Narudžbe ({orders.length})</h2>
             </div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 border-2 border-neutral-200 shadow-sm">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 border-2 border-neutral-200 shadow-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-['Poppins'] font-bold uppercase text-neutral-500 mr-1">Status:</span>
+                <span className="text-[10px] font-['Poppins'] font-bold uppercase text-neutral-500 mr-1">Status:</span>
                 {['Sve', 'Nova', 'Potvrđena', 'Poslana', 'Dostavljena', 'Otkazana'].map((status) => (
-                  <button key={status} onClick={() => setOrderStatusFilter(status)} className={`px-3 py-1 text-[10px] sm:text-xs font-['Poppins'] font-bold uppercase transition-colors border cursor-pointer ${orderStatusFilter === status ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A]' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100'}`}>{status}</button>
+                  <button key={status} onClick={() => setOrderStatusFilter(status)} className={`px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-['Poppins'] font-bold uppercase transition-colors border cursor-pointer ${orderStatusFilter === status ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A]' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100'}`}>{status}</button>
                 ))}
               </div>
-              <div className="relative w-full sm:w-64">
+              <div className="relative w-full lg:w-64">
                 <input type="text" placeholder="Pretraži (ime, grad, telefon)..." value={orderSearch} onChange={(e) => setOrderSearch(e.target.value)} className="w-full bg-[#F4F2EC] border border-neutral-300 px-3 py-1.5 text-xs focus:bg-white focus:outline-none" />
                 <Search className="w-3.5 h-3.5 text-neutral-400 absolute right-3 top-2.5" />
               </div>
@@ -596,18 +612,18 @@ export const AdminDashboard: React.FC = () => {
                   const TrustIcon = trust.icon;
 
                   return (
-                    <div key={order.orderNumber} className="bg-white border-2 border-neutral-200 p-5 space-y-4 shadow-sm">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-200 pb-3 gap-2">
-                        <div className="flex items-center gap-3">
-                          <span className="font-['Poppins'] font-black text-sm text-black">#{order.orderNumber.replace(/^#/, '')}</span>
-                          <span className="text-xs text-neutral-500">{new Date(order.createdAt).toLocaleString('bs-BA')}</span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-bold ${trust.color}`}><TrustIcon className="w-3 h-3" /><span>{trust.label}</span></span>
+                    <div key={order.orderNumber} className="bg-white border-2 border-neutral-200 p-4 sm:p-5 space-y-4 shadow-sm">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-neutral-200 pb-3 gap-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                          <span className="font-['Poppins'] font-black text-xs sm:text-sm text-black">#{order.orderNumber.replace(/^#/, '')}</span>
+                          <span className="text-[10px] sm:text-xs text-neutral-500">{new Date(order.createdAt).toLocaleString('bs-BA')}</span>
+                          <span className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold ${trust.color}`}><TrustIcon className="w-3 h-3" /><span>{trust.label}</span></span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setPrintModalOrder({ order, name: c.name, address: c.address, city: `${c.postalCode} ${c.city}`.trim() })} className="px-3 py-1 bg-[#F7E97F] hover:bg-yellow-300 text-black border border-neutral-800 text-[10px] sm:text-xs font-['Poppins'] font-bold uppercase rounded flex items-center gap-1.5 cursor-pointer">
+                        <div className="flex items-center gap-2 w-full lg:w-auto">
+                          <button onClick={() => setPrintModalOrder({ order, name: c.name, address: c.address, city: `${c.postalCode} ${c.city}`.trim() })} className="flex-1 lg:flex-none px-3 py-1.5 bg-[#F7E97F] hover:bg-yellow-300 text-black border border-neutral-800 text-[10px] sm:text-xs font-['Poppins'] font-bold uppercase rounded flex items-center justify-center gap-1.5 cursor-pointer">
                             <Printer className="w-3.5 h-3.5" /><span>Adresnica</span>
                           </button>
-                          <select value={order.status} onChange={(e) => handleUpdateStatus(order.id || '', e.target.value as OrderStatus)} className="text-[10px] sm:text-xs font-['Poppins'] font-bold uppercase px-3 py-1 border-2 focus:outline-none cursor-pointer bg-white">
+                          <select value={order.status} onChange={(e) => handleUpdateStatus(order.id || '', e.target.value as OrderStatus)} className="flex-1 lg:flex-none text-[10px] sm:text-xs font-['Poppins'] font-bold uppercase px-3 py-1.5 border-2 focus:outline-none cursor-pointer bg-white">
                             <option value="Nova">Nova</option>
                             <option value="Potvrđena">Potvrđena</option>
                             <option value="Poslana">Poslana</option>
@@ -617,7 +633,7 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
                         <div className="space-y-1.5 bg-[#F4F2EC] p-3.5 border border-neutral-300">
                           <span className="font-['Poppins'] font-bold uppercase text-neutral-700 block">Podaci o kupcu:</span>
                           <p className="font-bold text-neutral-900 text-sm">{c.name}</p>
@@ -640,8 +656,8 @@ export const AdminDashboard: React.FC = () => {
                               </div>
                             ))}
                           </div>
-                          <div className="pt-2 border-t border-neutral-300 flex justify-between font-bold text-xs font-['Poppins']">
-                            <span>Ukupno za naplatu pouzećem:</span>
+                          <div className="pt-2 border-t border-neutral-300 flex justify-between items-center font-bold text-xs font-['Poppins']">
+                            <span>Ukupno pouzećem:</span>
                             <span className="font-black text-black text-sm">{order.total.toFixed(2)} KM</span>
                           </div>
                         </div>
@@ -664,13 +680,13 @@ export const AdminDashboard: React.FC = () => {
                 <input type="number" required min="1" max="100" value={newPromoDiscount} onChange={(e) => setNewPromoDiscount(Number(e.target.value))} className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold" placeholder="Popust %" />
                 <input type="number" required min="1" value={newPromoMaxUsage} onChange={(e) => setNewPromoMaxUsage(Number(e.target.value))} className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold" placeholder="Maksimalno korištenja" />
               </div>
-              <button type="submit" disabled={promoLoading} className="px-6 py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase cursor-pointer">
+              <button type="submit" disabled={promoLoading} className="w-full sm:w-auto px-6 py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase cursor-pointer">
                 {promoLoading ? 'Kreiranje...' : 'Generiši Promo Kod'}
               </button>
             </form>
 
             <div className="bg-white border-2 border-neutral-200 overflow-x-auto shadow-sm">
-              <table className="w-full text-xs text-left">
+              <table className="w-full text-xs text-left min-w-[500px]">
                 <thead className="bg-[#0A0A0A] text-white font-['Poppins'] font-bold uppercase">
                   <tr>
                     <th className="p-3">Kod</th>
@@ -712,7 +728,7 @@ export const AdminDashboard: React.FC = () => {
                   {subscribers.map((sub, idx) => (
                     <tr key={idx} className="hover:bg-neutral-50">
                       <td className="p-3 font-mono text-neutral-400">{idx + 1}</td>
-                      <td className="p-3 font-semibold">{sub.email}</td>
+                      <td className="p-3 font-semibold break-all">{sub.email}</td>
                       <td className="p-3 text-neutral-600">{new Date(sub.subscribedAt).toLocaleString('bs-BA')}</td>
                     </tr>
                   ))}
@@ -762,7 +778,7 @@ export const AdminDashboard: React.FC = () => {
                   <input type="number" step="1" value={storeSettings.freeShippingThreshold} onChange={(e) => setStoreSettings({ ...storeSettings, freeShippingThreshold: Number(e.target.value) })} className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-bold" />
                 </div>
               </div>
-              <button type="submit" className="px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase cursor-pointer">
+              <button type="submit" className="w-full sm:w-auto px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase cursor-pointer">
                 Spremi postavke
               </button>
             </form>
@@ -774,273 +790,148 @@ export const AdminDashboard: React.FC = () => {
 
       </div>
 
-      {/* NOVI PRODUCT SIDEBAR DRAWER (Za dodavanje i uredi artikle) */}
+      {/* MODAL ZA PRIJE-ŠTAMPNU PROVJERU ADRESNICE */}
+      {printModalOrder && (
+        <div className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white max-w-md w-full p-6 border-2 border-[#F7E97F] shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-neutral-200 pb-3">
+              <h3 className="font-['Poppins'] text-xs font-black uppercase text-black">
+                A6 Adresnica (#{printModalOrder.order.orderNumber.replace(/^#/, '')})
+              </h3>
+              <button onClick={() => setPrintModalOrder(null)} className="p-1 text-neutral-400 hover:text-black cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-neutral-700 mb-1">Ime i prezime na paketu:</label>
+                <input type="text" value={printModalOrder.name} onChange={(e) => setPrintModalOrder({ ...printModalOrder, name: e.target.value })} className="w-full bg-[#F4F2EC] border border-neutral-300 p-2 font-bold" />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-700 mb-1">Adresa kupca:</label>
+                <input type="text" value={printModalOrder.address} onChange={(e) => setPrintModalOrder({ ...printModalOrder, address: e.target.value })} className="w-full bg-[#F4F2EC] border border-neutral-300 p-2" />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-700 mb-1">Grad i poštanski broj:</label>
+                <input type="text" value={printModalOrder.city} onChange={(e) => setPrintModalOrder({ ...printModalOrder, city: e.target.value })} className="w-full bg-[#F4F2EC] border border-neutral-300 p-2" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-neutral-200">
+              <button onClick={() => setPrintModalOrder(null)} className="px-3.5 py-1.5 border border-neutral-300 text-xs font-bold uppercase cursor-pointer">Odustani</button>
+              <button onClick={() => { generateShippingSlip(printModalOrder.order, printModalOrder.name, printModalOrder.address, printModalOrder.city); setPrintModalOrder(null); }} className="px-4 py-1.5 bg-[#0A0A0A] text-[#F7E97F] hover:bg-neutral-800 text-xs font-['Poppins'] font-black uppercase rounded flex items-center gap-1.5 cursor-pointer"><Printer className="w-4 h-4" /><span>Preuzmi PDF</span></button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TRACKING MODAL */}
+      {trackingModalOrder && (
+        <div className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white max-w-md w-full p-6 border-2 border-[#F7E97F] shadow-2xl space-y-4">
+            <h3 className="font-['Poppins'] text-xs font-black uppercase text-black">
+              Unos broja pošiljke (#{trackingModalOrder.orderNumber.replace(/^#/, '')})
+            </h3>
+            <form onSubmit={handleConfirmTrackingAndSend} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold uppercase mb-1">Kurirska Služba:</label>
+                <select value={courierNameInput} onChange={(e) => setCourierNameInput(e.target.value)} className="w-full bg-[#F4F2EC] border border-neutral-300 p-2">
+                  <option value="X Express">X Express Brza Pošta</option>
+                  <option value="EuroExpress">EuroExpress</option>
+                  <option value="BH Pošta">BH Pošta</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-bold uppercase mb-1">Tracking broj:</label>
+                <input type="text" value={trackingNumberInput} onChange={(e) => setTrackingNumberInput(e.target.value.toUpperCase())} placeholder="npr. XE-123456" className="w-full bg-[#F4F2EC] border border-neutral-300 p-2 font-mono font-bold" />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-neutral-200">
+                <button type="button" onClick={() => setTrackingModalOrder(null)} className="px-3.5 py-1.5 border border-neutral-300 text-xs font-bold uppercase cursor-pointer">Odustani</button>
+                <button type="submit" className="px-4 py-1.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-bold uppercase cursor-pointer">Potvrdi slanje</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PRODUCT SIDEBAR DRAWER */}
       {isSidebarOpen && editingProduct && (
-        <div className="fixed inset-0 z-50 overflow-hidden font-['Inter']">
+        <div className="fixed inset-0 z-[60] overflow-hidden font-['Inter']">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)} />
           
           <div className="fixed inset-y-0 right-0 max-w-full flex">
             <div className="w-screen max-w-lg bg-[#FAF9F5] shadow-2xl flex flex-col h-full animate-fadeIn border-l-2 border-[#0A0A0A]">
-              
-              {/* Sidebar Header */}
               <div className="px-6 py-5 bg-[#0A0A0A] text-white flex justify-between items-center border-b border-neutral-800">
-                <div className="flex items-center gap-3">
-                  <Package className="w-5 h-5 text-[#F7E97F]" />
-                  <h2 className="font-['Poppins'] text-sm sm:text-base font-black uppercase tracking-wider text-white">
-                    {editingProduct.id ? 'UREĐIVANJE ARTIKLA' : 'NOVI ARTIKAL'}
-                  </h2>
-                </div>
-                <button onClick={() => setIsSidebarOpen(false)} className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer">
-                  <X className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-3"><Package className="w-5 h-5 text-[#F7E97F]" /><h2 className="font-['Poppins'] text-sm sm:text-base font-black uppercase tracking-wider text-white">{editingProduct.id ? 'UREĐIVANJE ARTIKLA' : 'NOVI ARTIKAL'}</h2></div>
+                <button onClick={() => setIsSidebarOpen(false)} className="p-1 text-neutral-400 hover:text-white cursor-pointer"><X className="w-6 h-6" /></button>
               </div>
 
-              {/* Sidebar Body / Form */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8">
                 <form id="product-form" onSubmit={handleSaveProductSubmit} className="space-y-8">
-                  
-                  {/* Sekcija 1: Osnovne informacije */}
                   <div className="space-y-4">
-                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2">
-                      <Info className="w-4 h-4" /> 1. Osnovne informacije
-                    </h3>
-                    
-                    <div>
-                      <label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Naziv artikla *</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="npr. Oversized Majica 'Urban'"
-                        value={editingProduct.name || ''}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                        className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs font-bold text-black focus:border-black focus:outline-none"
-                      />
-                    </div>
-
+                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2"><Info className="w-4 h-4" /> 1. Osnovne informacije</h3>
+                    <div><label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Naziv artikla *</label><input type="text" required placeholder="npr. Oversized Majica 'Urban'" value={editingProduct.name || ''} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs font-bold text-black focus:border-black focus:outline-none" /></div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Kategorija *</label>
-                        <select
-                          value={editingProduct.category || 'Majice'}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value as any })}
-                          className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs font-bold text-black focus:border-black focus:outline-none cursor-pointer"
-                        >
-                          {CATEGORIES.map((cat) => (
-                            <option key={cat} value={cat}>{cat}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Cijena (KM) *</label>
-                        <input
-                          type="number"
-                          step="0.5"
-                          required
-                          value={editingProduct.price || 0}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
-                          className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs font-mono font-black text-black focus:border-black focus:outline-none"
-                        />
-                      </div>
+                      <div><label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Kategorija *</label><select value={editingProduct.category || 'Majice'} onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value as any })} className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs font-bold text-black focus:border-black focus:outline-none cursor-pointer">{CATEGORIES.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}</select></div>
+                      <div><label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Cijena (KM) *</label><input type="number" step="0.5" required value={editingProduct.price || 0} onChange={(e) => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })} className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs font-mono font-black text-black focus:border-black focus:outline-none" /></div>
                     </div>
-
-                    <div>
-                      <label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">
-                        Prekrižena cijena (Za Akcije - Opciono)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        placeholder="Upišite višu cijenu ako je artikal na sniženju"
-                        value={editingProduct.originalPrice || ''}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, originalPrice: e.target.value ? Number(e.target.value) : undefined })}
-                        className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs font-mono text-neutral-600 focus:border-black focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Opis artikla</label>
-                      <textarea
-                        rows={3}
-                        placeholder="Napišite uvjerljiv opis proizvoda..."
-                        value={editingProduct.description || ''}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                        className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs text-black focus:border-black focus:outline-none"
-                      />
-                    </div>
+                    <div><label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Prekrižena cijena (Za Akcije - Opciono)</label><input type="number" step="0.5" placeholder="Upišite višu cijenu ako je artikal na sniženju" value={editingProduct.originalPrice || ''} onChange={(e) => setEditingProduct({ ...editingProduct, originalPrice: e.target.value ? Number(e.target.value) : undefined })} className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs font-mono text-neutral-600 focus:border-black focus:outline-none" /></div>
+                    <div><label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Opis artikla</label><textarea rows={3} placeholder="Napišite uvjerljiv opis proizvoda..." value={editingProduct.description || ''} onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })} className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs text-black focus:border-black focus:outline-none" /></div>
                   </div>
 
-                  {/* Sekcija 2: Slike i Mediji */}
                   <div className="space-y-4">
-                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2">
-                      <ImageIcon className="w-4 h-4" /> 2. Mediji i slike
-                    </h3>
-                    
+                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> 2. Mediji i slike</h3>
                     <label className="block w-full text-center border-2 border-dashed border-neutral-300 hover:border-black bg-white p-6 cursor-pointer transition-colors">
-                      <span className="font-['Poppins'] text-xs font-black uppercase text-black">
-                        {uploading ? 'Upload u toku...' : '+ KLIKNI DA DODAŠ SLIKE'}
-                      </span>
+                      <span className="font-['Poppins'] text-xs font-black uppercase text-black">{uploading ? 'Upload u toku...' : '+ KLIKNI DA DODAŠ SLIKE'}</span>
                       <p className="text-[10px] text-neutral-500 mt-1">Podržani formati: JPG, PNG, WEBP (Max 5MB)</p>
                       <input type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} disabled={uploading} />
                     </label>
-
                     {(editingProduct.images && editingProduct.images.length > 0) && (
                       <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 pt-2">
                         {editingProduct.images.map((img, idx) => (
                           <div key={idx} className="relative aspect-4/5 bg-neutral-100 border border-neutral-300 group">
                             <img src={img} alt={`Slika ${idx + 1}`} className="w-full h-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(idx)}
-                              className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                            {idx === 0 && (
-                              <span className="absolute bottom-0 left-0 right-0 bg-[#0A0A0A] text-[#F7E97F] text-[8px] font-bold text-center py-0.5">
-                                GLAVNA
-                              </span>
-                            )}
+                            <button type="button" onClick={() => handleRemoveImage(idx)} className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"><X className="w-3 h-3" /></button>
+                            {idx === 0 && <span className="absolute bottom-0 left-0 right-0 bg-[#0A0A0A] text-[#F7E97F] text-[8px] font-bold text-center py-0.5">GLAVNA</span>}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  {/* Sekcija 3: Specifikacije */}
                   <div className="space-y-4">
-                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2">
-                      <Tag className="w-4 h-4" /> 3. Detalji i materijali
-                    </h3>
-                    
+                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2"><Tag className="w-4 h-4" /> 3. Detalji i materijali</h3>
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Materijal</label>
-                        <input
-                          type="text"
-                          value={editingProduct.material || ''}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, material: e.target.value })}
-                          className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs text-black focus:border-black focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Boja</label>
-                        <input
-                          type="text"
-                          value={editingProduct.color || ''}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, color: e.target.value })}
-                          className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs text-black focus:border-black focus:outline-none"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Održavanje</label>
-                        <input
-                          type="text"
-                          value={editingProduct.careInstructions || ''}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, careInstructions: e.target.value })}
-                          className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs text-black focus:border-black focus:outline-none"
-                        />
-                      </div>
+                      <div><label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Materijal</label><input type="text" value={editingProduct.material || ''} onChange={(e) => setEditingProduct({ ...editingProduct, material: e.target.value })} className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs text-black focus:border-black focus:outline-none" /></div>
+                      <div><label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Boja</label><input type="text" value={editingProduct.color || ''} onChange={(e) => setEditingProduct({ ...editingProduct, color: e.target.value })} className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs text-black focus:border-black focus:outline-none" /></div>
+                      <div className="col-span-2"><label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">Održavanje</label><input type="text" value={editingProduct.careInstructions || ''} onChange={(e) => setEditingProduct({ ...editingProduct, careInstructions: e.target.value })} className="w-full bg-white border-2 border-neutral-300 p-2.5 text-xs text-black focus:border-black focus:outline-none" /></div>
                     </div>
                   </div>
 
-                  {/* Sekcija 4: Zalihe */}
                   <div className="space-y-4">
-                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2">
-                      <Boxes className="w-4 h-4" /> 4. Zalihe po veličinama
-                    </h3>
-                    
+                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2"><Boxes className="w-4 h-4" /> 4. Zalihe po veličinama</h3>
                     <div className="grid grid-cols-4 gap-3">
                       {availableSizesList.map((sz) => (
                         <div key={sz} className="bg-neutral-50 p-2 border border-neutral-200">
                           <label className="block text-[10px] font-['Poppins'] font-bold uppercase text-center mb-1">{sz}</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={editingProduct.sizes?.[sz] || 0}
-                            onChange={(e) => {
-                              const val = Math.max(0, parseInt(e.target.value) || 0);
-                              setEditingProduct((prev: any) => ({
-                                ...prev,
-                                sizes: { ...(prev?.sizes || {}), [sz]: val }
-                              }));
-                            }}
-                            className="w-full bg-white border border-neutral-300 p-1.5 text-center text-xs font-mono font-bold focus:border-black focus:outline-none"
-                          />
+                          <input type="number" min="0" value={editingProduct.sizes?.[sz] || 0} onChange={(e) => { const val = Math.max(0, parseInt(e.target.value) || 0); setEditingProduct((prev: any) => ({ ...prev, sizes: { ...(prev?.sizes || {}), [sz]: val } })); }} className="w-full bg-white border border-neutral-300 p-1.5 text-center text-xs font-mono font-bold focus:border-black focus:outline-none" />
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Sekcija 5: Statusi */}
                   <div className="space-y-4 pb-10">
-                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2">
-                      <Settings className="w-4 h-4" /> 5. Vidljivost artikla
-                    </h3>
-                    
+                    <h3 className="font-['Poppins'] text-xs font-black uppercase text-black border-b border-neutral-300 pb-2 flex items-center gap-2"><Settings className="w-4 h-4" /> 5. Vidljivost artikla</h3>
                     <div className="space-y-3">
-                      <label className="flex items-center gap-3 cursor-pointer p-3 border border-neutral-200 bg-white hover:bg-neutral-50">
-                        <input
-                          type="checkbox"
-                          checked={editingProduct.isHidden || false}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, isHidden: e.target.checked })}
-                          className="w-4 h-4 accent-black"
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-bold text-xs">Sakrij proizvod iz trgovine</span>
-                          <span className="text-[10px] text-neutral-500">Kupci ga neće moći vidjeti niti kupiti.</span>
-                        </div>
-                      </label>
-
-                      <label className="flex items-center gap-3 cursor-pointer p-3 border border-neutral-200 bg-white hover:bg-neutral-50">
-                        <input
-                          type="checkbox"
-                          checked={editingProduct.isNew || false}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, isNew: e.target.checked })}
-                          className="w-4 h-4 accent-black"
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-bold text-xs">Označi kao "Novo"</span>
-                          <span className="text-[10px] text-neutral-500">Prikazuje markicu NOVO na slici proizvoda.</span>
-                        </div>
-                      </label>
-
-                      <label className="flex items-center gap-3 cursor-pointer p-3 border border-neutral-200 bg-white hover:bg-neutral-50">
-                        <input
-                          type="checkbox"
-                          checked={editingProduct.featured || false}
-                          onChange={(e) => setEditingProduct({ ...editingProduct, featured: e.target.checked })}
-                          className="w-4 h-4 accent-black"
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-bold text-xs">Istaknuti proizvod (Featured)</span>
-                          <span className="text-[10px] text-neutral-500">Prikazuje se na vrhu početne stranice.</span>
-                        </div>
-                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer p-3 border border-neutral-200 bg-white hover:bg-neutral-50"><input type="checkbox" checked={editingProduct.isHidden || false} onChange={(e) => setEditingProduct({ ...editingProduct, isHidden: e.target.checked })} className="w-4 h-4 accent-black" /><div className="flex flex-col"><span className="font-bold text-xs">Sakrij proizvod iz trgovine</span><span className="text-[10px] text-neutral-500">Kupci ga neće moći vidjeti niti kupiti.</span></div></label>
+                      <label className="flex items-center gap-3 cursor-pointer p-3 border border-neutral-200 bg-white hover:bg-neutral-50"><input type="checkbox" checked={editingProduct.isNew || false} onChange={(e) => setEditingProduct({ ...editingProduct, isNew: e.target.checked })} className="w-4 h-4 accent-black" /><div className="flex flex-col"><span className="font-bold text-xs">Označi kao "Novo"</span><span className="text-[10px] text-neutral-500">Prikazuje markicu NOVO na slici proizvoda.</span></div></label>
+                      <label className="flex items-center gap-3 cursor-pointer p-3 border border-neutral-200 bg-white hover:bg-neutral-50"><input type="checkbox" checked={editingProduct.featured || false} onChange={(e) => setEditingProduct({ ...editingProduct, featured: e.target.checked })} className="w-4 h-4 accent-black" /><div className="flex flex-col"><span className="font-bold text-xs">Istaknuti proizvod (Featured)</span><span className="text-[10px] text-neutral-500">Prikazuje se na vrhu početne stranice.</span></div></label>
                     </div>
                   </div>
-
                 </form>
               </div>
 
-              {/* Sidebar Footer */}
-              <div className="p-5 bg-white border-t-2 border-neutral-300 flex justify-between gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <button
-                  type="button"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="px-6 py-3 border-2 border-neutral-300 font-['Poppins'] font-bold text-xs uppercase hover:bg-neutral-100 transition-colors w-1/3 cursor-pointer"
-                >
-                  Odustani
-                </button>
-                <button
-                  type="submit"
-                  form="product-form"
-                  className="px-6 py-3 bg-[#0A0A0A] text-[#F7E97F] font-['Poppins'] font-black text-xs uppercase tracking-wider hover:bg-black border-2 border-black flex items-center justify-center gap-2 w-2/3 shadow-lg cursor-pointer"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Spremi Artikal</span>
-                </button>
+              <div className="p-4 sm:p-5 bg-white border-t-2 border-neutral-300 flex justify-between gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <button type="button" onClick={() => setIsSidebarOpen(false)} className="px-4 sm:px-6 py-3 border-2 border-neutral-300 font-['Poppins'] font-bold text-xs uppercase hover:bg-neutral-100 transition-colors w-1/3 cursor-pointer">Odustani</button>
+                <button type="submit" form="product-form" className="px-4 sm:px-6 py-3 bg-[#0A0A0A] text-[#F7E97F] font-['Poppins'] font-black text-xs uppercase tracking-wider hover:bg-black border-2 border-black flex items-center justify-center gap-2 w-2/3 shadow-lg cursor-pointer"><Save className="w-4 h-4" /><span>Spremi Artikal</span></button>
               </div>
-
             </div>
           </div>
         </div>

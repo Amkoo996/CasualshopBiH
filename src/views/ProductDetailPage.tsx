@@ -156,24 +156,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }
     setSizeError(false);
     
-    // Generiše poruku za Instagram
-    const message = `Pozdrav, želim naručiti artikal: ${product.name} (Veličina: ${selectedSize}, Količina: ${quantity}). Da li ga imate na stanju?`;
+    const message = `Pozdrav, želim naručiti artikal: \${product.name} (Veličina: ${selectedSize}, Količina: ${quantity}). Da li ga imate na stanju?`;
     const instagramUrl = (settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih';
     
-    // Provjera da li korisnik ima mobilni uređaj (otvara u aplikaciji ako je moguće)
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // Instagram URL šema (može zavisiti od OS-a, ali obično ide preko browser fallbacka)
-      window.open(instagramUrl, '_blank');
-      // Prikazati korisniku da prekopira tekst (opcionalno)
-      navigator.clipboard.writeText(message);
-      alert('Kopiran tekst narudžbe! Zalijepite ga u Instagram DM.');
-    } else {
-      window.open(instagramUrl, '_blank');
-      navigator.clipboard.writeText(message);
-      alert('Kopiran tekst narudžbe! Zalijepite ga u Instagram DM.');
-    }
+    window.open(instagramUrl, '_blank');
+    navigator.clipboard.writeText(message);
+    alert('Kopiran tekst narudžbe! Zalijepite ga u Instagram DM.');
   };
 
   return (
@@ -230,11 +218,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <button
                     key={idx}
                     onClick={() => setSelectedImageIndex(idx)}
-                    className={`relative w-16 h-20 sm:w-20 sm:h-24 bg-white border-2 overflow-hidden shrink-0 transition-all cursor-pointer ${
+                    className={`relative w-16 h-20 sm:w-20 sm:h-24 bg-white border-2 overflow-hidden shrink-0 transition-all cursor-pointer \${
                       selectedImageIndex === idx ? 'border-black ring-2 ring-[#F7E97F]' : 'border-neutral-200 opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt={`${product.name} - ${idx + 1}`} className="w-full h-full object-cover" />
+                    <img src={img} alt={`${product.name} -${idx + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -294,7 +282,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                         setSelectedSize(sz as Size);
                         setSizeError(false);
                       }}
-                      className={`py-2.5 border-2 text-xs font-['Poppins'] font-black uppercase transition-all cursor-pointer ${
+                      className={`py-2.5 border-2 text-xs font-['Poppins'] font-black uppercase transition-all cursor-pointer \${
                         !isAvailable
                           ? 'bg-neutral-100 text-neutral-300 border-neutral-200 line-through cursor-not-allowed'
                           : isSelected
@@ -311,8 +299,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {selectedSize && (
                 <p className="text-[11px] text-neutral-500">
                   Stanje za {selectedSize}:{' '}
-                  <strong className={currentStock > 0 ? 'text-black' : 'text-red-600'}>
-                    {currentStock > 0 ? `${currentStock} komada na stanju` : 'Rasprodano'}
+                  <strong className={currentStock > 0 ? 'text-emerald-700' : 'text-red-600'}>
+                    {currentStock > 0 ? `Dostupno na stanju` : 'Rasprodano'}
                   </strong>
                 </p>
               )}
@@ -355,30 +343,30 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <button
                     type="button"
                     onClick={() => toggleWishlist(product.id)}
-                    className={`h-[52px] px-4 sm:px-5 border-2 border-neutral-300 transition-colors cursor-pointer shrink-0 ${
+                    className={`h-[52px] px-4 sm:px-5 border-2 border-neutral-300 transition-colors cursor-pointer shrink-0 \${
                       isFavorite ? 'bg-red-50 text-red-600 border-red-300' : 'bg-white text-neutral-600 hover:text-black'
                     }`}
                     title="Spremi u favorite"
                   >
-                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-600' : ''}`} />
+                    <Heart className={`w-5 h-5 \${isFavorite ? 'fill-red-600' : ''}`} />
                   </button>
                 </div>
               </div>
               
-              {/* Instagram Order Button */}
+              {/* Moćno Instagram Order Dugme */}
               <button
                 type="button"
                 onClick={handleInstagramDM}
-                className="w-full h-[52px] bg-[#FAF9F5] text-black hover:bg-[#F7E97F] font-['Poppins'] text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 border-2 border-neutral-300 hover:border-black cursor-pointer shadow-sm active:scale-98"
+                className="w-full h-[52px] text-white font-['Poppins'] text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-90 rounded-sm"
               >
                 <Instagram className="w-4 h-4" />
-                <span>Naruči preko Instagram DM-a</span>
+                <span>Naruči putem Instagrama</span>
               </button>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-4 border-t border-neutral-200 text-[10px] sm:text-[11px] text-neutral-700">
                 <div className="flex items-center justify-center sm:justify-start gap-2 p-2.5 bg-white border border-neutral-200 text-center sm:text-left">
                   <Truck className="w-4 h-4 text-black shrink-0 hidden sm:block" />
-                  <span>Dostava 24–48h širom BiH</span>
+                  <span>Dostava 48-72h širom BiH</span>
                 </div>
                 <div className="flex items-center justify-center sm:justify-start gap-2 p-2.5 bg-white border border-neutral-200 text-center sm:text-left">
                   <ShieldCheck className="w-4 h-4 text-black shrink-0 hidden sm:block" />
@@ -448,7 +436,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {relatedProducts.map((rel) => (
                 <Link
                   key={rel.id}
-                  href={`/proizvod/${rel.id}`}
+                  href={`/proizvod/\${rel.id}`}
                   className="group bg-white border-2 border-neutral-200 p-3 flex flex-col justify-between hover:border-black transition-all"
                 >
                   <div className="aspect-4/5 w-full bg-neutral-100 overflow-hidden mb-3">
