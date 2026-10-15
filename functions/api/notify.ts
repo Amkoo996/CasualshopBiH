@@ -4,12 +4,14 @@ interface Env {
   TELEGRAM_CONTACT_BOT_TOKEN?: string;
   EMAILJS_SERVICE_ID?: string;
   EMAILJS_TEMPLATE_ID?: string;
+  EMAILJS_AB_TEMPLATE_ID?: string; // Novi šablon za napuštene korpe
   EMAILJS_PUBLIC_KEY?: string;
   NEXT_PUBLIC_TELEGRAM_BOT_TOKEN?: string;
   NEXT_PUBLIC_TELEGRAM_CHAT_IDS?: string;
   NEXT_PUBLIC_TELEGRAM_CONTACT_BOT_TOKEN?: string;
   NEXT_PUBLIC_EMAILJS_SERVICE_ID?: string;
   NEXT_PUBLIC_EMAILJS_TEMPLATE_ID?: string;
+  NEXT_PUBLIC_EMAILJS_AB_TEMPLATE_ID?: string;
   NEXT_PUBLIC_EMAILJS_PUBLIC_KEY?: string;
   [key: string]: any;
 }
@@ -96,13 +98,14 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     let emailError = '';
 
     const serviceId = env.EMAILJS_SERVICE_ID || env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
-    const templateId = env.EMAILJS_TEMPLATE_ID || env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
+    const orderTemplateId = env.EMAILJS_TEMPLATE_ID || env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
+    const abTemplateId = env.EMAILJS_AB_TEMPLATE_ID || env.NEXT_PUBLIC_EMAILJS_AB_TEMPLATE_ID || orderTemplateId; // Fallback na glavne
     const publicKey = env.EMAILJS_PUBLIC_KEY || env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
 
-    if (serviceId && templateId && publicKey) {
+    if (serviceId && publicKey) {
       
       // LOGIKA ZA NARUDŽBE
-      if (type === 'order' && body.orderData?.customer?.email) {
+      if (type === 'order' && body.orderData?.customer?.email && orderTemplateId) {
         const order = body.orderData;
         const customer = order.customer || {};
         const fullName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Kupac';
@@ -119,11 +122,12 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
         const emailPayload = {
           service_id: serviceId,
-          template_id: templateId,
+          template_id: orderTemplateId,
           user_id: publicKey,
           template_params: {
             to_email: customer.email,
             customer_email: customer.email,
+            customer_name: fullName,
             subject: subject,
             email_body: email_body,
           },
@@ -150,18 +154,28 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         const fullName = cart.customerName || 'Kupac';
         
         const subject = is5d ? `Poklon za vas: 10% popusta na korpu! 🎁` : `Zaboravili ste nešto u korpi? 🛒`;
-        const email_body = is5d
-          ? `Pozdrav ${fullName},\n\nPrimijetili smo da niste završili narudžbu na našem shopu. Kao mali znak pažnje, poklanjamo vam 10% popusta na cijelu korpu uz promo kod: ${promoCode}\n\nVaši artikli na čekanju:\n${cart.itemsSummary || 'Artikli iz korpe'}\n\nPosjetite www.casualshop.ba i iskoristite popust dok su artikli još na stanju!\n\nLijep pozdrav,\nCasual Shop BiH tim`
-          : `Pozdrav ${fullName},\n\nArtikli u vašoj korpi vas i dalje čekaju, ali zalihe se brzo troše.\n\nVaši artikli:\n${cart.itemsSummary || 'Artikli iz korpe'}\n\nPosjetite www.casualshop.ba i završite narudžbu prije nego što se rasprodaju.\n\nLijep pozdrav,\nCasual Shop BiH tim`;
+        
+        const custom_message = is5d
+          ? `Kao mali znak pažnje, poklanjamo vam 10% popusta na cijelu korpu uz promo kod: ${promoCode}`
+          : `Artikli u vašoj korpi vas i dalje čekaju, ali zalihe se brzo troše.`;
+
+        const cart_items = cart.items && cart.items.length > 0
+          ? cart.items.map((it: any) => `• ${it.quantity}x ${it.name} (${it.size}) - ${(it.price * it.quantity).toFixed(2)} KM`).join('<br/>')
+          : cart.itemsSummary || 'Artikli iz vaše korpe';
+
+        const email_body = `Pozdrav ${fullName},\n\n${custom_message}\n\nVaši artikli:\n${cart.itemsSummary || 'Artikli iz korpe'}\n\nPosjetite www.casualshop.ba i završite narudžbu.\n\nLijep pozdrav,\nCasual Shop BiH tim`;
 
         const emailPayload = {
           service_id: serviceId,
-          template_id: templateId,
+          template_id: abTemplateId, // Šaljemo u novi Šablon za napuštene korpe
           user_id: publicKey,
           template_params: {
             to_email: cart.email,
             customer_email: cart.email,
+            customer_name: fullName,
             subject: subject,
+            custom_message: custom_message,
+            cart_items: cart_items,
             email_body: email_body,
           },
         };
