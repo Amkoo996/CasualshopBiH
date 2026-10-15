@@ -13,7 +13,6 @@ export const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
   const { items, setIsCartOpen, settings } = useCart();
   const { wishlist } = useWishlist();
@@ -32,7 +31,6 @@ export const Navbar = () => {
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsSearchOpen(false);
-    setIsCategoryOpen(false);
   }, [pathname]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -98,35 +96,30 @@ export const Navbar = () => {
               </Link>
             ))}
 
-            {/* Desktop Kategorije Dropdown (na KLIK umjesto hover-a) */}
-            <div className="relative">
-              <button
-                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                className={`flex items-center gap-1 font-['Poppins'] text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer ${
-                  pathname === '/shop' ? 'text-[#F7E97F]' : 'text-neutral-300 hover:text-white'
+            {/* Fiksirani Desktop CSS Hover Dropdown */}
+            <div className="relative group py-6">
+              <Link
+                href="/shop"
+                className={`flex items-center gap-1 font-['Poppins'] text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                  pathname === '/shop' ? 'text-[#F7E97F]' : 'text-neutral-300 group-hover:text-white'
                 }`}
               >
                 <span>Kategorije</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} />
-              </button>
+                <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" />
+              </Link>
 
-              {isCategoryOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsCategoryOpen(false)} />
-                  <div className="absolute top-full left-0 mt-4 w-48 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50">
-                    {visibleCategories.map((cat) => (
-                      <Link
-                        key={cat}
-                        href={`/shop?category=${encodeURIComponent(cat)}`}
-                        onClick={() => setIsCategoryOpen(false)}
-                        className="block px-4 py-2.5 text-[11px] font-bold text-neutral-300 hover:text-[#0A0A0A] hover:bg-[#F7E97F] transition-colors"
-                      >
-                        {cat}
-                      </Link>
-                    ))}
-                  </div>
-                </>
-              )}
+              {/* Padajući meni koji ostaje otvoren dok je miš iznad */}
+              <div className="absolute top-full left-0 w-48 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto translate-y-2 group-hover:translate-y-0">
+                {visibleCategories.map((cat) => (
+                  <Link
+                    key={cat}
+                    href={`/shop?category=${encodeURIComponent(cat)}`}
+                    className="block px-4 py-2.5 text-[11px] font-bold text-neutral-300 hover:text-[#0A0A0A] hover:bg-[#F7E97F] transition-colors"
+                  >
+                    {cat}
+                  </Link>
+                ))}
+              </div>
             </div>
           </nav>
 
