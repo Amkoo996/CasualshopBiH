@@ -23,13 +23,14 @@ import { Order, Size } from '../types';
 import { db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-// Jednostavna, robusna provjera e-mail adrese
+// FOOLPROOF VALIDACIJA: Ne koristi strogi Regex koji blokira autofill, 
+// već jednostavno traži '@' i tačku u tekstu.
 const checkValidEmail = (emailStr: string): boolean => {
   if (!emailStr) return false;
-  return /^\S+@\S+\.\S+\$/.test(emailStr.trim());
+  const clean = emailStr.trim();
+  return clean.includes('@') && clean.includes('.');
 };
 
-// Provjera poštanskog broja
 const checkValidPostal = (codeStr: string): boolean => {
   if (!codeStr || !codeStr.trim()) return true; 
   const digits = codeStr.trim().replace(/\D/g, '');
@@ -50,10 +51,8 @@ export const CheckoutPage: React.FC<{
     settings 
   } = useCart();
 
-  // Način dostave
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
 
-  // Podaci o kupcu
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -69,13 +68,11 @@ export const CheckoutPage: React.FC<{
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
 
-  // Kupon kod
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discountPercent: number } | null>(null);
   const [promoError, setPromoError] = useState('');
   const [promoSuccess, setPromoSuccess] = useState('');
 
-  // Obrada narudžbe
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
@@ -85,7 +82,6 @@ export const CheckoutPage: React.FC<{
     : 0;
   const finalTotal = Math.max(0, subtotal - discountAmount + actualShippingFee);
 
-  // Automatsko bilježenje napuštene korpe
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -127,7 +123,6 @@ export const CheckoutPage: React.FC<{
 
   const handleEmailChange = (val: string) => {
     setFormData(prev => ({ ...prev, email: val }));
-    // Brišemo grešku dok korisnik kuca kako ga ne bi iritiralo crveno upozorenje
     if (errors.email) {
       setErrors(prev => {
         const copy = { ...prev };
@@ -182,7 +177,7 @@ export const CheckoutPage: React.FC<{
       newErrors.phone = 'Molimo unesite ispravan broj telefona (npr. 061 123 456).';
     }
     
-    // E-mail je strogo obavezan i validira se tek na submit
+    // Provjera e-maila sa novom, opuštenijom logikom
     if (!formData.email || !formData.email.trim()) {
       newErrors.email = 'E-mail adresa je obavezna.';
     } else if (!checkValidEmail(formData.email)) {
