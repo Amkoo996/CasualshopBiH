@@ -18,9 +18,7 @@ const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
   'Jakne': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80',
   'Pantalone i trenerke': 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=600&q=80',
   'Šorcevi': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=600&q=80',
-  'Sorcevi': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=600&q=80',
   'Kape i šeširi': 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?auto=format&fit=crop&w=600&q=80',
-  'Kape i SeSiri': 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?auto=format&fit=crop&w=600&q=80',
   'Dodaci (Accessories)': 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
 };
 
@@ -86,8 +84,9 @@ export const HomePage: React.FC = () => {
   };
 
   const hiddenCats = settings?.hiddenCategories || [];
+  // Filtrira 'Rasprodano' i duplikate (poput 'Sorcevi') kako bi ostale samo ispravne kategorije
   const visibleCategoryNames = CATEGORIES.filter(
-    (cat) => cat !== 'Rasprodano' && !hiddenCats.includes(cat as Category)
+    (cat) => cat !== 'Rasprodano' && cat !== 'Sorcevi' && cat !== 'Kape i SeSiri' && !hiddenCats.includes(cat as Category)
   );
 
   const categoryData = visibleCategoryNames.map((cat) => {

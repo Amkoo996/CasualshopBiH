@@ -5,6 +5,26 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Casual Shop BiH • Autentični Streetwear',
   description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
+  icons: {
+    icon: '/logo-favicon.svg', // Referenca na tvoj favicon
+    apple: '/logo-favicon.svg',
+  },
+  openGraph: {
+    title: 'Casual Shop BiH • Autentični Streetwear',
+    description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
+    url: 'https://casualshopbih.pages.dev', // Možeš ažurirati kad dobiješ .ba domenu
+    siteName: 'Casual Shop BiH',
+    images: [
+      {
+        url: '/hero-streetwear.webp', // Slika koja se prikazuje pri dijeljenju
+        width: 1200,
+        height: 630,
+        alt: 'Casual Shop BiH Kolekcija',
+      },
+    ],
+    locale: 'bs_BA',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
@@ -19,7 +39,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;800;900&display=swap"
         />
       </head>
       <body className="bg-[#FAF9F5] text-neutral-900 antialiased font-['Inter']">
