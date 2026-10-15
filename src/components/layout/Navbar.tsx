@@ -1,266 +1,228 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import { ShoppingBag, Menu, X, Instagram, Search, Heart } from 'lucide-react';
-import { Logo } from '../common/Logo';
+import { usePathname, useRouter } from 'next/navigation';
+import { ShoppingBag, Search, Menu, X, Heart, Instagram, ChevronDown, MonitorPlay } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
-import { CATEGORIES, Category } from '../../types';
+import { CATEGORIES } from '../../types';
 
-export const Navbar: React.FC = () => {
-  const router = useRouter();
+export const Navbar = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+
+  const { items, setIsCartOpen, settings } = useCart();
+  const { wishlist } = useWishlist();
   const pathname = usePathname();
-  
-  const { totalCount, setIsCartOpen, settings } = useCart();
-  const { wishlistIds = [] } = useWishlist();
-  const wishlistCount = wishlistIds.length;
+  const router = useRouter();
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
-  const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
+  const cartItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  const hiddenCats = settings?.hiddenCategories || [];
-  const visibleCategories = CATEGORIES.filter(
-    (cat) => !hiddenCats.includes(cat as Category)
-  );
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-  const navLinks = [
-    { href: '/', label: 'Pocetna' },
-    { href: '/shop', label: 'Kolekcija' },
-    { href: '/o-nama', label: 'O nama' },
-    { href: '/dostava-i-povrat', label: 'Dostava i povrat' },
-    { href: '/kontakt', label: 'Kontakt' },
-  ];
+  // Zatvaranje mobilnog menija prilikom promjene rute
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+    setIsSearchOpen(false);
+    setIsCategoryOpen(false);
+  }, [pathname]);
 
-  const handleCategoryClick = (category: string) => {
-    setMobileMenuOpen(false);
-    setCategoriesDropdownOpen(false);
-    router.push(`/shop?category=${encodeURIComponent(category)}`);
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchValue.trim()) {
-      setSearchOpen(false);
-      router.push(`/shop?search=${encodeURIComponent(searchValue)}`);
+    if (searchQuery.trim()) {
+      router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
     }
   };
 
+  const navLinks = [
+    { href: '/', label: 'Početna' },
+    { href: '/shop', label: 'Kolekcija' },
+    { href: '/o-nama', label: 'O nama' },
+    { href: '/dostava-i-povrat', label: 'Dostava i Povrat' },
+    { href: '/kontakt', label: 'Kontakt' },
+  ];
+
+  const visibleCategories = CATEGORIES.filter((cat) => {
+    const isHidden = settings?.hiddenCategories?.includes(cat);
+    return cat !== 'Rasprodano' && !isHidden;
+  });
+
   return (
-    <header className="relative z-40 bg-[#0A0A0A] text-white border-b border-neutral-800">
-      <div className="bg-[#0A0A0A] text-[#F7E97F] text-[11px] font-['Poppins'] font-bold tracking-widest uppercase py-1.5 px-4 text-center border-b border-neutral-900 flex items-center justify-center gap-3">
-        <span>{settings?.topBarText || 'Placanje pouzecem • Dostava Sirom BiH'}</span>
+    <header className={`sticky top-0 z-40 bg-[#0A0A0A] text-white border-b-2 border-black transition-all ${isScrolled ? 'shadow-xl' : ''} font-['Inter']`}>
+      
+      {/* Promo traka */}
+      <div className="bg-[#F7E97F] text-[#0A0A0A] text-center py-1 text-[9px] sm:text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em]">
+        PLAĆANJE POUZEĆEM • DOSTAVA 48-72h ŠIROM BiH
       </div>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        {/* UKLONJEN overflow-hidden kako padajuci meni ne bi bio odsjecen */}
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-1 flex-nowrap w-full relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16 sm:h-20">
           
-          {/* Burger meni (mobilni) */}
-          <div className="flex items-center lg:hidden shrink-0">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1 text-white hover:text-[#F7E97F] transition-colors focus:outline-none cursor-pointer"
-              aria-label="Otvori navigaciju"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
-            </button>
-          </div>
-
           {/* Logo */}
-          <Link
-            href="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center focus:outline-none text-left py-1 cursor-pointer shrink min-w-0 max-w-[150px] xs:max-w-[180px] sm:max-w-none"
-          >
-            <div className="scale-90 origin-left sm:scale-100 transition-transform">
-              <Logo />
+          <Link href="/" className="flex items-center gap-3 group z-50">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-transparent border-2 border-[#F7E97F] rounded-full flex items-center justify-center overflow-hidden relative">
+              <span className="font-['Poppins'] text-[10px] font-black text-[#F7E97F] leading-none absolute">CS</span>
+              <div className="w-6 h-6 border border-[#F7E97F] transform rotate-45 group-hover:rotate-90 transition-transform duration-500" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-['Poppins'] text-lg sm:text-xl font-black tracking-widest text-white leading-none">
+                CASUAL <span className="text-[#F7E97F] text-sm">shop</span>
+              </span>
+              <span className="text-[9px] text-neutral-400 font-bold tracking-[0.2em] uppercase mt-1 hidden sm:block">
+                BiH • Casual. Svaki dan.
+              </span>
             </div>
           </Link>
 
           {/* Desktop Navigacija */}
-          <nav className="hidden lg:flex items-center space-x-7 shrink-0">
+          <nav className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] transition-colors py-1 cursor-pointer ${
-                  pathname === link.href
-                    ? 'text-[#F7E97F] border-b-2 border-[#F7E97F]'
-                    : 'text-neutral-300 hover:text-[#F7E97F]'
+                className={`font-['Poppins'] text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                  pathname === link.href ? 'text-[#F7E97F] border-b-2 border-[#F7E97F] pb-1' : 'text-neutral-300 hover:text-white'
                 }`}
               >
                 {link.label}
               </Link>
             ))}
 
-            {visibleCategories.length > 0 && (
-              <div 
-                className="relative group"
-                onMouseLeave={() => setCategoriesDropdownOpen(false)}
+            {/* Desktop Kategorije Dropdown (na KLIK umjesto hover-a) */}
+            <div className="relative">
+              <button
+                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                className={`flex items-center gap-1 font-['Poppins'] text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer ${
+                  pathname === '/shop' ? 'text-[#F7E97F]' : 'text-neutral-300 hover:text-white'
+                }`}
               >
-                <button
-                  type="button"
-                  onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
-                  className="text-xs font-['Poppins'] font-bold uppercase tracking-[0.18em] text-neutral-300 hover:text-[#F7E97F] flex items-center gap-1 py-1 cursor-pointer"
-                >
-                  <span>Kategorije</span>
-                  <span className="text-[10px]">▼</span>
-                </button>
+                <span>Kategorije</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-                {/* Padajuci meni s potpunim prikazom (radi na hover i na klik) */}
-                <div 
-                  className={`absolute top-full left-0 mt-2 w-56 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50 animate-fadeIn ${
-                    categoriesDropdownOpen ? 'block' : 'hidden group-hover:block'
-                  }`}
-                >
-                  {visibleCategories.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => handleCategoryClick(cat)}
-                      className="w-full text-left px-4 py-2.5 text-xs font-['Inter'] font-semibold text-neutral-200 hover:bg-[#171717] hover:text-[#F7E97F] transition-colors block cursor-pointer"
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+              {isCategoryOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsCategoryOpen(false)} />
+                  <div className="absolute top-full left-0 mt-4 w-48 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50">
+                    {visibleCategories.map((cat) => (
+                      <Link
+                        key={cat}
+                        href={`/shop?category=${encodeURIComponent(cat)}`}
+                        onClick={() => setIsCategoryOpen(false)}
+                        className="block px-4 py-2.5 text-[11px] font-bold text-neutral-300 hover:text-[#0A0A0A] hover:bg-[#F7E97F] transition-colors"
+                      >
+                        {cat}
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </nav>
 
-          {/* Desne akcije: Pretraga, Instagram, Favoriti, Korpa */}
-          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
-            <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="p-1 text-neutral-300 hover:text-[#F7E97F] transition-colors cursor-pointer"
-              title="Pretrazi artikle"
-            >
-              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+          {/* Ikone (Search, Instagram, Wishlist, Cart) */}
+          <div className="flex items-center gap-4 sm:gap-6 z-50">
+            <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="text-neutral-300 hover:text-[#F7E97F] transition-colors cursor-pointer">
+              <Search className="w-5 h-5 sm:w-5 sm:h-5" />
             </button>
 
-            <a
-              href={settings?.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex p-1.5 text-neutral-300 hover:text-[#F7E97F] transition-colors"
-              title="Instagram @casualshop.bih"
-            >
+            <a href={(settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih'} target="_blank" rel="noopener noreferrer" className="hidden sm:block text-neutral-300 hover:text-[#F7E97F] transition-colors">
               <Instagram className="w-5 h-5" />
             </a>
 
-            <Link
-              href="/wishlist"
-              className="relative p-1 text-neutral-300 hover:text-[#F7E97F] transition-colors flex items-center justify-center cursor-pointer"
-              title="Moji Favoriti"
-            >
-              <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#F7E97F] text-[#0A0A0A] font-['Poppins'] font-black text-[9px] w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center">
-                  {wishlistCount}
+            <Link href="/wishlist" className="relative text-neutral-300 hover:text-[#F7E97F] transition-colors group hidden sm:block">
+              <Heart className="w-5 h-5 group-hover:fill-[#F7E97F]" />
+              {wishlist.length > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-[#0A0A0A]">
+                  {wishlist.length}
                 </span>
               )}
             </Link>
 
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative px-2 sm:px-3 py-1.5 sm:py-2.5 bg-[#171717] text-white border border-neutral-700 hover:bg-[#F7E97F] hover:text-[#0A0A0A] hover:border-[#F7E97F] transition-all flex items-center gap-1 group active:scale-95 shadow-sm cursor-pointer shrink-0"
-              aria-label="Otvori korpu"
+              className="relative flex items-center gap-2 text-white hover:text-[#F7E97F] transition-colors cursor-pointer bg-neutral-900 border border-neutral-700 px-3 py-1.5 rounded-xs"
             >
-              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110 shrink-0" />
-              <span className="text-xs font-['Poppins'] font-black leading-none">
-                {totalCount}
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-[11px] sm:text-xs font-['Poppins'] font-bold">
+                {cartItemCount}
               </span>
+            </button>
+
+            {/* Hamburger Button */}
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden text-white hover:text-[#F7E97F] cursor-pointer">
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
-        {/* Polje za pretragu */}
-        {searchOpen && (
-          <div className="py-3 border-t border-neutral-800 animate-fadeIn">
-            <form onSubmit={handleSearchSubmit} className="relative flex items-center">
+        {/* Search Bar Overlay */}
+        {isSearchOpen && (
+          <div className="absolute top-full left-0 w-full bg-[#0A0A0A] border-b-2 border-[#F7E97F] p-4 shadow-xl animate-fadeIn">
+            <form onSubmit={handleSearch} className="max-w-3xl mx-auto flex gap-2">
               <input
                 type="text"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="Pretrazite artikle (npr. majica, dukserica, jakna...)"
-                className="w-full bg-[#171717] border border-neutral-700 text-white px-4 py-2.5 pr-10 text-xs focus:ring-1 focus:ring-[#F7E97F] focus:border-[#F7E97F] placeholder-neutral-500"
+                placeholder="Pretražite dukseve, majice, jakne..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
+                className="flex-1 bg-[#141414] border border-neutral-700 text-white px-4 py-3 text-sm focus:border-[#F7E97F] focus:outline-none placeholder-neutral-500"
               />
-              <button
-                type="submit"
-                className="absolute right-3 text-neutral-400 hover:text-[#F7E97F] cursor-pointer"
-              >
-                <Search className="w-4 h-4" />
+              <button type="submit" className="bg-[#F7E97F] text-[#0A0A0A] px-6 py-3 font-['Poppins'] text-xs font-black uppercase cursor-pointer hover:bg-white transition-colors">
+                Traži
               </button>
             </form>
           </div>
         )}
       </div>
 
-      {/* Mobilni meni */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-black/80 backdrop-blur-sm z-50 flex min-h-screen">
-          <div className="bg-[#0A0A0A] border-r-2 border-[#F7E97F] w-4/5 max-w-sm p-6 flex flex-col justify-between shadow-2xl animate-slideRight">
-            <div className="space-y-6 overflow-y-auto">
-              <div className="border-b border-neutral-800 pb-4">
-                <Logo />
-              </div>
-
-              <nav className="flex flex-col space-y-3">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`text-left text-sm font-['Poppins'] font-bold uppercase tracking-wider py-1.5 border-b border-neutral-900 cursor-pointer ${
-                      pathname === link.href ? 'text-[#F7E97F]' : 'text-neutral-300'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-
-                {visibleCategories.length > 0 && (
-                  <div className="pt-2">
-                    <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] text-[#F7E97F] block mb-2">
-                      KATEGORIJE PROIZVODA
-                    </span>
-                    <div className="flex flex-col space-y-1.5 pl-2">
-                      {visibleCategories.map((cat) => (
-                        <button
-                          key={cat}
-                          onClick={() => handleCategoryClick(cat)}
-                          className="text-left text-xs font-['Inter'] font-semibold text-neutral-400 hover:text-white py-1 cursor-pointer"
-                        >
-                          • {cat}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </nav>
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden absolute top-full left-0 w-full bg-[#0A0A0A] border-b-2 border-[#F7E97F] shadow-2xl h-[calc(100vh-80px)] overflow-y-auto">
+          <div className="flex flex-col p-6 space-y-6">
+            <div className="flex flex-col space-y-4 border-b border-neutral-800 pb-6">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href} href={link.href}
+                  className={`font-['Poppins'] text-sm font-bold uppercase tracking-widest ${pathname === link.href ? 'text-[#F7E97F]' : 'text-white'}`}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
 
-            <div className="border-t border-neutral-800 pt-4 text-xs text-neutral-400 space-y-2 mt-6">
-              <a
-                href={settings?.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-white hover:text-[#F7E97F]"
-              >
-                <Instagram className="w-4 h-4 text-[#F7E97F]" />
-                <span>@casualshop.bih</span>
+            <div className="space-y-4 pb-6 border-b border-neutral-800">
+              <h3 className="font-['Poppins'] text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-2">Kategorije</h3>
+              {visibleCategories.map((cat) => (
+                <Link key={cat} href={`/shop?category=${encodeURIComponent(cat)}`} className="block font-['Poppins'] text-sm font-bold text-neutral-300 uppercase tracking-widest hover:text-[#F7E97F]">
+                  {cat}
+                </Link>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Link href="/wishlist" className="flex items-center gap-2 text-white text-xs font-bold uppercase bg-neutral-900 p-3 rounded-xs border border-neutral-800">
+                <Heart className="w-4 h-4 text-red-500" />Lista želja ({wishlist.length})
+              </Link>
+              <a href={(settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-white text-xs font-bold uppercase bg-neutral-900 p-3 rounded-xs border border-neutral-800">
+                <Instagram className="w-4 h-4 text-pink-500" />Instagram
               </a>
-              <p className="text-[11px] text-neutral-400">
-                Placanje pouzecem • Dostava Sirom BiH
-              </p>
             </div>
+            
+            <Link href="/admin" className="flex items-center justify-center gap-2 text-[#0A0A0A] text-xs font-black uppercase bg-[#F7E97F] p-3 rounded-xs mt-4">
+              <MonitorPlay className="w-4 h-4" />Admin Panel
+            </Link>
           </div>
-          <div className="flex-1" onClick={() => setMobileMenuOpen(false)} />
         </div>
       )}
     </header>

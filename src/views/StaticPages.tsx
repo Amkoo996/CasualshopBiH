@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
-  Truck, ShieldCheck, CheckCircle2, AlertCircle, Search, Mail, Phone, Clock, Send, Package, RotateCcw, Instagram, ArrowRight
+  Truck, ShieldCheck, CheckCircle2, AlertCircle, Search, Mail, Clock, Send, Package, RotateCcw, Instagram, ArrowRight, MapPin
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getOrderByNumberAndPhone } from '../lib/db';
@@ -15,7 +15,6 @@ interface StaticPageProps {
   page: 'about' | 'contact' | 'terms' | 'shipping' | 'privacy';
 }
 
-// 100% SIGURNA LOKALNA VALIDACIJA (Zaobilazi sve vanjske fajlove)
 const isEmailValid = (text: string) => text.includes('@') && text.includes('.');
 const isPhoneValid = (text: string) => text.replace(/\D/g, '').length >= 6;
 
@@ -42,50 +41,23 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     const safePhone = contactForm.phone.trim();
     const safeMessage = contactForm.message.trim();
 
-    if (!safeName || !safeMessage) {
-      setContactError('Molimo unesite vaše ime i poruku.');
-      return;
-    }
-
-    if (!safeEmail) {
-      setContactError('E-mail adresa je obavezna.');
-      return;
-    } else if (!isEmailValid(safeEmail)) {
-      setContactError('Molimo unesite ispravnu e-mail adresu.');
-      return;
-    }
-
-    if (safePhone && !isPhoneValid(safePhone)) {
-      setContactError('Molimo unesite ispravan broj telefona.');
-      return;
-    }
+    if (!safeName || !safeMessage) { setContactError('Molimo unesite vaše ime i poruku.'); return; }
+    if (!safeEmail) { setContactError('E-mail adresa je obavezna.'); return; } 
+    else if (!isEmailValid(safeEmail)) { setContactError('Molimo unesite ispravnu e-mail adresu.'); return; }
+    if (safePhone && !isPhoneValid(safePhone)) { setContactError('Molimo unesite ispravan broj telefona.'); return; }
 
     setContactSending(true);
 
     try {
       const newMsgRef = doc(collection(db, 'contact_messages'));
       await setDoc(newMsgRef, {
-        id: newMsgRef.id,
-        name: safeName,
-        email: safeEmail,
-        phone: safePhone,
-        message: safeMessage,
-        createdAt: new Date().toISOString(),
-        read: false
+        id: newMsgRef.id, name: safeName, email: safeEmail, phone: safePhone, message: safeMessage, createdAt: new Date().toISOString(), read: false
       }).catch(() => {});
 
-      const telegramText =
-        `📩 NOVI KONTAKT UPIT\n` +
-        `━━━━━━━━━━━━━━━━━━\n` +
-        `👤 Ime: ${safeName}\n` +
-        `📞 Tel: ${safePhone || 'Nije navedeno'}\n` +
-        `✉️ Email: ${safeEmail}\n` +
-        `━━━━━━━━━━━━━━━━━━\n` +
-        `💬 Poruka:\n${safeMessage}`;
+      const telegramText = `📩 NOVI KONTAKT UPIT\n━━━━━━━━━━━━━━━━━━\n👤 Ime: ${safeName}\n📞 Tel: ${safePhone || 'Nije navedeno'}\n✉️ Email: ${safeEmail}\n━━━━━━━━━━━━━━━━━━\n💬 Poruka:\n${safeMessage}`;
 
-      const res = await fetch('/api/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch('/api/notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: telegramText, type: 'contact' }),
       });
 
@@ -103,29 +75,22 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     setTrackingError('');
     setTrackedOrder(null);
 
-    if (!trackingOrderNumber.trim() || !trackingPhone.trim()) {
-      setTrackingError('Molimo unesite broj narudžbe i telefon.');
-      return;
-    }
-
+    if (!trackingOrderNumber.trim() || !trackingPhone.trim()) { setTrackingError('Molimo unesite broj narudžbe i telefon.'); return; }
     setTrackingLoading(true);
 
     try {
       const order = await getOrderByNumberAndPhone(trackingOrderNumber, trackingPhone);
       if (order) setTrackedOrder(order);
       else setTrackingError('Nismo pronašli narudžbu s navedenim podacima.');
-    } catch {
-      setTrackingError('Trenutno nije moguće provjeriti status.');
-    } finally {
-      setTrackingLoading(false);
-    }
+    } catch { setTrackingError('Trenutno nije moguće provjeriti status.'); } 
+    finally { setTrackingLoading(false); }
   };
 
   return (
     <div className="bg-[#FAF9F5] text-neutral-900 min-h-screen py-10 sm:py-16 font-['Inter']">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* 1. STRANICA: DOSTAVA I POVRAT + PRAĆENJE POŠILJKE */}
+        {/* 1. DOSTAVA I POVRAT + PRAĆENJE */}
         {page === 'shipping' && (
           <div className="space-y-10 animate-fadeIn">
             <div className="text-center space-y-2">
@@ -145,12 +110,12 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
               <form onSubmit={handleTrackOrder} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label htmlFor="st-trackOrderNumber" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj narudžbe *</label>
-                  <input id="st-trackOrderNumber" name="trackOrderNumber" type="text" required placeholder="npr. CS-1014-4R03" value={trackingOrderNumber} onChange={(e) => setTrackingOrderNumber(e.target.value)} className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none" />
+                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj narudžbe *</label>
+                  <input type="text" required placeholder="npr. CS-1014-4R03" value={trackingOrderNumber} onChange={(e) => setTrackingOrderNumber(e.target.value)} className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none" />
                 </div>
                 <div>
-                  <label htmlFor="st-trackPhone" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj telefona *</label>
-                  <input id="st-trackPhone" name="trackPhone" type="tel" required placeholder="npr. 061 123 456" value={trackingPhone} onChange={(e) => setTrackingPhone(e.target.value)} className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs font-bold focus:border-black focus:outline-none" />
+                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj telefona *</label>
+                  <input type="tel" required placeholder="npr. 061 123 456" value={trackingPhone} onChange={(e) => setTrackingPhone(e.target.value)} className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs font-bold focus:border-black focus:outline-none" />
                 </div>
                 <div className="flex items-end">
                   <button type="submit" disabled={trackingLoading} className="w-full py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider border-2 border-[#0A0A0A] transition-colors cursor-pointer flex items-center justify-center gap-1.5">
@@ -159,9 +124,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 </div>
               </form>
 
-              {trackingError && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" /><span>{trackingError}</span></div>
-              )}
+              {trackingError && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" /><span>{trackingError}</span></div>}
               {trackedOrder && (
                 <div className="p-4 bg-[#FAF9F5] border-2 border-[#F7E97F] space-y-3 animate-fadeIn text-xs">
                   <div className="flex justify-between items-center border-b border-neutral-200 pb-2">
@@ -185,8 +148,8 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 border-2 border-neutral-200 space-y-2">
                 <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center font-bold mb-3"><Truck className="w-5 h-5" /></div>
-                <h3 className="font-['Poppins'] font-black text-sm uppercase text-black">Rok isporuke 24–48h</h3>
-                <p className="text-xs text-neutral-600 leading-relaxed">Narudžbe zaprimljene radnim danom do 14:00h šalju se isti dan putem ugovorene brze pošte <strong>X Express</strong>.</p>
+                <h3 className="font-['Poppins'] font-black text-sm uppercase text-black">Rok isporuke 48–72h</h3>
+                <p className="text-xs text-neutral-600 leading-relaxed">Narudžbe zaprimljene radnim danom do 12:00h šalju se isti dan putem ugovorene brze pošte <strong>X Express</strong>.</p>
               </div>
               <div className="bg-white p-6 border-2 border-neutral-200 space-y-2">
                 <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center font-bold mb-3"><ShieldCheck className="w-5 h-5" /></div>
@@ -196,13 +159,13 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
               <div className="bg-white p-6 border-2 border-neutral-200 space-y-2">
                 <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center font-bold mb-3"><RotateCcw className="w-5 h-5" /></div>
                 <h3 className="font-['Poppins'] font-black text-sm uppercase text-black">Zamjena veličine</h3>
-                <p className="text-xs text-neutral-600 leading-relaxed">Ako veličina ne odgovara, vršimo brzu zamjenu unutar 14 dana od preuzimanja paketa.</p>
+                <p className="text-xs text-neutral-600 leading-relaxed">Ako veličina ne odgovara, vršimo brzu zamjenu unutar 3 dana od preuzimanja paketa.</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* 2. STRANICA: KONTAKT */}
+        {/* 2. KONTAKT */}
         {page === 'contact' && (
           <div className="space-y-8 animate-fadeIn">
             <div className="text-center space-y-2">
@@ -219,13 +182,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                     <span className="text-[11px] text-neutral-400">Casual Shop BiH tim vam stoji na raspolaganju.</span>
                   </div>
                   <div className="space-y-4">
-                    <div className="flex items-start gap-3.5">
-                      <div className="w-9 h-9 bg-[#FAF9F5] border border-neutral-300 flex items-center justify-center shrink-0"><Phone className="w-4 h-4 text-black" /></div>
-                      <div>
-                        <p className="text-[10px] uppercase font-['Poppins'] font-bold text-neutral-400">Telefon</p>
-                        <p className="text-xs font-bold text-black font-mono">{(settings as any)?.contactPhone || '+387 61 000 000'}</p>
-                      </div>
-                    </div>
                     <div className="flex items-start gap-3.5">
                       <div className="w-9 h-9 bg-[#FAF9F5] border border-neutral-300 flex items-center justify-center shrink-0"><Mail className="w-4 h-4 text-black" /></div>
                       <div>
@@ -292,7 +248,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
                     <div>
                       <label htmlFor="st-contactMessage" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">Vaša poruka *</label>
-                      <textarea id="st-contactMessage" name="contactMessage" rows={5} required value={contactForm.message} onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })} className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs text-black font-medium focus:border-black focus:bg-white focus:outline-none transition-colors" />
+                      <textarea id="st-contactMessage" name="contactMessage" rows={5} required value={contactForm.message} onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })} placeholder="Navedite model, veličinu ili pitanje koje vas zanima..." className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs text-black font-medium focus:border-black focus:bg-white focus:outline-none transition-colors" />
                     </div>
 
                     <div className="pt-2">
@@ -302,6 +258,106 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                     </div>
                   </form>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3. O NAMA */}
+        {page === 'about' && (
+          <div className="space-y-8 animate-fadeIn text-neutral-800 leading-relaxed text-xs sm:text-sm">
+            <div className="text-center space-y-2">
+              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-2.5 py-1">NAŠA PRIČA</span>
+              <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-black">O BRENDU CASUAL SHOP BIH</h1>
+            </div>
+
+            <div className="bg-white p-6 sm:p-10 border-2 border-neutral-200 shadow-sm space-y-6">
+              <p className="font-medium text-neutral-900 leading-relaxed text-sm sm:text-base">
+                <strong>Casual Shop BiH</strong> je nastao iz strasti prema autentičnoj urbanoj i casual supkulturi. Željeli smo stvoriti mjesto gdje ljubitelji ulične mode mogu pronaći odjeću koja ne samo da izgleda moćno, već i traje.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-neutral-100">
+                <div className="space-y-2">
+                  <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center rounded-full"><RotateCcw className="w-5 h-5" /></div>
+                  <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">Beskompromisan kvalitet</h2>
+                  <p className="text-xs text-neutral-600">Svi naši artikli izrađeni su od 100% češljanog pamuka visoke gramature (240 GSM za majice, 350+ GSM za dukserice). Štampa je rađena najsavremenijim metodama koje garantuju dugotrajnost, čak i nakon brojnih pranja.</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center rounded-full"><ShieldCheck className="w-5 h-5" /></div>
+                  <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">100% sigurna kupovina</h2>
+                  <p className="text-xs text-neutral-600">Kao domaći brend, poslujemo isključivo po modelu plaćanja pouzećem. Paketi se isporučuju preko brze pošte, a imate pravo otvoriti paket pred kurirom i provjeriti artikal prije preuzimanja.</p>
+                </div>
+              </div>
+              
+              <div className="bg-[#FAF9F5] p-5 border border-neutral-200 mt-6">
+                <h3 className="font-['Poppins'] font-black text-xs uppercase text-black mb-2 flex items-center gap-2"><MapPin className="w-4 h-4 text-red-600" /> Naša misija</h3>
+                <p className="text-xs text-neutral-600">Postati prva asocijacija za vrhunski streetwear na Balkanu, pružajući odjeću koja predstavlja stav, udobnost i prepoznatljiv identitet svakog pojedinca na ulici.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 4. USLOVI KORIŠTENJA */}
+        {page === 'terms' && (
+          <div className="space-y-8 animate-fadeIn text-neutral-800 leading-relaxed text-xs sm:text-sm">
+            <div className="text-center space-y-2">
+              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-2.5 py-1">PRAVNI USLOVI</span>
+              <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-black">USLOVI KORIŠTENJA WEBSHOPA</h1>
+            </div>
+
+            <div className="bg-white p-6 sm:p-10 border-2 border-neutral-200 shadow-sm space-y-6">
+              <div className="space-y-2">
+                <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">1. Opšte odredbe i prihvatanje uslova</h2>
+                <p className="text-xs text-neutral-600">Korištenjem web stranice Casual Shop BiH, kao i naručivanjem proizvoda, korisnik potvrđuje da je pročitao i u potpunosti prihvatio ove Uslove korištenja. Zadržavamo pravo izmjene uslova poslovanja u bilo kojem trenutku bez prethodne najave.</p>
+              </div>
+              
+              <div className="space-y-2 pt-4 border-t border-neutral-100">
+                <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">2. Cijene i narudžba</h2>
+                <p className="text-xs text-neutral-600">Sve cijene navedene na webshopu izražene su u konvertibilnim markama (KM). Cijena dostave nije uključena u cijenu proizvoda, osim ako to nije posebno naznačeno ili ako se ostvari pravo na besplatnu dostavu preko određenog iznosa narudžbe. Ugovor o kupovini smatra se sklopljenim u trenutku kada kupac kompletira formu za Checkout.</p>
+              </div>
+              
+              <div className="space-y-2 pt-4 border-t border-neutral-100">
+                <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">3. Plaćanje i dostava</h2>
+                <p className="text-xs text-neutral-600">Plaćanje se vrši isključivo gotovinski kuriru prilikom preuzimanja paketa na adresi (plaćanje pouzećem). Usluga dostave se vrši preko partnerske brze pošte. Rok isporuke iznosi 48-72h. Casual Shop BiH ne odgovara za kašnjenja nastala od strane kurirske službe.</p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-neutral-100">
+                <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">4. Zamjene i povrat</h2>
+                <p className="text-xs text-neutral-600">Kupac ima pravo zatražiti zamjenu veličine u roku od 3 dana od trenutka preuzimanja paketa, pod uslovom da artikal nije nošen, opran ili oštećen, te da ima originalne etikete. Troškove poštarine za zamjenu snosi kupac.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 5. POLITIKA PRIVATNOSTI */}
+        {page === 'privacy' && (
+          <div className="space-y-8 animate-fadeIn text-neutral-800 leading-relaxed text-xs sm:text-sm">
+            <div className="text-center space-y-2">
+              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-2.5 py-1">ZAŠTITA PODATAKA</span>
+              <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-black">POLITIKA PRIVATNOSTI</h1>
+            </div>
+
+            <div className="bg-white p-6 sm:p-10 border-2 border-neutral-200 shadow-sm space-y-6">
+              <p className="font-medium text-neutral-900 text-sm mb-4">Vaša privatnost nam je prioritet. Ova politika objašnjava kako Casual Shop BiH prikuplja, koristi i štiti vaše lične podatke.</p>
+              
+              <div className="space-y-2 pt-4 border-t border-neutral-100">
+                <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">1. Prikupljanje ličnih podataka</h2>
+                <p className="text-xs text-neutral-600">Kada naručujete proizvode na našoj stranici, tražimo podatke neophodne za isporuku: ime, prezime, adresu, grad, i kontakt telefon. Vaša e-mail adresa se koristi za potvrdu narudžbe i slanje broja za praćenje pošiljke.</p>
+              </div>
+              
+              <div className="space-y-2 pt-4 border-t border-neutral-100">
+                <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">2. Svrha korištenja podataka</h2>
+                <p className="text-xs text-neutral-600">Vaši podaci koriste se isključivo za: obradu i slanje narudžbe, komunikaciju vezanu za status narudžbe te podršku kupcima. Ukoliko ste se prijavili na naš Newsletter, vašu adresu koristimo za slanje obavještenja o popustima i novim kolekcijama.</p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-neutral-100">
+                <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">3. Zaštita i dijeljenje sa trećim licima</h2>
+                <p className="text-xs text-neutral-600">Svi podaci koje unesete su sigurno pohranjeni. Podatke (Ime, Prezime, Adresu, Telefon) dijelimo isključivo sa našom partnerskom kurirskom službom (X Express Brza Pošta) u svrhu isporuke paketa. Nikada nećemo prodati ili ustupiti vaše podatke trećim stranama u marketinške svrhe.</p>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-neutral-100">
+                <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">4. Korištenje kolačića (Cookies)</h2>
+                <p className="text-xs text-neutral-600">Naša web stranica koristi osnovne kolačiće za funkcioniranje sistema korpe (spremanje artikala u korpi) i analitiku posjećenosti. Korištenjem stranice pristajete na upotrebu tehnički neophodnih kolačića.</p>
               </div>
             </div>
           </div>
