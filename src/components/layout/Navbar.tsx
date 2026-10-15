@@ -60,15 +60,13 @@ export const Navbar = () => {
   });
 
   return (
-    <header className={`sticky top-0 z-40 bg-[#0A0A0A] text-white border-b-2 border-black transition-all ${isScrolled ? 'shadow-xl' : ''} font-['Inter']`}>
+    <header className={`sticky top-0 z-40 bg-[#0A0A0A] text-white transition-all ${isScrolled ? 'shadow-xl' : ''} font-['Inter']`}>
       
-      <div className="bg-[#F7E97F] text-[#0A0A0A] text-center py-1 text-[9px] sm:text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em]">
-        PLAĆANJE POUZEĆEM • DOSTAVA 48-72h ŠIROM BiH
-      </div>
-
+      {/* Glavni Meni (Logo, Navigacija, Ikone) */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-20">
           
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group z-50">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-transparent border-2 border-[#F7E97F] rounded-full flex items-center justify-center overflow-hidden relative">
               <span className="font-['Poppins'] text-[10px] font-black text-[#F7E97F] leading-none absolute">CS</span>
@@ -84,6 +82,7 @@ export const Navbar = () => {
             </div>
           </Link>
 
+          {/* Desktop Navigacija */}
           <nav className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <Link
@@ -97,6 +96,7 @@ export const Navbar = () => {
               </Link>
             ))}
 
+            {/* Fiksirani Desktop CSS Hover Dropdown */}
             <div className="relative group py-6">
               <Link
                 href="/shop"
@@ -108,6 +108,7 @@ export const Navbar = () => {
                 <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" />
               </Link>
 
+              {/* Padajući meni koji ostaje otvoren dok je miš iznad */}
               <div className="absolute top-full left-0 w-48 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto translate-y-2 group-hover:translate-y-0">
                 {visibleCategories.map((cat) => (
                   <Link
@@ -122,6 +123,7 @@ export const Navbar = () => {
             </div>
           </nav>
 
+          {/* Ikone (Search, Instagram, Wishlist, Cart) */}
           <div className="flex items-center gap-4 sm:gap-6 z-50">
             <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="text-neutral-300 hover:text-[#F7E97F] transition-colors cursor-pointer">
               <Search className="w-5 h-5 sm:w-5 sm:h-5" />
@@ -150,14 +152,16 @@ export const Navbar = () => {
               </span>
             </button>
 
+            {/* Hamburger Button */}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden text-white hover:text-[#F7E97F] cursor-pointer">
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
+        {/* Search Bar Overlay */}
         {isSearchOpen && (
-          <div className="absolute top-full left-0 w-full bg-[#0A0A0A] border-b-2 border-[#F7E97F] p-4 shadow-xl animate-fadeIn">
+          <div className="absolute top-full left-0 w-full bg-[#0A0A0A] border-b-2 border-[#F7E97F] p-4 shadow-xl animate-fadeIn z-30">
             <form onSubmit={handleSearch} className="max-w-3xl mx-auto flex gap-2">
               <input
                 type="text"
@@ -175,8 +179,14 @@ export const Navbar = () => {
         )}
       </div>
 
+      {/* Promo traka prebačena ISPOD glavnog menija */}
+      <div className="bg-[#F7E97F] text-[#0A0A0A] border-t-2 border-black text-center py-1.5 text-[9px] sm:text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] relative z-40">
+        PLAĆANJE POUZEĆEM • DOSTAVA 48-72h ŠIROM BiH
+      </div>
+
+      {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full bg-[#0A0A0A] border-b-2 border-[#F7E97F] shadow-2xl h-[calc(100vh-80px)] overflow-y-auto">
+        <div className="md:hidden absolute top-full left-0 w-full bg-[#0A0A0A] border-b-2 border-[#F7E97F] shadow-2xl h-[calc(100vh-80px)] overflow-y-auto z-30">
           <div className="flex flex-col p-6 space-y-6">
             <div className="flex flex-col space-y-4 border-b border-neutral-800 pb-6">
               {navLinks.map((link) => (
