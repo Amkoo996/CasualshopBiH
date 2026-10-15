@@ -100,6 +100,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     const publicKey = env.EMAILJS_PUBLIC_KEY || env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
 
     if (serviceId && templateId && publicKey) {
+      
       // LOGIKA ZA NARUDŽBE
       if (type === 'order' && body.orderData?.customer?.email) {
         const order = body.orderData;
@@ -110,23 +111,21 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           .map((i: any) => `• ${i.quantity}x ${i.name} (${i.size}) - ${(i.price * i.quantity).toFixed(2)} KM`)
           .join('\n');
 
+        const shippingText = Number(order.shippingFee || 0) === 0 ? 'Besplatno' : `${Number(order.shippingFee).toFixed(2)} KM`;
+        const deliveryMethodText = customer.address?.includes('Lično') ? 'Lično preuzimanje (Sarajevo)' : 'Brza pošta X Express';
+
+        const subject = `Potvrda narudžbe #${order.orderNumber} - Casual Shop BiH`;
+        const email_body = `Poštovani/a ${fullName},\n\nHvala vam na narudžbi i povjerenju! Vaša narudžba #${order.orderNumber} je uspješno evidentirana.\n\nDetalji narudžbe:\n${itemsFormatted}\n\nCijena dostave: ${shippingText}\nUkupno za plaćanje pouzećem: ${Number(order.total || 0).toFixed(2)} KM\n\nNačin preuzimanja: ${deliveryMethodText}\nAdresa: ${customer.address}, ${customer.city}\nTelefon: ${customer.phone}\n\nUskoro ćemo vas pozvati na navedeni broj radi kratke potvrde adrese prije slanja.\n\nLijep pozdrav,\nVaš Casual Shop BiH tim`;
+
         const emailPayload = {
           service_id: serviceId,
           template_id: templateId,
           user_id: publicKey,
           template_params: {
             to_email: customer.email,
-            email: customer.email,
-            to_name: fullName,
-            customer_name: fullName,
-            order_number: order.orderNumber,
-            message: text,
-            items: itemsFormatted,
-            items_summary: (order.items || []).map((i: any) => `${i.quantity}x ${i.name} (${i.size})`).join(', '),
-            total: `${Number(order.total || 0).toFixed(2)} KM`,
-            total_amount: `${Number(order.total || 0).toFixed(2)} KM`,
-            shipping_fee: Number(order.shippingFee || 0) === 0 ? 'Besplatno' : `${Number(order.shippingFee).toFixed(2)} KM`,
-            delivery_method: customer.address?.includes('Lično') ? 'Lično preuzimanje (Sarajevo)' : 'Brza pošta X Express',
+            customer_email: customer.email,
+            subject: subject,
+            email_body: email_body,
           },
         };
 
@@ -142,6 +141,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           emailError = e?.message || 'Greška pri konekciji sa EmailJS.';
         }
       } 
+      
       // LOGIKA ZA NAPUŠTENE KORPE (FOLLOW-UP EMAILS)
       else if (type === 'abandoned' && body.cartData?.email) {
         const cart = body.cartData;
@@ -149,9 +149,10 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         const promoCode = body.promoCode || 'CASUAL10';
         const fullName = cart.customerName || 'Kupac';
         
-        const emailMsg = is5d
-          ? `Pozdrav ${fullName},\n\nPrimijetili smo da niste završili narudžbu. Kao mali znak pažnje, poklanjamo vam 10% popusta na vašu korpu uz kod: ${promoCode}!\n\nVaši artikli:\n${cart.itemsSummary || 'Artikli iz korpe'}\n\nPosjetite naš shop i iskoristite popust dok su artikli još na stanju.`
-          : `Pozdrav ${fullName},\n\nArtikli u vašoj korpi su još uvijek dostupni, ali zalihe se brzo troše.\n\nVaši artikli:\n${cart.itemsSummary || 'Artikli iz korpe'}\n\nZavršite narudžbu prije nego što se rasprodaju!`;
+        const subject = is5d ? `Poklon za vas: 10% popusta na korpu! 🎁` : `Zaboravili ste nešto u korpi? 🛒`;
+        const email_body = is5d
+          ? `Pozdrav ${fullName},\n\nPrimijetili smo da niste završili narudžbu na našem shopu. Kao mali znak pažnje, poklanjamo vam 10% popusta na cijelu korpu uz promo kod: ${promoCode}\n\nVaši artikli na čekanju:\n${cart.itemsSummary || 'Artikli iz korpe'}\n\nPosjetite www.casualshop.ba i iskoristite popust dok su artikli još na stanju!\n\nLijep pozdrav,\nCasual Shop BiH tim`
+          : `Pozdrav ${fullName},\n\nArtikli u vašoj korpi vas i dalje čekaju, ali zalihe se brzo troše.\n\nVaši artikli:\n${cart.itemsSummary || 'Artikli iz korpe'}\n\nPosjetite www.casualshop.ba i završite narudžbu prije nego što se rasprodaju.\n\nLijep pozdrav,\nCasual Shop BiH tim`;
 
         const emailPayload = {
           service_id: serviceId,
@@ -159,17 +160,9 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           user_id: publicKey,
           template_params: {
             to_email: cart.email,
-            email: cart.email,
-            to_name: fullName,
-            customer_name: fullName,
-            order_number: 'Vaša Korpa',
-            message: emailMsg,
-            items: cart.itemsSummary || '',
-            items_summary: cart.itemsSummary || '',
-            total: `${Number(cart.total || 0).toFixed(2)} KM`,
-            total_amount: `${Number(cart.total || 0).toFixed(2)} KM`,
-            shipping_fee: 'Zavisi od lokacije',
-            delivery_method: 'Nije odabrano',
+            customer_email: cart.email,
+            subject: subject,
+            email_body: email_body,
           },
         };
 
