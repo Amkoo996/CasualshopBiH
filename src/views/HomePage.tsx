@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Truck, ShieldCheck, RotateCcw, Instagram, Zap } from 'lucide-react';
+import { ArrowRight, Truck, ShieldCheck, RotateCcw, Instagram, Zap, Sparkles } from 'lucide-react';
 import { getProducts } from '../lib/db';
 import { Product } from '../types';
 
@@ -39,9 +39,7 @@ export const HomePage = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent"></div>
         
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-start justify-center">
-          <span className="text-[#F7E97F] font-['Poppins'] font-black uppercase tracking-[0.3em] text-xs sm:text-sm mb-4 border border-[#F7E97F] px-3 py-1">
-            Nova Kolekcija
-          </span>
+          
           <h1 className="text-white font-['Poppins'] text-5xl sm:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.9] mb-6 max-w-2xl">
             Ulična<br/>pravila.<br/><span className="text-[#F7E97F]">Tvoj stil.</span>
           </h1>
@@ -58,7 +56,7 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {/* 2. TRAKA POVJERENJA (TRUST BADGES) */}
+      {/* 2. TRAKA POVJERENJA */}
       <section className="bg-[#0A0A0A] border-b-4 border-[#F7E97F] py-4 sm:py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-neutral-800 text-center">
@@ -81,7 +79,7 @@ export const HomePage = () => {
       {/* 3. VIZUELNE KATEGORIJE (GRID) */}
       <section className="py-12 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-auto md:h-[500px]">
-          {/* Velika kocka lijevo */}
+          {/* Velika kocka lijevo - DUKSEVI */}
           <Link href="/shop?category=Duksevi%20i%20hoodice" className="relative group overflow-hidden bg-neutral-200 h-[300px] md:h-full">
             <img src="/images/category-hoodie.webp" alt="Duksevi" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
@@ -93,6 +91,7 @@ export const HomePage = () => {
           
           {/* Dvije kocke desno */}
           <div className="grid grid-rows-2 gap-4 h-[500px] md:h-full">
+            {/* MAJICE */}
             <Link href="/shop?category=Majice" className="relative group overflow-hidden bg-neutral-200">
               <img src="/images/category-tshirt.webp" alt="Majice" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
               <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
@@ -101,19 +100,24 @@ export const HomePage = () => {
                 <span className="text-white text-xs font-bold uppercase tracking-wider border-b-2 border-[#F7E97F] pb-1">Vidi ponudu</span>
               </div>
             </Link>
-            <Link href="/shop?category=Dodaci%20(Accessories)" className="relative group overflow-hidden bg-neutral-200">
-              <img src="/images/category-acc.webp" alt="Dodaci" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
+
+            {/* DODACI (PRIVJESCI & STIKERI) */}
+            <Link href="/shop?category=Dodaci%20(Accessories)" className="relative group overflow-hidden bg-[#0A0A0A] border-2 border-neutral-800">
+              <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-black to-neutral-900 opacity-90 group-hover:opacity-100 transition-opacity"></div>
+              <div className="absolute top-4 right-4 bg-[#F7E97F] text-[#0A0A0A] text-[9px] font-['Poppins'] font-black uppercase px-2.5 py-1 tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> USKORO
+              </div>
               <div className="absolute bottom-6 left-6">
-                <h2 className="text-white font-['Poppins'] text-2xl font-black uppercase tracking-widest mb-2 drop-shadow-lg">Dodaci</h2>
-                <span className="text-white text-xs font-bold uppercase tracking-wider border-b-2 border-[#F7E97F] pb-1">Upotpuni stil</span>
+                <h2 className="text-white font-['Poppins'] text-2xl font-black uppercase tracking-widest mb-1 drop-shadow-lg">Dodaci</h2>
+                <p className="text-[#F7E97F] text-[10px] font-bold uppercase tracking-widest mb-2">Privjesci • Stikeri • Kape</p>
+                <span className="text-neutral-300 text-xs font-bold uppercase tracking-wider border-b-2 border-[#F7E97F] pb-0.5 group-hover:text-white">Pregledaj ponudu</span>
               </div>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* 4. NAJTRAŽENIJI KOMADI (FEATURED) */}
+      {/* 4. NAJTRAŽENIJI KOMADI */}
       {!loading && featuredProducts.length > 0 && (
         <section className="py-12 bg-white border-y-2 border-neutral-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -141,15 +145,11 @@ export const HomePage = () => {
                 </Link>
               ))}
             </div>
-            
-            <Link href="/shop" className="block sm:hidden text-center text-xs font-bold uppercase text-black border-2 border-black py-3 mt-6">
-              Vidi sve artikle
-            </Link>
           </div>
         </section>
       )}
 
-      {/* 5. BRAND STORY & KVALITET */}
+      {/* 5. BRAND STORY */}
       <section className="py-16 sm:py-24 bg-[#0A0A0A] text-white">
         <div className="max-w-4xl mx-auto px-4 text-center space-y-6">
           <Zap className="w-12 h-12 text-[#F7E97F] mx-auto mb-4" />
@@ -195,10 +195,14 @@ export const HomePage = () => {
           <h2 className="text-2xl font-black uppercase font-['Poppins'] text-black tracking-tight mb-2">Casual. Svaki dan.</h2>
           <p className="text-xs text-neutral-500 font-bold tracking-widest uppercase mb-8">@casualshop.bih</p>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="aspect-square bg-neutral-100 overflow-hidden relative group">
-                <img src={`/images/insta-${item}.webp`} alt="Lifestyle" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" />
+              <div key={item} className="aspect-square bg-neutral-100 overflow-hidden relative group border border-neutral-200 shadow-sm">
+                <img 
+                  src={`/images/insta-${item}.webp`} 
+                  alt="Casual Shop Lifestyle" 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100" 
+                />
               </div>
             ))}
           </div>
@@ -208,7 +212,7 @@ export const HomePage = () => {
               href="https://www.instagram.com/casualshop.bih" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-white font-['Poppins'] text-xs font-bold uppercase tracking-wider px-8 py-4 shadow-md bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-90 transition-opacity rounded-sm"
+              className="inline-flex items-center gap-2 text-white font-['Poppins'] text-xs font-bold uppercase tracking-wider px-8 py-4 shadow-md bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-90 transition-opacity rounded-sm cursor-pointer"
             >
               <Instagram className="w-5 h-5" />
               Pridruži se ekipi na Instagramu

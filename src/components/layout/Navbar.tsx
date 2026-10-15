@@ -16,7 +16,6 @@ export const Navbar = () => {
 
   const { items, setIsCartOpen, settings } = useCart();
   
-  // SIGURNOSNA ZAMJENA: Bypassing TypeScript error za wishlist kontekst
   const wishlistContext = useWishlist() as any;
   const wishlistItems = wishlistContext.wishlist || wishlistContext.items || wishlistContext.wishlistItems || [];
   
@@ -60,23 +59,22 @@ export const Navbar = () => {
   });
 
   return (
-    <header className={`sticky top-0 z-40 bg-[#0A0A0A] text-white transition-all ${isScrolled ? 'shadow-xl' : ''} font-['Inter']`}>
+    <header className={`sticky top-0 z-40 bg-[#0A0A0A] text-white border-b border-neutral-800 transition-all ${isScrolled ? 'shadow-2xl' : ''} font-['Inter']`}>
       
-      {/* Glavni Meni (Logo, Navigacija, Ikone) */}
+      {/* Glavni Meni */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-20">
           
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group z-50">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-transparent border-2 border-[#F7E97F] rounded-full flex items-center justify-center overflow-hidden relative">
-              <span className="font-['Poppins'] text-[10px] font-black text-[#F7E97F] leading-none absolute">CS</span>
-              <div className="w-6 h-6 border border-[#F7E97F] transform rotate-45 group-hover:rotate-90 transition-transform duration-500" />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 border-2 border-[#F7E97F] rounded-full flex items-center justify-center shrink-0">
+              <span className="font-['Poppins'] text-[11px] font-black text-[#F7E97F] tracking-tighter">CS</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-['Poppins'] text-lg sm:text-xl font-black tracking-widest text-white leading-none">
-                CASUAL <span className="text-[#F7E97F] text-sm">shop</span>
+              <span className="font-['Poppins'] text-base sm:text-lg font-black tracking-widest text-white leading-none">
+                CASUAL <span className="text-[#F7E97F] text-xs">shop</span>
               </span>
-              <span className="text-[9px] text-neutral-400 font-bold tracking-[0.2em] uppercase mt-1 hidden sm:block">
+              <span className="text-[8px] sm:text-[9px] text-neutral-400 font-bold tracking-[0.2em] uppercase mt-1 hidden sm:block">
                 BiH • Casual. Svaki dan.
               </span>
             </div>
@@ -96,7 +94,7 @@ export const Navbar = () => {
               </Link>
             ))}
 
-            {/* Fiksirani Desktop CSS Hover Dropdown */}
+            {/* Dropdown Kategorije */}
             <div className="relative group py-6">
               <Link
                 href="/shop"
@@ -108,7 +106,6 @@ export const Navbar = () => {
                 <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" />
               </Link>
 
-              {/* Padajući meni koji ostaje otvoren dok je miš iznad */}
               <div className="absolute top-full left-0 w-48 bg-[#0A0A0A] border-2 border-[#F7E97F] shadow-2xl py-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto translate-y-2 group-hover:translate-y-0">
                 {visibleCategories.map((cat) => (
                   <Link
@@ -123,20 +120,20 @@ export const Navbar = () => {
             </div>
           </nav>
 
-          {/* Ikone (Search, Instagram, Wishlist, Cart) */}
-          <div className="flex items-center gap-4 sm:gap-6 z-50">
-            <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="text-neutral-300 hover:text-[#F7E97F] transition-colors cursor-pointer">
-              <Search className="w-5 h-5 sm:w-5 sm:h-5" />
+          {/* Ikone */}
+          <div className="flex items-center gap-3 sm:gap-5 z-50">
+            <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="text-neutral-300 hover:text-[#F7E97F] transition-colors cursor-pointer p-1">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            <a href={(settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih'} target="_blank" rel="noopener noreferrer" className="hidden sm:block text-neutral-300 hover:text-[#F7E97F] transition-colors">
-              <Instagram className="w-5 h-5" />
+            <a href={(settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih'} target="_blank" rel="noopener noreferrer" className="hidden sm:block text-neutral-300 hover:text-[#F7E97F] transition-colors p-1">
+              <Instagram className="w-4 h-4 sm:w-5 sm:h-5" />
             </a>
 
-            <Link href="/wishlist" className="relative text-neutral-300 hover:text-[#F7E97F] transition-colors group hidden sm:block">
-              <Heart className="w-5 h-5 group-hover:fill-[#F7E97F]" />
+            <Link href="/wishlist" className="relative text-neutral-300 hover:text-[#F7E97F] transition-colors group hidden sm:block p-1">
+              <Heart className="w-4 h-4 sm:w-5 sm:h-5 group-hover:fill-[#F7E97F]" />
               {wishlistItemCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-[#0A0A0A]">
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[8px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center">
                   {wishlistItemCount}
                 </span>
               )}
@@ -144,22 +141,20 @@ export const Navbar = () => {
 
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative flex items-center gap-2 text-white hover:text-[#F7E97F] transition-colors cursor-pointer bg-neutral-900 border border-neutral-700 px-3 py-1.5 rounded-xs"
+              className="relative flex items-center gap-1.5 text-white hover:text-[#F7E97F] transition-colors cursor-pointer bg-neutral-900 border border-neutral-700 px-2.5 py-1.5 rounded-xs"
             >
-              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-[11px] sm:text-xs font-['Poppins'] font-bold">
+              <ShoppingBag className="w-4 h-4" />
+              <span className="text-[10px] sm:text-xs font-['Poppins'] font-bold">
                 {cartItemCount}
               </span>
             </button>
 
-            {/* Hamburger Button */}
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden text-white hover:text-[#F7E97F] cursor-pointer">
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden text-white hover:text-[#F7E97F] cursor-pointer p-1">
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
-        {/* Search Bar Overlay */}
         {isSearchOpen && (
           <div className="absolute top-full left-0 w-full bg-[#0A0A0A] border-b-2 border-[#F7E97F] p-4 shadow-xl animate-fadeIn z-30">
             <form onSubmit={handleSearch} className="max-w-3xl mx-auto flex gap-2">
@@ -169,9 +164,9 @@ export const Navbar = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
-                className="flex-1 bg-[#141414] border border-neutral-700 text-white px-4 py-3 text-sm focus:border-[#F7E97F] focus:outline-none placeholder-neutral-500"
+                className="flex-1 bg-[#141414] border border-neutral-700 text-white px-4 py-2.5 text-xs sm:text-sm focus:border-[#F7E97F] focus:outline-none placeholder-neutral-500"
               />
-              <button type="submit" className="bg-[#F7E97F] text-[#0A0A0A] px-6 py-3 font-['Poppins'] text-xs font-black uppercase cursor-pointer hover:bg-white transition-colors">
+              <button type="submit" className="bg-[#F7E97F] text-[#0A0A0A] px-5 py-2.5 font-['Poppins'] text-xs font-black uppercase cursor-pointer hover:bg-white transition-colors">
                 Traži
               </button>
             </form>
@@ -179,12 +174,12 @@ export const Navbar = () => {
         )}
       </div>
 
-      {/* Promo traka prebačena ISPOD glavnog menija */}
-      <div className="bg-[#F7E97F] text-[#0A0A0A] border-t-2 border-black text-center py-1.5 text-[9px] sm:text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] relative z-40">
+      {/* Žuta promo traka ispod navbara */}
+      <div className="bg-[#F7E97F] text-[#0A0A0A] text-center py-1.5 text-[9px] sm:text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em]">
         PLAĆANJE POUZEĆEM • DOSTAVA 48-72h ŠIROM BiH
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-[#0A0A0A] border-b-2 border-[#F7E97F] shadow-2xl h-[calc(100vh-80px)] overflow-y-auto z-30">
           <div className="flex flex-col p-6 space-y-6">
