@@ -21,7 +21,7 @@ export const HomePage = () => {
         setNewDropProducts(activeProds.filter(p => p.isNew).slice(0, 4));
       } catch (err) {
         console.error("Greška pri učitavanju proizvoda:", err);
-      } font-medium {
+      } finally {
         setLoading(false);
       }
     }
