@@ -1,9 +1,9 @@
-// 1. Provjera i normalizacija e-mail adrese (podržava brojeve, točke, crtice i podvlake)
+// 1. Provjera i normalizacija e-mail adrese
 export const isValidEmail = (v: string): boolean => {
   if (!v || typeof v !== 'string') return false;
   const trimmed = v.trim();
-  if (trimmed.length < 5 || trimmed.length > 100) return false;
-  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmed);
+  // Standardni regex za email validaciju
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+\$/.test(trimmed);
 };
 
 // 2. Normalizacija i provjera brojeva telefona
@@ -32,20 +32,20 @@ export const isValidPhone = (v: string): boolean => {
   return normalizePhone(v) !== null;
 };
 
-// 3. Provjera imena i prezimena (podržava slova č, ć, ž, š, đ)
+// 3. Provjera imena i prezimena
 export const isValidName = (v: string): boolean => {
   if (!v || typeof v !== 'string') return false;
   const trimmed = v.trim();
   if (trimmed.length < 2 || trimmed.length > 60) return false;
 
   try {
-    return new RegExp("^[\\p{L}][\\p{L} .'-]{1,59}$", "u").test(trimmed);
+    return new RegExp("^[\\p{L}][\\p{L} .'-]{1,59}\$", "u").test(trimmed);
   } catch {
-    return /^[a-zA-ZčćžšđČĆŽŠĐ][a-zA-ZčćžšđČĆŽŠĐ .'-]{1,59}$/i.test(trimmed);
+    return /^[a-zA-ZčćžšđČĆŽŠĐ][a-zA-ZčćžšđČĆŽŠĐ .'-]{1,59}\$/i.test(trimmed);
   }
 };
 
-// 4. Provjera poštanskog broja (5 znamenki za BiH)
+// 4. Provjera poštanskog broja
 export const isValidPostalCode = (v: string): boolean => {
   if (!v) return false;
   const digits = v.trim().replace(/\D/g, '');

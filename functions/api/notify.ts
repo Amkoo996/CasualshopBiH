@@ -1,5 +1,5 @@
 interface Env {
-  // Varijable tačno usklađene sa tvojim Cloudflare dashboardom
+  // Ensure these match your Cloudflare Dashboard exactly
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_IDS?: string;
   TELEGRAM_CONTACT_BOT_TOKEN?: string;
@@ -7,7 +7,7 @@ interface Env {
   EMAILJS_TEMPLATE_ID?: string;
   EMAILJS_PUBLIC_KEY?: string;
   
-  // Fallback opcije ako si ih spasio sa NEXT_PUBLIC_ prefiksom
+  // Fallbacks
   NEXT_PUBLIC_TELEGRAM_BOT_TOKEN?: string;
   NEXT_PUBLIC_TELEGRAM_CHAT_IDS?: string;
   NEXT_PUBLIC_TELEGRAM_CONTACT_BOT_TOKEN?: string;
@@ -51,6 +51,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     }
 
     // 1. TELEGRAM SLANJE
+    // Explicitly grab the tokens, favoring the non-NEXT_PUBLIC ones if available
     const orderBotToken = env.TELEGRAM_BOT_TOKEN || env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN;
     const contactBotToken = env.TELEGRAM_CONTACT_BOT_TOKEN || env.NEXT_PUBLIC_TELEGRAM_CONTACT_BOT_TOKEN || orderBotToken;
     const rawChatIds = env.TELEGRAM_CHAT_IDS || env.NEXT_PUBLIC_TELEGRAM_CHAT_IDS;
@@ -59,6 +60,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     let telegramError = '';
 
     if (rawChatIds && (orderBotToken || contactBotToken)) {
+      // Determine which token to use based on the request type
       const activeBotToken = type === 'contact' ? contactBotToken : (orderBotToken || contactBotToken);
       const chatIds = rawChatIds.split(',').map((id) => id.trim()).filter(Boolean);
 
@@ -78,7 +80,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       const results = await Promise.all(
         chatIds.map(async (chatId) => {
           let res = await sendTelegram(activeBotToken!, chatId);
-          // Ako kontakt bot padne, pokušaj sa glavnim (order) botom
+          // Fallback: If contact bot fails, try the order bot
           if (!res.ok && activeBotToken !== orderBotToken && orderBotToken) {
             res = await sendTelegram(orderBotToken, chatId);
           }
@@ -104,7 +106,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         const customer = order.customer || {};
         const fullName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Kupac';
 
-        // Osiguravanje da nijedno polje ne ostane prazno
         const itemsFormatted = (order.items || [])
           .map((i: any) => `• ${i.quantity}x ${i.name} (${i.size}) - ${(i.price * i.quantity).toFixed(2)} KM`)
           .join('\n');
@@ -119,7 +120,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
             to_name: fullName,
             customer_name: fullName,
             order_number: order.orderNumber,
-            message: text, // OVO OSIGURAVA DA MAIL NE BUDE PRAZAN
+            message: text, 
             items: itemsFormatted,
             items_summary: (order.items || []).map((i: any) => `${i.quantity}x ${i.name} (${i.size})`).join(', '),
             total: `${Number(order.total || 0).toFixed(2)} KM`,

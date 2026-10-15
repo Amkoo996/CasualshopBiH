@@ -38,28 +38,18 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // NARUDŽBE (ORDERS) - ZAKLJUČANO ZA JAVNOST
+    // NARUDŽBE (ORDERS)
     // ==========================================
     match /orders/{orderId} {
-      // Dozvoljeno kreiranje narudžbe sa tačno definisanim poljima (dodat 'id' radi sigurnosti)
+      // Kupci kreiraju narudžbu
       allow create: if request.resource.data.keys().hasOnly([
         'id', 'orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 
         'total', 'paymentMethod', 'status', 'createdAt', 'promoCode', 'discountAmount'
       ]) && request.resource.data.status == 'Nova'
          && request.resource.data.total >= 0;
 
-      allow read, update, delete: if isAdmin();
-    }
-
-    // ==========================================
-    // SIGURNO PRAĆENJE NARUDŽBI (ORDER TRACKING)
-    // ==========================================
-    match /order_tracking/{orderNumber} {
-      allow get: if true;
-      allow list: if isAdmin();
-      allow create: if request.resource.data.keys().hasOnly([
-        'orderNumber', 'status', 'phoneHash', 'createdAt'
-      ]) && request.resource.data.status == 'Nova';
+      // DOZVOLI ČITANJE KUPCIMA ZA PRAĆENJE, ALI ZABRANI BRISANJE I IZMJENE
+      allow read: if true;
       allow update, delete: if isAdmin();
     }
 
