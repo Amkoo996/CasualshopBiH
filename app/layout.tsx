@@ -3,20 +3,22 @@ import ClientLayout from './ClientLayout';
 import './globals.css';
 
 export const metadata: Metadata = {
+  // Dodana definicija baze za tvoj domen kako bi Next.js znao kako učitati Open Graph slike
+  metadataBase: new URL('https://casualshopbih.pages.dev'),
   title: 'Casual Shop BiH • Autentični Streetwear',
   description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
   icons: {
-    icon: '/logo-favicon.svg', // Referenca na tvoj favicon
+    icon: '/logo-favicon.svg',
     apple: '/logo-favicon.svg',
   },
   openGraph: {
     title: 'Casual Shop BiH • Autentični Streetwear',
     description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
-    url: 'https://casualshopbih.pages.dev', // Možeš ažurirati kad dobiješ .ba domenu
+    url: 'https://casualshopbih.pages.dev',
     siteName: 'Casual Shop BiH',
     images: [
       {
-        url: '/hero-streetwear.webp', // Slika koja se prikazuje pri dijeljenju
+        url: '/hero-streetwear.webp',
         width: 1200,
         height: 630,
         alt: 'Casual Shop BiH Kolekcija',
