@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getOrderByNumberAndPhone } from '../lib/db';
-import { isValidPhone, isValidEmail } from '../lib/validation';
 import { Order } from '../types';
 import { db } from '../lib/firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
@@ -54,17 +53,24 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     e.preventDefault();
     setContactError('');
 
-    if (!contactForm.name.trim() || !contactForm.message.trim()) {
+    const safeName = contactForm.name.trim();
+    const safeEmail = contactForm.email.trim();
+    const safePhone = contactForm.phone.trim();
+    const safeMessage = contactForm.message.trim();
+
+    if (!safeName || !safeMessage) {
       setContactError('Molimo unesite vaše ime i poruku.');
       return;
     }
 
-    if (contactForm.email.trim() && !isValidEmail(contactForm.email)) {
+    // Sigurna inline validacija e-maila
+    if (safeEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+\$/.test(safeEmail)) {
       setContactError('Molimo unesite ispravnu e-mail adresu.');
       return;
     }
 
-    if (contactForm.phone.trim() && !isValidPhone(contactForm.phone)) {
+    // Sigurna inline validacija telefona (najmanje 6 cifara)
+    if (safePhone && safePhone.replace(/\D/g, '').length < 6) {
       setContactError('Molimo unesite ispravan broj telefona.');
       return;
     }
@@ -72,27 +78,29 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     setContactSending(true);
 
     try {
-      // 1. Spašavanje u bazu podataka za svaki slučaj (ako Telegram padne)
+      // 1. Spašavanje u bazu podataka za svaki slučaj
       const newMsgRef = doc(collection(db, 'contact_messages'));
       await setDoc(newMsgRef, {
         id: newMsgRef.id,
-        name: contactForm.name.trim(),
-        email: contactForm.email.trim(),
-        phone: contactForm.phone.trim(),
-        message: contactForm.message.trim(),
+        name: safeName,
+        email: safeEmail,
+        phone: safePhone,
+        message: safeMessage,
         createdAt: new Date().toISOString(),
         read: false
+      }).catch(() => {
+        console.warn("Nije uspjelo spremanje poruke u Firestore.");
       });
 
       // 2. Slanje na Telegram
       const telegramText =
         `📩 NOVI KONTAKT UPIT (PODRŠKA)\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
-        `👤 Ime: ${contactForm.name.trim()}\n` +
-        `📞 Telefon: ${contactForm.phone.trim() || 'Nije navedeno'}\n` +
-        `✉️ E-mail: ${contactForm.email.trim() || 'Nije navedeno'}\n` +
+        `👤 Ime: ${safeName}\n` +
+        `📞 Telefon: ${safePhone || 'Nije navedeno'}\n` +
+        `✉️ E-mail: ${safeEmail || 'Nije navedeno'}\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
-        `💬 Poruka:\n${contactForm.message.trim()}`;
+        `💬 Poruka:\n${safeMessage}`;
 
       const res = await fetch('/api/notify', {
         method: 'POST',
@@ -100,10 +108,14 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
         body: JSON.stringify({ text: telegramText, type: 'contact' }),
       });
 
-      // Bez obzira na Telegram odgovor, forma je spašena u bazu, pa smatramo da je uspješno
-      setContactSuccess(true);
-      setContactForm({ name: '', email: '', phone: '', message: '' });
-      
+      const data = await res.json().catch(() => ({}));
+
+      if (data.success || res.ok) {
+        setContactSuccess(true);
+        setContactForm({ name: '', email: '', phone: '', message: '' });
+      } else {
+        setContactError(data.error || 'Došlo je do greške pri slanju upita. Možete nam pisati i izravno na Instagram.');
+      }
     } catch {
       setContactError('Došlo je do greške prilikom slanja. Možete nam se javiti i putem Instagrama.');
     } finally {
@@ -175,10 +187,12 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
               <form onSubmit={handleTrackOrder} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                  <label htmlFor="track-order-number" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                     Broj narudžbe *
                   </label>
                   <input
+                    id="track-order-number"
+                    name="orderNumber"
                     type="text"
                     required
                     placeholder="npr. CS-1014-4R03"
@@ -189,10 +203,12 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
+                  <label htmlFor="track-phone" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                     Broj telefona *
                   </label>
                   <input
+                    id="track-phone"
+                    name="phone"
                     type="tel"
                     required
                     placeholder="npr. 061 123 456"
@@ -293,7 +309,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
           </div>
         )}
 
-        {/* 2. STRANICA: KONTAKT (REDIZAJNIRANO & UKLONJEN VIBER/WHATSAPP) */}
+        {/* 2. STRANICA: KONTAKT */}
         {page === 'contact' && (
           <div className="space-y-8 animate-fadeIn">
             <div className="text-center space-y-2">
@@ -384,7 +400,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 </div>
               </div>
 
-              {/* DESNA KARTICA: REDIZAJNIRANI FORMULAR */}
+              {/* DESNA KARTICA: FORMULAR */}
               <div className="lg:col-span-7 bg-white border-2 border-black p-6 sm:p-8 shadow-2xl">
                 {contactSuccess ? (
                   <div className="text-center py-12 space-y-4 animate-fadeIn">
@@ -424,12 +440,15 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
+                        <label htmlFor="contact-name" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
                           Vaše ime i prezime *
                         </label>
                         <input
+                          id="contact-name"
+                          name="name"
                           type="text"
                           required
+                          autoComplete="name"
                           value={contactForm.name}
                           onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                           placeholder="npr. Amar Hadžić"
@@ -438,11 +457,14 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
+                        <label htmlFor="contact-phone" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
                           Broj telefona
                         </label>
                         <input
+                          id="contact-phone"
+                          name="phone"
                           type="tel"
+                          autoComplete="tel"
                           value={contactForm.phone}
                           onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
                           placeholder="npr. 061 497 938"
@@ -452,12 +474,14 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
-                        E-mail adresa *
+                      <label htmlFor="contact-email" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
+                        E-mail adresa
                       </label>
                       <input
+                        id="contact-email"
+                        name="email"
                         type="email"
-                        required
+                        autoComplete="email"
                         value={contactForm.email}
                         onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                         placeholder="npr. adresa@gmail.com"
@@ -466,10 +490,12 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
+                      <label htmlFor="contact-message" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1 text-neutral-800">
                         Vaša poruka *
                       </label>
                       <textarea
+                        id="contact-message"
+                        name="message"
                         rows={5}
                         required
                         value={contactForm.message}
