@@ -13,7 +13,8 @@ import {
   Heart, 
   X, 
   ChevronRight,
-  Instagram
+  Instagram,
+  Share2
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -156,13 +157,41 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }
     setSizeError(false);
     
-    const message = `Pozdrav, želim naručiti artikal: \${product.name} (Veličina: ${selectedSize}, Količina: ${quantity}). Da li ga imate na stanju?`;
+    // Generiše poruku za Instagram
+    const message = `Pozdrav, želim naručiti artikal: ${product.name} (Veličina: ${selectedSize}, Količina: ${quantity}). Da li ga imate na stanju?`;
     const instagramUrl = (settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih';
     
     window.open(instagramUrl, '_blank');
     navigator.clipboard.writeText(message);
     alert('Kopiran tekst narudžbe! Zalijepite ga u Instagram DM.');
   };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `${product.name} | Casual Shop BiH`,
+      text: `Pogledaj ovaj artikal iz Casual Shop BiH kolekcije: ${product.name}`,
+      url: window.location.href
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+        alert('Link artikla uspješno kopiran u međuspremnik!');
+      }
+    } catch (err) {
+      console.error('Greška pri dijeljenju', err);
+    }
+  };
+
+  // Filtriramo veličine tako da se XXL i 3XL uopšte ne prikazuju ako ih nema na stanju
+  const sizesToDisplay = ['S', 'M', 'L', 'XL', 'XXL', '3XL'].filter(sz => {
+    const stock = product.sizes ? (product.sizes[sz as Size] ?? 0) : 0;
+    if ((sz === 'XXL' || sz === '3XL') && stock <= 0) {
+      return false; // Potpuno skrivamo XXL i 3XL
+    }
+    return true; // S, M, L, XL ostaju vidljivi u svakom slučaju
+  });
 
   return (
     <div className="bg-[#FAF9F5] text-neutral-900 min-h-screen py-6 sm:py-12 font-['Inter'] overflow-x-hidden">
@@ -218,11 +247,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <button
                     key={idx}
                     onClick={() => setSelectedImageIndex(idx)}
-                    className={`relative w-16 h-20 sm:w-20 sm:h-24 bg-white border-2 overflow-hidden shrink-0 transition-all cursor-pointer \${
+                    className={`relative w-16 h-20 sm:w-20 sm:h-24 bg-white border-2 overflow-hidden shrink-0 transition-all cursor-pointer ${
                       selectedImageIndex === idx ? 'border-black ring-2 ring-[#F7E97F]' : 'border-neutral-200 opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt={`${product.name} -${idx + 1}`} className="w-full h-full object-cover" />
+                    <img src={img} alt={`${product.name} slika ${idx + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -268,7 +297,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
 
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                {['S', 'M', 'L', 'XL', 'XXL', '3XL'].map((sz) => {
+                {sizesToDisplay.map((sz) => {
                   const stock = product.sizes ? (product.sizes[sz as Size] ?? 0) : 0;
                   const isAvailable = stock > 0;
                   const isSelected = selectedSize === sz;
@@ -282,9 +311,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                         setSelectedSize(sz as Size);
                         setSizeError(false);
                       }}
-                      className={`py-2.5 border-2 text-xs font-['Poppins'] font-black uppercase transition-all cursor-pointer \${
+                      className={`py-2.5 border-2 text-xs font-['Poppins'] font-black uppercase transition-all cursor-pointer ${
                         !isAvailable
-                          ? 'bg-neutral-100 text-neutral-300 border-neutral-200 line-through cursor-not-allowed'
+                          ? 'bg-neutral-100 text-neutral-400 border-neutral-300 line-through cursor-not-allowed'
                           : isSelected
                           ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A] shadow-md'
                           : 'bg-white text-black border-neutral-300 hover:border-black'
@@ -299,8 +328,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {selectedSize && (
                 <p className="text-[11px] text-neutral-500">
                   Stanje za {selectedSize}:{' '}
-                  <strong className={currentStock > 0 ? 'text-emerald-700' : 'text-red-600'}>
-                    {currentStock > 0 ? `Dostupno na stanju` : 'Rasprodano'}
+                  <strong className={currentStock > 0 ? 'text-emerald-600' : 'text-red-600'}>
+                    {currentStock > 0 ? 'Dostupno na stanju' : 'Rasprodano'}
                   </strong>
                 </p>
               )}
@@ -343,24 +372,33 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <button
                     type="button"
                     onClick={() => toggleWishlist(product.id)}
-                    className={`h-[52px] px-4 sm:px-5 border-2 border-neutral-300 transition-colors cursor-pointer shrink-0 \${
+                    className={`h-[52px] px-3 sm:px-4 border-2 border-neutral-300 transition-colors cursor-pointer shrink-0 ${
                       isFavorite ? 'bg-red-50 text-red-600 border-red-300' : 'bg-white text-neutral-600 hover:text-black'
                     }`}
                     title="Spremi u favorite"
                   >
-                    <Heart className={`w-5 h-5 \${isFavorite ? 'fill-red-600' : ''}`} />
+                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-600' : ''}`} />
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="h-[52px] px-3 sm:px-4 border-2 border-neutral-300 bg-white text-neutral-600 hover:text-black transition-colors cursor-pointer shrink-0"
+                    title="Podijeli artikal"
+                  >
+                    <Share2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
               
-              {/* Moćno Instagram Order Dugme */}
+              {/* Instagram Naručivanje */}
               <button
                 type="button"
                 onClick={handleInstagramDM}
-                className="w-full h-[52px] text-white font-['Poppins'] text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-90 rounded-sm"
+                className="w-full h-[52px] text-white font-['Poppins'] text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 border-none cursor-pointer shadow-md active:scale-98 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-90 rounded-sm"
               >
                 <Instagram className="w-4 h-4" />
-                <span>Naruči putem Instagrama</span>
+                <span>Naruči preko Instagram DM-a</span>
               </button>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-4 border-t border-neutral-200 text-[10px] sm:text-[11px] text-neutral-700">
@@ -374,7 +412,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </div>
                 <div className="flex items-center justify-center sm:justify-start gap-2 p-2.5 bg-white border border-neutral-200 text-center sm:text-left">
                   <RotateCcw className="w-4 h-4 text-black shrink-0 hidden sm:block" />
-                  <span>Zamjena veličine unutar 14 dana</span>
+                  <span>Zamjena veličine unutar 3 dana</span>
                 </div>
               </div>
             </div>
@@ -436,7 +474,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {relatedProducts.map((rel) => (
                 <Link
                   key={rel.id}
-                  href={`/proizvod/\${rel.id}`}
+                  href={`/proizvod/${rel.id}`}
                   className="group bg-white border-2 border-neutral-200 p-3 flex flex-col justify-between hover:border-black transition-all"
                 >
                   <div className="aspect-4/5 w-full bg-neutral-100 overflow-hidden mb-3">
