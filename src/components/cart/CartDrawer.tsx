@@ -6,7 +6,7 @@ import { X, Trash2, ArrowRight, ShoppingBag, ShieldCheck, Truck } from 'lucide-r
 import { useCart } from '../../context/CartContext';
 
 interface CartDrawerProps {
-  onCheckout: () => void;
+  onCheckout?: () => void;
 }
 
 const optimizeCloudinaryUrl = (url: string, width: number = 200) => {
@@ -41,6 +41,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
   const handleContinueShopping = () => {
     setIsCartOpen(false);
     router.push('/shop');
+  };
+
+  const handleProceedToCheckout = () => {
+    setIsCartOpen(false);
+    setTimeout(() => {
+      if (onCheckout) onCheckout();
+      else router.push('/checkout');
+    }, 150);
   };
 
   return (
@@ -219,10 +227,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
 
               <button
                 type="button"
-                onClick={() => {
-                  setIsCartOpen(false);
-                  onCheckout();
-                }}
+                onClick={handleProceedToCheckout}
                 className="w-full py-3.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 border-2 border-[#0A0A0A] cursor-pointer shadow-lg active:scale-95"
               >
                 <ShieldCheck className="w-4 h-4" />
