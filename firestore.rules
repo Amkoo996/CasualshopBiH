@@ -11,7 +11,12 @@ service cloud.firestore {
       );
     }
 
-    // Helper funkcija: osigurava da kupac može samo smanjiti zalihu
+    // Dozvoljene veličine proizvoda
+    function validSizes() {
+      return ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
+    }
+
+    // Helper: osigurava da kupac može isključivo smanjiti postojeću zalihu
     function sizeOk(s) {
       return !(s in request.resource.data.sizes) || (
         !(s in resource.data.sizes) || (
@@ -23,91 +28,117 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // PROIZVODI (PRODUCTS)
+    // 1. PROIZVODI (PRODUCTS) - K1 & V11
     // ==========================================
     match /products/{productId} {
       allow read: if true;
       allow create, delete: if isAdmin();
       
-      // Admin mijenja sve; Kupci pri kupovini mogu isključivo smanjiti postojeće zalihe
+      // Admin mijenja sve; Kupci smiju mijenjati ISKLJUČIVO 'sizes' bez ubacivanja nepoznatih ključeva
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sizes']) &&
+        request.resource.data.sizes.keys().hasOnly(validSizes()) &&
         sizeOk('S') && sizeOk('M') && sizeOk('L') && sizeOk('XL') &&
         sizeOk('XXL') && sizeOk('3XL') && sizeOk('One size')
       );
     }
 
     // ==========================================
-    // NARUDŽBE (ORDERS)
+    // 2. NARUDŽBE (ORDERS) - N1 & K2 (KRITIČNO)
     // ==========================================
     match /orders/{orderId} {
-      // Kupci kreiraju narudžbu
+      // Kupci kreiraju narudžbu uz provjeru stavki i iznosa veće od 0 KM
       allow create: if request.resource.data.keys().hasOnly([
         'id', 'orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 
         'total', 'paymentMethod', 'status', 'createdAt', 'promoCode', 'discountAmount'
       ]) && request.resource.data.status == 'Nova'
-         && request.resource.data.total >= 0;
+         && request.resource.data.total is number
+         && request.resource.data.total > 0
+         && request.resource.data.items is list
+         && request.resource.data.items.size() >= 1
+         && request.resource.data.items.size() <= 20;
 
-      // DOZVOLI ČITANJE KUPCIMA ZA PRAĆENJE, ALI ZABRANI BRISANJE I IZMJENE
-      allow read: if true;
+      // ZATVORENO CURENJE (N1): Čitanje, izmjena i brisanje dozvoljeni SAMO adminu
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 3. PRAĆENJE NARUDŽBI (ORDER TRACKING) - N1
+    // ==========================================
+    match /order_tracking/{orderNumber} {
+      // Kupac može pročitati SAMO status svoje narudžbe preko tačnog broja (get), bez listanja baze (list)
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['orderNumber', 'status', 'createdAt'])
+                    && request.resource.data.status == 'Nova';
       allow update, delete: if isAdmin();
     }
 
     // ==========================================
-    // ANALITIKA I NAPUŠTENE KORPE
+    // 4. PROMO KODOVI (PROMO CODES) - N4
     // ==========================================
+    match /promo_codes/{codeId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, delete: if isAdmin();
+      
+      // Dozvoljeno samo evidentiranje iskorištenja (povećanje brojača za 1)
+      allow update: if isAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount', 'usedAt']) &&
+        request.resource.data.usageCount == resource.data.get('usageCount', 0) + 1
+      );
+    }
+
+    // ==========================================
+    // 5. NAPUŠTENE KORPE I ANALITIKA - V10
+    // ==========================================
+    match /abandoned_carts/{cartId} {
+      // Kupac smije kreirati i ažurirati korpu, ali čitanje i brisanje je SAMO za admina (štiti e-mailove)
+      allow create, update: if request.resource.data.keys().hasAll(['items', 'updatedAt']);
+      allow read, delete: if isAdmin();
+    }
+
     match /analytics_events/{eventId} {
       allow create: if true;
       allow read, update, delete: if isAdmin();
     }
 
     match /product_stats/{statId} {
-      allow create, update: if true;
-      allow read, delete: if isAdmin();
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
     match /store_metrics/{metricId} {
-      allow create, update: if true;
-      allow read, delete: if isAdmin();
-    }
-
-    match /abandoned_carts/{cartId} {
-      allow create, update: if true;
-      allow read, delete: if isAdmin();
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
     // ==========================================
-    // PROMO KODOVI (PROMO CODES)
-    // ==========================================
-    match /promo_codes/{codeId} {
-      allow get: if true;
-      allow list: if isAdmin();
-      allow write: if isAdmin();
-    }
-
-    // ==========================================
-    // KONTAKT PORUKE (CONTACT MESSAGES)
+    // 6. KONTAKT PORUKE (CONTACT MESSAGES) - V3
     // ==========================================
     match /contact_messages/{messageId} {
       allow create: if request.resource.data.keys().hasOnly([
         'name', 'email', 'phone', 'message', 'createdAt', 'read'
-      ]) && request.resource.data.message.size() <= 2000;
+      ]) && request.resource.data.message is string
+         && request.resource.data.message.size() <= 2000;
 
       allow read, update, delete: if isAdmin();
     }
 
     // ==========================================
-    // NEWSLETTER PRETPATNICI (SUBSCRIBERS)
+    // 7. NEWSLETTER PRETPLATNICI (SUBSCRIBERS) - V4 & V11
     // ==========================================
     match /subscribers/{email} {
       allow create: if request.resource.data.keys().hasOnly([
         'email', 'subscribedAt', 'createdAt', 'consent'
-      ]);
+      ]) && request.resource.data.email is string
+         && request.resource.data.email.size() <= 100;
+
       allow read, update, delete: if isAdmin();
     }
 
     // ==========================================
-    // RECENZIJE PROIZVODA (REVIEWS)
+    // 8. RECENZIJE PROIZVODA (REVIEWS) - V3 & V11
     // ==========================================
     match /reviews/{reviewId} {
       allow read: if true;
@@ -116,13 +147,16 @@ service cloud.firestore {
       ]) && request.resource.data.rating is int
          && request.resource.data.rating >= 1
          && request.resource.data.rating <= 5
-         && request.resource.data.comment.size() <= 1000;
+         && request.resource.data.comment is string
+         && request.resource.data.comment.size() <= 1000
+         && request.resource.data.author is string
+         && request.resource.data.author.size() <= 60;
 
       allow update, delete: if isAdmin();
     }
 
     // ==========================================
-    // POSTAVKE I CMS (SETTINGS)
+    // 9. POSTAVKE I CMS (SETTINGS)
     // ==========================================
     match /settings/{settingId} {
       allow read: if true;
