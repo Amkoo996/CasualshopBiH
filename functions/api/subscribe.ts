@@ -1,3 +1,23 @@
+const ALLOWED_ORIGINS = [
+  'https://casualshopbih.pages.dev',
+  'https://casualshop.ba',
+  'http://localhost:3000',
+];
+
+export const onRequestOptions = async (context: { request: Request }) => {
+  const origin = context.request.headers.get('Origin') || '';
+  const isAllowed = ALLOWED_ORIGINS.includes(origin);
+
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+};
+
 export const onRequestPost = async (context: {
   request: Request;
   env: { 
@@ -8,12 +28,11 @@ export const onRequestPost = async (context: {
   try {
     const { request, env } = context;
 
-    // 1. STROGA ORIGIN / REFERER ZASTITA (K4 Fix)
+    // 1. ORIGIN / REFERER ZAŠTITA (K4)
     const origin = request.headers.get('Origin') || '';
     const referer = request.headers.get('Referer') || '';
-    const allowedOrigins = ['https://casualshopbih.pages.dev', 'https://casualshop.ba'];
 
-    const isValidOrigin = allowedOrigins.some(
+    const isValidOrigin = ALLOWED_ORIGINS.some(
       (d) => origin === d || origin === `${d}/` || referer.startsWith(`${d}/`)
     );
 
@@ -24,7 +43,12 @@ export const onRequestPost = async (context: {
       });
     }
 
-    // 2. PARSIRANJE I VALIDACIJA EMAIL-A
+    const responseHeaders = {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
+    };
+
+    // 2. PARSIRANJE I VALIDACIJA EMAIL-A (N3 Fix: uklonjen \)
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
     const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(email);
@@ -32,7 +56,7 @@ export const onRequestPost = async (context: {
     if (!isValidEmail) {
       return new Response(
         JSON.stringify({ error: 'Neispravna email adresa.' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: responseHeaders }
       );
     }
 
@@ -40,8 +64,8 @@ export const onRequestPost = async (context: {
     if (!apiKey) {
       console.error('BREVO_API_KEY nije konfigurisana u Cloudflare varijablama.');
       return new Response(
-        JSON.stringify({ error: 'Sistemska greSka na serveru.' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Sistemska greška na serveru.' }),
+        { status: 500, headers: responseHeaders }
       );
     }
 
@@ -68,26 +92,26 @@ export const onRequestPost = async (context: {
     if (res.ok || res.status === 201 || res.status === 204) {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: responseHeaders,
       });
     }
 
     if (responseText.includes('duplicate_parameter') || responseText.includes('already exists')) {
-      return new Response(JSON.stringify({ success: true, message: 'Korisnik je vec prijavljen.' }), {
+      return new Response(JSON.stringify({ success: true, message: 'Korisnik je već prijavljen.' }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: responseHeaders,
       });
     }
 
     console.error('Brevo API error:', res.status, responseText);
     return new Response(
-      JSON.stringify({ error: 'DoSlo je do greSke pri prijavi na newsletter.' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Došlo je do greške pri prijavi na newsletter.' }),
+      { status: 500, headers: responseHeaders }
     );
 
   } catch (err: any) {
-    console.error('Sistemska greSka u Brevo Workeru:', err);
-    return new Response(JSON.stringify({ error: 'GreSka na serveru.' }), {
+    console.error('Sistemska greška u Brevo Workeru:', err);
+    return new Response(JSON.stringify({ error: 'Greška na serveru.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
