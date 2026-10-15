@@ -196,14 +196,14 @@ export const HomePage = () => {
           <p className="text-xs text-neutral-500 font-bold tracking-widest uppercase mb-8">@casualshop.bih</p>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="aspect-square bg-neutral-100 overflow-hidden relative group border border-neutral-200 shadow-sm">
-                <img 
-                  src={`/images/insta-${item}.webp`} 
-                  alt="Casual Shop Lifestyle" 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100" 
-                />
-              </div>
+  {[1, 2, 3, 4].map((item) => (
+    <div key={item} className="aspect-square bg-neutral-100 overflow-hidden relative group border border-neutral-200 shadow-sm">
+      <img 
+        src={`/images/insta-${item}.webp`} 
+        alt="Casual Shop Lifestyle" 
+        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100" 
+      />
+    </div>
             ))}
           </div>
           
