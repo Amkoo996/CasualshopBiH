@@ -1,215 +1,108 @@
 interface Env {
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_IDS?: string;
-  TELEGRAM_CONTACT_BOT_TOKEN?: string;
   EMAILJS_SERVICE_ID?: string;
   EMAILJS_TEMPLATE_ID?: string;
-  EMAILJS_AB_TEMPLATE_ID?: string; // Novi šablon za napuštene korpe
+  EMAILJS_AB_TEMPLATE_ID?: string;
   EMAILJS_PUBLIC_KEY?: string;
-  NEXT_PUBLIC_TELEGRAM_BOT_TOKEN?: string;
-  NEXT_PUBLIC_TELEGRAM_CHAT_IDS?: string;
-  NEXT_PUBLIC_TELEGRAM_CONTACT_BOT_TOKEN?: string;
-  NEXT_PUBLIC_EMAILJS_SERVICE_ID?: string;
-  NEXT_PUBLIC_EMAILJS_TEMPLATE_ID?: string;
-  NEXT_PUBLIC_EMAILJS_AB_TEMPLATE_ID?: string;
-  NEXT_PUBLIC_EMAILJS_PUBLIC_KEY?: string;
+  ADMIN_SECRET_KEY?: string; // Tajni ključ za admin akcije
   [key: string]: any;
 }
 
-export const onRequestOptions = async () => {
+const ALLOWED_ORIGINS = [
+  'https://casualshopbih.pages.dev',
+  'https://casualshop.ba',
+  'http://localhost:3000'
+];
+
+export const onRequestOptions = async (context: { request: Request }) => {
+  const origin = context.request.headers.get('Origin') || '';
+  const isAllowed = ALLOWED_ORIGINS.includes(origin);
+
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Auth',
     },
   });
 };
 
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
   const { request, env } = context;
+  const origin = request.headers.get('Origin') || '';
+
+  // 1. Provjera porijekla (Origin Check) - blokira vanjske curl i skriptne pozive
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return new Response(JSON.stringify({ error: 'Nedozvoljen domen.' }), { status: 403 });
+  }
 
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
   };
 
   try {
-    const body = (await request.json().catch(() => ({}))) as {
-      text?: string;
-      type?: 'contact' | 'order' | 'abandoned';
-      orderData?: any;
-      cartData?: any;
-      followUpType?: '3d' | '5d';
-      promoCode?: string;
-    };
+    const body = await request.json().catch(() => ({}));
+    const { type, orderData, cartData, followUpType, promoCode } = body;
 
-    const type = body.type || 'order';
-    const text = String(body.text || '').trim().slice(0, 4000);
+    // 2. Telegram obavijest o narudžbi
+    if (type === 'order') {
+      const botToken = env.TELEGRAM_BOT_TOKEN;
+      const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 
-    // 1. TELEGRAM SLANJE (Samo za narudžbe i kontakt)
-    const orderBotToken = env.TELEGRAM_BOT_TOKEN || env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN;
-    const contactBotToken = env.TELEGRAM_CONTACT_BOT_TOKEN || env.NEXT_PUBLIC_TELEGRAM_CONTACT_BOT_TOKEN || orderBotToken;
-    const rawChatIds = env.TELEGRAM_CHAT_IDS || env.NEXT_PUBLIC_TELEGRAM_CHAT_IDS;
-
-    let telegramSent = false;
-    let telegramError = '';
-
-    if (type !== 'abandoned') {
-      if (!text) {
-        return new Response(JSON.stringify({ success: false, error: 'Prazan tekst poruke.' }), { status: 400, headers });
-      }
-
-      if (rawChatIds && (orderBotToken || contactBotToken)) {
-        const activeBotToken = type === 'contact' ? contactBotToken : (orderBotToken || contactBotToken);
-        const chatIds = rawChatIds.split(',').map((id) => id.trim()).filter(Boolean);
-
-        const sendTelegram = async (token: string, chatId: string) => {
-          try {
-            const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: chatId, text }),
-            });
-            return await res.json().catch(() => ({ ok: false }));
-          } catch (e: any) {
-            return { ok: false, error: e?.message };
-          }
-        };
-
-        const results = await Promise.all(
-          chatIds.map(async (chatId) => {
-            let res = await sendTelegram(activeBotToken!, chatId);
-            if (!res.ok && activeBotToken !== orderBotToken && orderBotToken) {
-              res = await sendTelegram(orderBotToken, chatId);
-            }
-            return res.ok;
+      if (botToken && chatIds.length > 0 && orderData) {
+        const msg = `🛍️ NOVA NARUDŽBA #${orderData.orderNumber}\nKupac: ${orderData.customer?.firstName} ${orderData.customer?.lastName}\nIznos: ${orderData.total} KM\nGrad: ${orderData.customer?.city}\nTel: ${orderData.customer?.phone}`;
+        
+        await Promise.all(chatIds.map(chatId => 
+          fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: msg })
           })
-        );
-        telegramSent = results.some(Boolean);
-      } else {
-        telegramError = 'Nedostaju TELEGRAM varijable u Cloudflareu.';
+        ));
       }
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // 2. EMAILJS SLANJE (Narudžbe + Napuštene Korpe)
-    let emailSent = false;
-    let emailError = '';
+    // 3. Napuštene korpe - Dozvoljeno samo uz verifikaciju
+    if (type === 'abandoned') {
+      const serviceId = env.EMAILJS_SERVICE_ID;
+      const templateId = env.EMAILJS_AB_TEMPLATE_ID || env.EMAILJS_TEMPLATE_ID;
+      const publicKey = env.EMAILJS_PUBLIC_KEY;
 
-    const serviceId = env.EMAILJS_SERVICE_ID || env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
-    const orderTemplateId = env.EMAILJS_TEMPLATE_ID || env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
-    const abTemplateId = env.EMAILJS_AB_TEMPLATE_ID || env.NEXT_PUBLIC_EMAILJS_AB_TEMPLATE_ID || orderTemplateId; // Fallback na glavne
-    const publicKey = env.EMAILJS_PUBLIC_KEY || env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
-
-    if (serviceId && publicKey) {
-      
-      // LOGIKA ZA NARUDŽBE
-      if (type === 'order' && body.orderData?.customer?.email && orderTemplateId) {
-        const order = body.orderData;
-        const customer = order.customer || {};
-        const fullName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Kupac';
-
-        const itemsFormatted = (order.items || [])
-          .map((i: any) => `• ${i.quantity}x ${i.name} (${i.size}) - ${(i.price * i.quantity).toFixed(2)} KM`)
-          .join('\n');
-
-        const shippingText = Number(order.shippingFee || 0) === 0 ? 'Besplatno' : `${Number(order.shippingFee).toFixed(2)} KM`;
-        const deliveryMethodText = customer.address?.includes('Lično') ? 'Lično preuzimanje (Sarajevo)' : 'Brza pošta X Express';
-
-        const subject = `Potvrda narudžbe #${order.orderNumber} - Casual Shop BiH`;
-        const email_body = `Poštovani/a ${fullName},\n\nHvala vam na narudžbi i povjerenju! Vaša narudžba #${order.orderNumber} je uspješno evidentirana.\n\nDetalji narudžbe:\n${itemsFormatted}\n\nCijena dostave: ${shippingText}\nUkupno za plaćanje pouzećem: ${Number(order.total || 0).toFixed(2)} KM\n\nNačin preuzimanja: ${deliveryMethodText}\nAdresa: ${customer.address}, ${customer.city}\nTelefon: ${customer.phone}\n\nUskoro ćemo vas pozvati na navedeni broj radi kratke potvrde adrese prije slanja.\n\nLijep pozdrav,\nVaš Casual Shop BiH tim`;
-
-        const emailPayload = {
-          service_id: serviceId,
-          template_id: orderTemplateId,
-          user_id: publicKey,
-          template_params: {
-            to_email: customer.email,
-            customer_email: customer.email,
-            customer_name: fullName,
-            subject: subject,
-            email_body: email_body,
-          },
-        };
-
-        try {
-          const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(emailPayload),
-          });
-          emailSent = emailRes.ok;
-          if (!emailRes.ok) emailError = await emailRes.text().catch(() => 'EmailJS odbio zahtjev.');
-        } catch (e: any) {
-          emailError = e?.message || 'Greška pri konekciji sa EmailJS.';
-        }
-      } 
-      
-      // LOGIKA ZA NAPUŠTENE KORPE (FOLLOW-UP EMAILS)
-      else if (type === 'abandoned' && body.cartData?.email) {
-        const cart = body.cartData;
-        const is5d = body.followUpType === '5d';
-        const promoCode = body.promoCode || 'CASUAL10';
-        const fullName = cart.customerName || 'Kupac';
-        
-        const subject = is5d ? `Poklon za vas: 10% popusta na korpu! 🎁` : `Zaboravili ste nešto u korpi? 🛒`;
-        
-        const custom_message = is5d
-          ? `Kao mali znak pažnje, poklanjamo vam 10% popusta na cijelu korpu uz promo kod: ${promoCode}`
-          : `Artikli u vašoj korpi vas i dalje čekaju, ali zalihe se brzo troše.`;
-
-        const cart_items = cart.items && cart.items.length > 0
-          ? cart.items.map((it: any) => `• ${it.quantity}x ${it.name} (${it.size}) - ${(it.price * it.quantity).toFixed(2)} KM`).join('<br/>')
-          : cart.itemsSummary || 'Artikli iz vaše korpe';
-
-        const email_body = `Pozdrav ${fullName},\n\n${custom_message}\n\nVaši artikli:\n${cart.itemsSummary || 'Artikli iz korpe'}\n\nPosjetite www.casualshop.ba i završite narudžbu.\n\nLijep pozdrav,\nCasual Shop BiH tim`;
-
-        const emailPayload = {
-          service_id: serviceId,
-          template_id: abTemplateId, // Šaljemo u novi Šablon za napuštene korpe
-          user_id: publicKey,
-          template_params: {
-            to_email: cart.email,
-            customer_email: cart.email,
-            customer_name: fullName,
-            subject: subject,
-            custom_message: custom_message,
-            cart_items: cart_items,
-            email_body: email_body,
-          },
-        };
-
-        try {
-          const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(emailPayload),
-          });
-          emailSent = emailRes.ok;
-          if (!emailRes.ok) emailError = await emailRes.text().catch(() => 'EmailJS odbio zahtjev.');
-        } catch (e: any) {
-          emailError = e?.message || 'Greška pri konekciji sa EmailJS.';
-        }
+      if (!serviceId || !templateId || !publicKey || !cartData?.email) {
+        return new Response(JSON.stringify({ error: 'Podaci za slanje nepotpuni.' }), { status: 400, headers });
       }
-    } else if (type === 'order' || type === 'abandoned') {
-      emailError = 'Nedostaju EMAILJS varijable u Cloudflareu.';
+
+      const is5d = followUpType === '5d';
+      const emailPayload = {
+        service_id: serviceId,
+        template_id: templateId,
+        user_id: publicKey,
+        template_params: {
+          to_email: cartData.email,
+          customer_name: cartData.customerName || 'Kupac',
+          subject: is5d ? 'Poklon za vas: 10% popusta! 🎁' : 'Zaboravili ste artikle u korpi? 🛒',
+          custom_message: is5d 
+            ? `Iskoristite promo kod ${promoCode || 'CASUAL10'} za 10% popusta!`
+            : 'Artikli u vašoj korpi vas čekaju, ali zalihe su ograničene.',
+          cart_items: cartData.itemsSummary || 'Artikli iz korpe'
+        }
+      };
+
+      const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
+      });
+
+      return new Response(JSON.stringify({ success: emailRes.ok }), { status: emailRes.status, headers });
     }
 
-    return new Response(
-      JSON.stringify({
-        success: telegramSent || emailSent,
-        telegramSent,
-        emailSent,
-        telegramError: telegramSent ? null : telegramError,
-        emailError: emailSent ? null : emailError,
-      }),
-      { status: 200, headers }
-    );
+    return new Response(JSON.stringify({ error: 'Nepoznat tip zahtjeva.' }), { status: 400, headers });
   } catch (err: any) {
-    return new Response(
-      JSON.stringify({ success: false, error: err?.message }),
-      { status: 200, headers }
-    );
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
   }
 };
