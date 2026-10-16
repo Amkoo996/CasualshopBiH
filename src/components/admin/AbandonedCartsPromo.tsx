@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { getAuth } from 'firebase/auth';
+import { db, app } from '../../lib/firebase';
 import { Trash2, ShoppingCart, AlertTriangle, Phone, Mail, Clock, Ticket, CheckCircle2 } from 'lucide-react';
+
+// Inicijalizacija Firebase Auth instance
+const auth = getAuth(app);
 
 export const AbandonedCartsPromo = () => {
   const [carts, setCarts] = useState<any[]>([]);
@@ -50,12 +54,26 @@ export const AbandonedCartsPromo = () => {
     
     setSendingId(cart.id);
     try {
+      // S1 FIX: Dohvatanje sigurnosnog ID tokena aktivnog administratora
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        alert('Pristup odbijen. Niste prijavljeni kao administrator.');
+        setSendingId(null);
+        return;
+      }
+      
+      const idToken = await currentUser.getIdToken();
+
       // Šaljemo postojeći promo kod CASUAL10
       const promoCode = type === '5d' ? 'CASUAL10' : '';
       
       const res = await fetch('/api/notify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          // S1 FIX: Slanje tokena u zaglavlju
+          'Authorization': `Bearer ${idToken}` 
+        },
         body: JSON.stringify({ 
           type: 'abandoned',
           cartData: cart,
@@ -70,10 +88,11 @@ export const AbandonedCartsPromo = () => {
         alert(`E-mail uspješno poslan kupcu ${cart.customerName}!`);
         fetchCarts();
       } else {
-        alert('Greška pri slanju e-maila. Provjerite EmailJS postavke.');
+        const errData = await res.json().catch(() => ({}));
+        alert(`Greška pri slanju e-maila: ${errData.error || 'Provjerite EmailJS postavke ili Firebase ključ.'}`);
       }
     } catch (e) {
-      alert('Došlo je do greške prilikom konekcije.');
+      alert('Došlo je do greške prilikom konekcije sa serverom.');
     } finally {
       setSendingId(null);
     }
