@@ -57,8 +57,8 @@ export const AbandonedCartsPromo = () => {
         return;
       }
       
-      const idToken = await currentUser.getIdToken();
-
+      // Forsirano osvježavanje Firebase tokena
+      const idToken = await currentUser.getIdToken(true);
       const promoCode = type === '5d' ? 'CASUAL10' : '';
       
       const res = await fetch('/api/notify', {
@@ -78,11 +78,11 @@ export const AbandonedCartsPromo = () => {
       if (res.ok) {
         const updateField = type === '3d' ? { notified3d: true } : { notified5d: true };
         await updateDoc(doc(db, 'abandoned_carts', cart.id), updateField);
-        alert(`E-mail uspješno poslan kupcu ${cart.customerName}!`);
+        alert(`E-mail uspješno poslan kupcu ${cart.customerName || 'Kupac'}!`);
         fetchCarts();
       } else {
         const errData = await res.json().catch(() => ({}));
-        alert(`Greška pri slanju e-maila: ${errData.error || 'Provjerite EmailJS postavke ili Firebase ključ.'}`);
+        alert(`Greška: ${errData.error || 'Neovlašten zahtjev.'}`);
       }
     } catch (e) {
       alert('Došlo je do greške prilikom konekcije sa serverom.');

@@ -16,24 +16,48 @@ const ALLOWED_ORIGINS = [
   'https://casualshop.ba'
 ];
 
-async function isAdminRequest(request: Request, env: Env): Promise<boolean> {
+async function checkAdminStatus(request: Request, env: Env): Promise<{ ok: boolean; message?: string }> {
   const auth = request.headers.get('Authorization') || '';
   const idToken = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   
-  if (!idToken || !env.FIREBASE_API_KEY) return false;
+  if (!idToken) {
+    return { ok: false, message: 'Nedostaje autorizacijski token (niste prijavljeni kao admin).' };
+  }
+  
+  if (!env.FIREBASE_API_KEY) {
+    return { ok: false, message: 'FIREBASE_API_KEY nije definisan u Cloudflare Environment Variables.' };
+  }
   
   const res = await fetch(
     'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + env.FIREBASE_API_KEY,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }) }
+    { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ idToken }) 
+    }
   );
   
-  if (!res.ok) return false;
+  if (!res.ok) {
+    const errData: any = await res.json().catch(() => ({}));
+    return { 
+      ok: false, 
+      message: `Firebase odbio token (${res.status}): ${errData?.error?.message || 'Nevažeći token ili pogrešan API ključ'}` 
+    };
+  }
   
   const data: any = await res.json();
   const uid = data?.users?.[0]?.localId;
   const admins = (env.ADMIN_UIDS || '').split(',').map((s) => s.trim()).filter(Boolean);
   
-  return !!uid && admins.includes(uid);
+  if (admins.length === 0) {
+    return { ok: false, message: 'ADMIN_UIDS varijabla nije definisana u Cloudflare postavkama.' };
+  }
+  
+  if (!uid || !admins.includes(uid)) {
+    return { ok: false, message: `Vaš UID (${uid || 'nepoznat'}) nije naveden u ADMIN_UIDS listi.` };
+  }
+  
+  return { ok: true };
 }
 
 export const onRequestOptions = async (context: { request: Request }) => {
@@ -76,8 +100,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 
       if (!botToken || chatIds.length === 0) {
-        console.error('TELEGRAM_BOT_TOKEN ili TELEGRAM_CHAT_IDS nisu podešeni.');
-        return new Response(JSON.stringify({ success: false, error: 'not_configured' }), { status: 500, headers });
+        return new Response(JSON.stringify({ success: false, error: 'Telegram nije konfigurisan.' }), { status: 500, headers });
       }
 
       if (text) {
@@ -92,33 +115,33 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // NARUDŽBA (Telegram za admina + EmailJS za kupca)
+    // NARUDŽBA
     if (type === 'order' && orderData) {
       const botToken = env.TELEGRAM_BOT_TOKEN;
       const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
       
       if (!botToken || chatIds.length === 0) {
-        console.error('TELEGRAM_BOT_TOKEN ili TELEGRAM_CHAT_IDS nisu podešeni.');
-        return new Response(JSON.stringify({ success: false, error: 'not_configured' }), { status: 500, headers });
+        return new Response(JSON.stringify({ success: false, error: 'Telegram nije konfigurisan.' }), { status: 500, headers });
       }
 
       const c = orderData.customer || {};
       const isPickup = c.address?.includes('Lično');
       const deliveryStatus = isPickup ? `Lično Sarajevo (${c.note || ''})` : `${c.city}, ${c.address}`;
-      const itemsText = orderData.items.map((i: any) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
+      const itemsText = (orderData.items || []).map((i: any) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
       
       const msg = `🛍️ NOVA NARUDŽBA #${orderData.orderNumber}\nKupac: ${c.firstName} ${c.lastName}\nIznos: ${orderData.total} KM\nDostava: ${deliveryStatus}\nTel: ${c.phone}\n\nArtikli:\n${itemsText}`;
       
       await Promise.all(chatIds.map(chatId => 
         fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: String(msg).slice(0, 3500) })
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ chat_id: chatId, text: String(msg).slice(0, 3500) })
         })
       ));
 
       const to = String(orderData?.customer?.email || '').trim();
-      
       if (to && env.EMAILJS_SERVICE_ID && env.EMAILJS_TEMPLATE_ID && env.EMAILJS_PUBLIC_KEY) {
-        const itemsSummary = orderData.items.map((i: any) => `${i.quantity}x ${i.name} (${i.size})`).join(', ');
+        const itemsSummary = (orderData.items || []).map((i: any) => `${i.quantity}x ${i.name} (${i.size})`).join(', ');
         
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
@@ -142,10 +165,11 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // NAPUŠTENE KORPE (Sigurnosna verifikacija Admin tokena)
+    // NAPUŠTENE KORPE
     if (type === 'abandoned') {
-      if (!(await isAdminRequest(request, env))) {
-        return new Response(JSON.stringify({ error: 'Neovlašteno.' }), { status: 401, headers });
+      const adminCheck = await checkAdminStatus(request, env);
+      if (!adminCheck.ok) {
+        return new Response(JSON.stringify({ error: adminCheck.message }), { status: 401, headers });
       }
 
       const serviceId = env.EMAILJS_SERVICE_ID;
@@ -153,7 +177,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       const publicKey = env.EMAILJS_PUBLIC_KEY;
 
       if (!serviceId || !templateId || !publicKey || !cartData?.email) {
-        return new Response(JSON.stringify({ error: 'Podaci za slanje nepotpuni.' }), { status: 400, headers });
+        return new Response(JSON.stringify({ error: 'Nedostaju podaci za slanje (EmailJS parametri ili email kupca).' }), { status: 400, headers });
       }
 
       const is5d = followUpType === '5d';
@@ -174,7 +198,9 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       };
 
       const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(emailPayload)
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(emailPayload)
       });
 
       return new Response(JSON.stringify({ success: emailRes.ok }), { status: emailRes.status, headers });
