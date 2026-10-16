@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import {
   Package, ShoppingBag, Users, TrendingUp, Plus, Trash2, Edit,
   Settings, LogOut, Lock, Search, X, Save, Eye, CheckCircle2,
   Mail, Palette, EyeOff, Boxes, Ticket, Power, Layout, Truck,
-  Printer, ShieldCheck, ShieldAlert, Image as ImageIcon, Tag, Info, Menu
+  Printer, ShieldCheck, ShieldAlert, Image as ImageIcon, Tag, Info, Menu,
+  ArrowLeft
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useAuth } from '../context/AuthContext';
@@ -320,7 +322,13 @@ export const AdminDashboard: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-[#FAF9F5] px-4 font-['Inter']">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#FAF9F5] px-4 font-['Inter']">
+        <Link 
+          href="/" 
+          className="mb-8 flex items-center gap-2 text-xs font-['Poppins'] font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Nazad na trgovinu
+        </Link>
         <div className="max-w-md w-full bg-white border-2 border-[#0A0A0A] p-6 sm:p-8 shadow-2xl space-y-6 text-center">
           <div className="w-14 h-14 bg-[#0A0A0A] text-[#F7E97F] flex items-center justify-center mx-auto rounded-full">
             <Lock className="w-7 h-7" />
@@ -452,7 +460,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 h-[100dvh] overflow-y-auto pt-14 md:pt-0 p-4 sm:p-8 bg-[#FAF9F5]">
+      <div className="flex-1 h-[100dvh] overflow-y-auto p-4 sm:p-8 md:p-10 pt-20 md:pt-16 bg-[#FAF9F5]">
         
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
