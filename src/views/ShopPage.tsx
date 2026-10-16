@@ -3,7 +3,7 @@ import { Product, Size, CATEGORIES, Category } from '../types';
 import { ProductCard } from '../components/shop/ProductCard';
 import { FilterBar } from '../components/shop/FilterBar';
 import { useCart } from '../context/CartContext';
-import { X, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import { X, SlidersHorizontal, RefreshCw, ShoppingBag } from 'lucide-react';
 
 interface ShopPageProps {
   products: Product[];
@@ -116,65 +116,73 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16 font-['Inter']">
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="bg-[#0A0A0A] text-[#F7E97F] text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] px-2 py-0.5 border border-[#F7E97F]">
-            KATALOG
-          </span>
+      {/* Naslov Kataloga */}
+      <div className="mb-8 bg-[#0A0A0A] text-white p-6 sm:p-10 border-b-4 border-[#F7E97F] shadow-xl relative overflow-hidden">
+        <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+          <ShoppingBag className="w-64 h-64 text-white" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-neutral-900 font-['Poppins']">
-          STREETWEAR KOLEKCIJA
-        </h1>
-        <p className="text-xs sm:text-sm text-neutral-600 mt-1 max-w-xl font-['Inter']">
-          Kompletna ponuda muške i uniseks ulične odjeće. Pronađite savršenu veličinu i kroj uz brzu dostavu u BiH.
-        </p>
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="bg-[#F7E97F] text-[#0A0A0A] text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] px-2.5 py-0.5">
+              KATALOG
+            </span>
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white font-['Poppins']">
+            STREETWEAR KOLEKCIJA
+          </h1>
+          <p className="text-xs sm:text-sm text-neutral-300 mt-2 max-w-xl font-['Inter'] leading-relaxed">
+            Kompletna ponuda muške i uniseks ulične odjeće. Pronađite savršenu veličinu i kroj uz brzu dostavu u BiH.
+          </p>
+        </div>
 
+        {/* Aktivni Filteri / Tags Bar */}
         {hasActiveFilters && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-200">
-            <span className="text-[11px] font-['Poppins'] font-bold uppercase text-neutral-500 mr-1 flex items-center gap-1">
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Aktivni filteri:</span>
+          <div className="mt-6 flex flex-wrap items-center gap-2 pt-4 border-t border-neutral-800">
+            <span className="text-[11px] font-['Poppins'] font-bold uppercase text-neutral-400 mr-1 flex items-center gap-1">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#F7E97F]" />
+              <span>Aktivno:</span>
             </span>
 
             {selectedCategory !== 'Sve' && (
               <button
                 onClick={() => setSelectedCategory('Sve')}
-                className="inline-flex items-center gap-1 bg-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase px-2.5 py-1 rounded-xs hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 bg-[#F7E97F] text-[#0A0A0A] text-[11px] font-['Poppins'] font-black uppercase px-3 py-1 hover:bg-white transition-colors cursor-pointer"
               >
                 <span>Kategorija: {selectedCategory}</span>
-                <X className="w-3.5 h-3.5 text-[#F7E97F]" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
 
             {selectedSize !== '' && (
               <button
                 onClick={() => setSelectedSize('')}
-                className="inline-flex items-center gap-1 bg-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase px-2.5 py-1 rounded-xs hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 bg-[#F7E97F] text-[#0A0A0A] text-[11px] font-['Poppins'] font-black uppercase px-3 py-1 hover:bg-white transition-colors cursor-pointer"
               >
                 <span>Veličina: {selectedSize}</span>
-                <X className="w-3.5 h-3.5 text-[#F7E97F]" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
 
             {priceRange < maxProductPrice && (
               <button
                 onClick={() => setPriceRange(maxProductPrice)}
-                className="inline-flex items-center gap-1 bg-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase px-2.5 py-1 rounded-xs hover:bg-neutral-800 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 bg-[#F7E97F] text-[#0A0A0A] text-[11px] font-['Poppins'] font-black uppercase px-3 py-1 hover:bg-white transition-colors cursor-pointer"
               >
                 <span>Do {priceRange} KM</span>
-                <X className="w-3.5 h-3.5 text-[#F7E97F]" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
 
             {searchTerm && (
-              <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-mono px-2.5 py-1 font-bold">
+              <span className="inline-flex items-center gap-1 bg-amber-400 text-black text-[11px] font-mono px-3 py-1 font-bold">
                 Upit: "{searchTerm}"
               </span>
             )}
 
             <button
               onClick={handleReset}
-              className="text-[11px] font-['Poppins'] font-bold uppercase text-neutral-600 hover:text-black underline ml-2 cursor-pointer"
+              className="text-[11px] font-['Poppins'] font-bold uppercase text-neutral-400 hover:text-[#F7E97F] underline ml-2 cursor-pointer"
             >
               Resetuj sve
             </button>
@@ -182,6 +190,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         )}
       </div>
 
+      {/* Traka FilterBar */}
       <FilterBar
         categories={categories}
         selectedCategory={selectedCategory}
@@ -197,6 +206,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         totalProductsCount={filteredProducts.length}
       />
 
+      {/* Prikaz Mreže Proizvoda */}
       {filteredProducts.length === 0 ? (
         <div className="text-center py-20 bg-white border-2 border-neutral-300 p-8 shadow-sm space-y-3">
           <p className="text-sm font-black uppercase tracking-wider text-black font-['Poppins']">
