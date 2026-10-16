@@ -10,17 +10,18 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  // metadataBase osigurava da svi relativni linkovi postanu apsolutni za društvene mreže
   metadataBase: new URL('https://casualshopbih.pages.dev'),
   title: 'Casual Shop BiH • Autentični Streetwear',
   description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/logo.png', sizes: 'any', type: 'image/png' },
+      { url: '/novi-logo.jpeg', sizes: 'any', type: 'image/jpeg' },
     ],
-    shortcut: '/logo.png',
+    shortcut: '/novi-logo.jpeg',
     apple: [
-      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+      { url: '/novi-logo.jpeg', sizes: '180x180', type: 'image/jpeg' },
     ],
   },
   appleWebApp: {
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
     siteName: 'Casual Shop BiH',
     images: [
       {
-        url: '/images/seo-cover.jpg',
+        url: '/images/seo-cover.webp',
         width: 1200,
         height: 630,
         alt: 'Casual Shop BiH Kolekcija',
@@ -43,6 +44,12 @@ export const metadata: Metadata = {
     ],
     locale: 'bs_BA',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Casual Shop BiH • Autentični Streetwear',
+    description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
+    images: ['/images/seo-cover.webp'],
   },
 };
 
