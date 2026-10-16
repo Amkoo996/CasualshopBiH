@@ -94,7 +94,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     const body = await request.json().catch(() => ({}));
     const { type, text, orderData, cartData, followUpType, promoCode } = body;
 
-    // KONTAKT FORMA
+    // 1. KONTAKT FORMA
     if (type === 'contact') {
       const botToken = env.TELEGRAM_BOT_TOKEN;
       const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -115,7 +115,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // NARUDŽBA
+    // 2. NOVA NARUDŽBA
     if (type === 'order' && orderData) {
       const botToken = env.TELEGRAM_BOT_TOKEN;
       const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -143,29 +143,34 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       if (to && env.EMAILJS_SERVICE_ID && env.EMAILJS_TEMPLATE_ID && env.EMAILJS_PUBLIC_KEY) {
         const itemsSummary = (orderData.items || []).map((i: any) => `${i.quantity}x ${i.name} (${i.size})`).join(', ');
         
+        const orderEmailPayload: any = {
+          service_id: env.EMAILJS_SERVICE_ID,
+          template_id: env.EMAILJS_TEMPLATE_ID,
+          user_id: env.EMAILJS_PUBLIC_KEY,
+          template_params: {
+            to_email: to,
+            customer_name: c.firstName || 'Kupac',
+            order_number: orderData.orderNumber,
+            order_total: Number(orderData.total).toFixed(2),
+            order_items: itemsSummary
+          }
+        };
+
+        if (env.EMAILJS_PRIVATE_KEY) {
+          orderEmailPayload.accessToken = env.EMAILJS_PRIVATE_KEY;
+        }
+
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            service_id: env.EMAILJS_SERVICE_ID,
-            template_id: env.EMAILJS_TEMPLATE_ID,
-            user_id: env.EMAILJS_PUBLIC_KEY,
-            accessToken: env.EMAILJS_PRIVATE_KEY,
-            template_params: {
-              to_email: to,
-              customer_name: c.firstName || 'Kupac',
-              order_number: orderData.orderNumber,
-              order_total: Number(orderData.total).toFixed(2),
-              order_items: itemsSummary
-            }
-          })
+          body: JSON.stringify(orderEmailPayload)
         });
       }
 
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // NAPUŠTENE KORPE
+    // 3. NAPUŠTENE KORPE
     if (type === 'abandoned') {
       const adminCheck = await checkAdminStatus(request, env);
       if (!adminCheck.ok) {
@@ -177,15 +182,16 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       const publicKey = env.EMAILJS_PUBLIC_KEY;
 
       if (!serviceId || !templateId || !publicKey || !cartData?.email) {
-        return new Response(JSON.stringify({ error: 'Nedostaju podaci za slanje (EmailJS parametri ili email kupca).' }), { status: 400, headers });
+        return new Response(JSON.stringify({ 
+          error: `Nedostaju podaci: serviceId=${!!serviceId}, templateId=${!!templateId}, publicKey=${!!publicKey}, email=${!!cartData?.email}` 
+        }), { status: 400, headers });
       }
 
       const is5d = followUpType === '5d';
-      const emailPayload = {
+      const emailPayload: any = {
         service_id: serviceId,
         template_id: templateId,
         user_id: publicKey,
-        accessToken: env.EMAILJS_PRIVATE_KEY,
         template_params: {
           to_email: cartData.email,
           customer_name: cartData.customerName || 'Kupac',
@@ -197,13 +203,25 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         }
       };
 
+      if (env.EMAILJS_PRIVATE_KEY) {
+        emailPayload.accessToken = env.EMAILJS_PRIVATE_KEY;
+      }
+
       const emailRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(emailPayload)
       });
 
-      return new Response(JSON.stringify({ success: emailRes.ok }), { status: emailRes.status, headers });
+      const responseText = await emailRes.text();
+
+      if (!emailRes.ok) {
+        return new Response(JSON.stringify({ 
+          error: `EmailJS greška (${emailRes.status}): ${responseText || 'Nepoznat razlog odbijanja.'}` 
+        }), { status: emailRes.status, headers });
+      }
+
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
     return new Response(JSON.stringify({ error: 'Nepoznat tip zahtjeva.' }), { status: 400, headers });

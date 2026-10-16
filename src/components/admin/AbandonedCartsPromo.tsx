@@ -82,7 +82,7 @@ export const AbandonedCartsPromo = () => {
         fetchCarts();
       } else {
         const errData = await res.json().catch(() => ({}));
-        alert(`Greška: ${errData.error || 'Neovlašten zahtjev.'}`);
+        alert(`Greška: ${errData.error || 'Server nije uspio poslati e-mail.'}`);
       }
     } catch (e) {
       alert('Došlo je do greške prilikom konekcije sa serverom.');
