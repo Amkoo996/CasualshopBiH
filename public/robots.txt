@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /?page=admin
+Disallow: /admin
 
-Sitemap: https://casualshopbih.pages.dev/sitemap.xml
+Sitemap: https://casualshop.ba/sitemap.xml
