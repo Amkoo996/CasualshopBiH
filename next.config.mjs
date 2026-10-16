@@ -6,7 +6,6 @@ const withPWA = withPWAInit({
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
   swcMinify: true,
-  // Isključujemo PWA u development modu da vam ne smeta pri kodiranju, radiće samo kad se deploya (ili na npm run build)
   disable: process.env.NODE_ENV === "development",
 });
 
@@ -16,6 +15,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Ovo rješava konflikt između PWA paketa i Next.js 16 Turbopack-a
+  turbopack: {},
 };
 
 export default withPWA(nextConfig);
