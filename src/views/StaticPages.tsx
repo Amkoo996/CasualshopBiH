@@ -6,8 +6,7 @@ import {
   Truck, ShieldCheck, CheckCircle2, AlertCircle, Search, Mail, Clock, Send, Package, RotateCcw, Instagram, ArrowRight, MapPin
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { getOrderByNumberAndPhone } from '../lib/db';
-import { Order } from '../types';
+import { getOrderStatus } from '../lib/db';
 import { db } from '../lib/firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
 
@@ -27,9 +26,8 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
   const [contactError, setContactError] = useState('');
 
   const [trackingOrderNumber, setTrackingOrderNumber] = useState('');
-  const [trackingPhone, setTrackingPhone] = useState('');
   const [trackingLoading, setTrackingLoading] = useState(false);
-  const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
+  const [trackedOrder, setTrackedOrder] = useState<{ orderNumber: string; status: string; createdAt: string } | null>(null);
   const [trackingError, setTrackingError] = useState('');
 
   const handleContactSubmit = async (e: React.FormEvent) => {
@@ -75,13 +73,13 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     setTrackingError('');
     setTrackedOrder(null);
 
-    if (!trackingOrderNumber.trim() || !trackingPhone.trim()) { setTrackingError('Molimo unesite broj narudžbe i telefon.'); return; }
+    if (!trackingOrderNumber.trim()) { setTrackingError('Molimo unesite broj narudžbe.'); return; }
     setTrackingLoading(true);
 
     try {
-      const order = await getOrderByNumberAndPhone(trackingOrderNumber, trackingPhone);
-      if (order) setTrackedOrder(order);
-      else setTrackingError('Nismo pronašli narudžbu s navedenim podacima.');
+      const order = await getOrderStatus(trackingOrderNumber);
+      if (order) setTrackedOrder({ orderNumber: trackingOrderNumber, status: order.status, createdAt: order.createdAt });
+      else setTrackingError('Nismo pronašli narudžbu s navedenim brojem.');
     } catch { setTrackingError('Trenutno nije moguće provjeriti status.'); } 
     finally { setTrackingLoading(false); }
   };
@@ -104,20 +102,16 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 <div className="p-2.5 bg-[#F7E97F] text-[#0A0A0A] rounded"><Package className="w-5 h-5" /></div>
                 <div>
                   <h2 className="font-['Poppins'] font-black text-sm uppercase tracking-wider text-black">Gdje je moja pošiljka?</h2>
-                  <p className="text-xs text-neutral-500">Unesite broj narudžbe i broj telefona s narudžbenice.</p>
+                  <p className="text-xs text-neutral-500">Unesite broj narudžbe za provjeru statusa.</p>
                 </div>
               </div>
 
-              <form onSubmit={handleTrackOrder} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
+              <form onSubmit={handleTrackOrder} className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
                   <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj narudžbe *</label>
                   <input type="text" required placeholder="npr. CS-1014-4R03" value={trackingOrderNumber} onChange={(e) => setTrackingOrderNumber(e.target.value)} className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs font-mono font-bold focus:border-black focus:outline-none" />
                 </div>
-                <div>
-                  <label className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">Broj telefona *</label>
-                  <input type="tel" required placeholder="npr. 061 123 456" value={trackingPhone} onChange={(e) => setTrackingPhone(e.target.value)} className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 text-xs font-bold focus:border-black focus:outline-none" />
-                </div>
-                <div className="flex items-end">
+                <div className="flex items-end sm:w-1/3">
                   <button type="submit" disabled={trackingLoading} className="w-full py-2.5 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider border-2 border-[#0A0A0A] transition-colors cursor-pointer flex items-center justify-center gap-1.5">
                     <Search className="w-4 h-4" /><span>{trackingLoading ? 'Traženje...' : 'Provjeri status'}</span>
                   </button>
@@ -125,21 +119,17 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
               </form>
 
               {trackingError && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" /><span>{trackingError}</span></div>}
+              
+              {/* SAKRIVENI LIČNI PODACI ZBOG SIGURNOSTI */}
               {trackedOrder && (
                 <div className="p-4 bg-[#FAF9F5] border-2 border-[#F7E97F] space-y-3 animate-fadeIn text-xs">
                   <div className="flex justify-between items-center border-b border-neutral-200 pb-2">
                     <span className="font-['Poppins'] font-black uppercase text-black text-sm">Narudžba #{trackedOrder.orderNumber.replace(/^#/, '')}</span>
                     <span className="px-2.5 py-1 bg-[#0A0A0A] text-[#F7E97F] font-['Poppins'] font-bold text-[10px] uppercase">Status: {trackedOrder.status}</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-neutral-700">
-                    <div>
-                      <p><strong>Kupac:</strong> {trackedOrder.customer.firstName} {trackedOrder.customer.lastName}</p>
-                      <p><strong>Grad dostave:</strong> {trackedOrder.customer.city}</p>
-                    </div>
-                    <div>
-                      <p><strong>Iznos za plaćanje:</strong> {trackedOrder.total.toFixed(2)} KM (Pouzećem)</p>
-                      {trackedOrder.trackingNumber ? <p className="text-purple-900 font-bold">X Express kod: <span className="font-mono">{trackedOrder.trackingNumber}</span></p> : <p className="text-neutral-500 italic">Paket je u pripremi za slanje kurirskoj službi.</p>}
-                    </div>
+                  <div className="space-y-1 text-neutral-700">
+                    <p><strong>Datum narudžbe:</strong> {new Date(trackedOrder.createdAt).toLocaleDateString('bs-BA')}</p>
+                    <p className="text-neutral-500 italic mt-1">Radi zaštite ličnih podataka, detalji o kupcu i artiklima nisu javno prikazani.</p>
                   </div>
                 </div>
               )}
