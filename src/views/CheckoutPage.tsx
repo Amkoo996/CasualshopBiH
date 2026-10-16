@@ -139,7 +139,6 @@ export const CheckoutPage: React.FC<{
     }
   };
 
-  // F2 FIX: Stvarna validacija promo koda iz baze podataka umjesto hardkodiranja
   const handleApplyPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     setPromoError('');
@@ -162,7 +161,6 @@ export const CheckoutPage: React.FC<{
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Q2 FIX: Spriječi dvostruko slanje ili praznu korpu
     if (isSubmitting || items.length === 0) return;
 
     setGeneralError('');
@@ -238,7 +236,6 @@ export const CheckoutPage: React.FC<{
       const createdOrderId = await createOrder(orderPayload);
       const fullOrderRecord: Order = { ...orderPayload, id: createdOrderId };
 
-      // F2 FIX: Zabilježi korištenje promo koda u bazi
       if (appliedPromo) {
         await markPromoCodeAsUsed(appliedPromo.code).catch(() => {});
       }
@@ -251,7 +248,19 @@ export const CheckoutPage: React.FC<{
       }
     } catch (err: any) {
       console.error('Greška pri kreiranju narudžbe:', err);
-      setGeneralError('Došlo je do greške prilikom spremanja narudžbe. Pokušajte ponovo.');
+      // Q2 FIX: Hvatanje i prikaz jasne greške o zalihama iz db.ts transakcije
+      if (err.message && (err.message.includes('INSUFFICIENT_STOCK') || err.message.includes('nema dovoljno') || err.message.includes('nije dostupan') || err.message.includes('Cijena'))) {
+        if (err.message.includes('INSUFFICIENT_STOCK')) {
+          const parts = err.message.split(':');
+          const itemName = parts[1] || 'određeni artikal';
+          const itemSize = parts[2] || '';
+          setGeneralError(`Nažalost, rasprodano u međuvremenu: ${itemName} (Veličina: ${itemSize}). Molimo osvježite stranicu i korpu.`);
+        } else {
+          setGeneralError(err.message);
+        }
+      } else {
+        setGeneralError('Došlo je do greške prilikom spremanja narudžbe. Pokušajte ponovo.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -510,8 +519,10 @@ export const CheckoutPage: React.FC<{
                     placeholder="npr. adresa@gmail.com"
                     className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.email ? 'border-red-500' : 'border-neutral-300'}`}
                   />
+                  {/* S4 FIX: GDPR napomena i saglasnost za prikupljanje e-maila */}
                   <span className="text-[10px] text-neutral-400 mt-0.5 block">
-                    Za slanje potvrde narudžbe i broja za praćenje.
+                    Služi isključivo za slanje potvrde i praćenje pošiljke. 
+                    Unosom se slažete s našom <Link href="/politika-privatnosti" className="underline hover:text-black">Politikom privatnosti</Link>.
                   </span>
                   {errors.email && (
                     <p className="text-[10px] text-red-600 mt-0.5 font-bold flex items-center gap-1">
