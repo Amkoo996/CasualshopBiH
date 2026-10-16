@@ -62,7 +62,7 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 3. PRAĆENJE NARUDŽBI (ORDER TRACKING) - S3 FIX
+    // 3. PRAĆENJE NARUDŽBI (ORDER TRACKING)
     // ==========================================
     match /order_tracking/{orderNumber} {
       allow get: if true;
@@ -90,16 +90,18 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 5. NAPUŠTENE KORPE I ANALITIKA - S3 & F5 FIX
+    // 5. NAPUŠTENE KORPE I ANALITIKA
     // ==========================================
     match /abandoned_carts/{cartId} {
-      // Striktno ograničena polja kako bi se spriječilo ubacivanje malicioznog koda ili prevelikih podataka
+      // Klijent (kupac) smije upisati samo osnovne podatke o korpi
       allow create, update: if request.resource.data.keys().hasOnly([
         'customerName', 'phone', 'email', 'city', 'address', 'deliveryMethod', 
         'items', 'itemsSummary', 'total', 'updatedAt', 'status'
       ]) && request.resource.data.items is list
          && request.resource.data.items.size() <= 20;
-      allow read, delete: if isAdmin();
+         
+      // Admin ima puno pravo čitanja, ažuriranja (uključujući notified3d/5d) i brisanja
+      allow read, update, delete: if isAdmin();
     }
 
     match /analytics_events/{eventId} {
@@ -109,15 +111,12 @@ service cloud.firestore {
 
     match /product_stats/{statId} {
       allow read: if true;
-      // Dozvoljen upis sa klijenta, ali samo za tačno definisana analitička polja
       allow create, update: if request.resource.data.keys().hasOnly(['productId', 'viewsCount', 'lastViewedAt']);
       allow delete: if isAdmin();
     }
 
     match /store_metrics/{metricId} {
-      // Statistiku funnela smije čitati samo admin
       allow read, delete: if isAdmin();
-      // Klijent smije samo kreirati/ažurirati brojače
       allow create, update: if request.resource.data.keys().hasOnly([
         'totalVisits', 'productViews', 'addToCartCount', 'checkoutStarts', 'completedPurchases'
       ]);
