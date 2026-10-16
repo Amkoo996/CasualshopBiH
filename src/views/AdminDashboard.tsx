@@ -254,12 +254,12 @@ export const AdminDashboard: React.FC = () => {
     e.preventDefault();
     if (!editingProduct || !editingProduct.name || !editingProduct.price) return;
     try {
-      const productPayload: Omit<Product, 'id'> & { id?: string } = {
-        id: editingProduct.id,
+      const productPayload: any = {
         name: editingProduct.name,
         price: Number(editingProduct.price),
-        originalPrice: editingProduct.originalPrice ? Number(editingProduct.originalPrice) : undefined,
-        category: (editingProduct.category as any) || 'Majice',
+        // ISPRAVLJENO: Koristimo null umjesto undefined
+        originalPrice: editingProduct.originalPrice ? Number(editingProduct.originalPrice) : null,
+        category: editingProduct.category || 'Majice',
         color: editingProduct.color || 'Crna',
         material: editingProduct.material || '100% češljani pamuk 240 GSM',
         description: editingProduct.description || '',
@@ -272,11 +272,20 @@ export const AdminDashboard: React.FC = () => {
         isHidden: Boolean(editingProduct.isHidden),
         createdAt: editingProduct.createdAt || new Date().toISOString(),
       };
+
+      // ID se dodaje samo ako već postoji (kod uređivanja)
+      if (editingProduct.id) {
+        productPayload.id = editingProduct.id;
+      }
+
       await saveProduct(productPayload);
       setIsSidebarOpen(false);
       setEditingProduct(null);
       await loadData();
-    } catch { alert('Greška pri spremanju proizvoda.'); }
+    } catch (error) { 
+      console.error("Firebase greška:", error);
+      alert('Greška pri spremanju proizvoda. Provjerite konzolu (F12) za detalje.'); 
+    }
   };
 
   const handleDeleteProduct = async (id: string, name: string) => {

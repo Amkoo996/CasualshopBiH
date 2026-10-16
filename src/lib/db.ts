@@ -60,7 +60,13 @@ export const getProductById = async (id: string): Promise<Product | null> => {
 export const saveProduct = async (productData: Partial<Product>): Promise<void> => {
   const id = productData.id || `cs-${Date.now()}`;
   const docRef = doc(db, 'products', id);
-  await setDoc(docRef, { ...productData, id }, { merge: true });
+  
+  // UKLONJENO: Firebase se ruši na 'undefined', pa ih ovdje automatski brišemo
+  const cleanData = Object.fromEntries(
+    Object.entries(productData).filter(([_, v]) => v !== undefined)
+  );
+  
+  await setDoc(docRef, { ...cleanData, id }, { merge: true });
 };
 
 export const deleteProduct = async (id: string): Promise<void> => {
