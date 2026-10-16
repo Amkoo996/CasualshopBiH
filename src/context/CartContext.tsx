@@ -1,3 +1,5 @@
+"use client";
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, Product, Size, StoreSettings, DEFAULT_STORE_SETTINGS } from '../types';
 import { trackAddToCart } from '../lib/analytics';
@@ -19,6 +21,7 @@ interface CartContextType {
   setIsCartOpen: (open: boolean) => void;
   settings: StoreSettings;
   refreshSettings: () => Promise<void>;
+  isMounted: boolean;
 }
 
 const CART_STORAGE_KEY = 'casualshop_bih_cart';
@@ -26,17 +29,10 @@ const CART_STORAGE_KEY = 'casualshop_bih_cart';
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
+  const [items, setItems] = useState<CartItem[]>([]);
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const refreshSettings = async () => {
     try {
@@ -47,77 +43,81 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Učitavanje iz localStorage nakon prvog rendera (Rješava Q1 Hydration problem)
   useEffect(() => {
+    setIsMounted(true);
     refreshSettings();
+    try {
+      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      if (saved) setItems(JSON.parse(saved));
+    } catch (e) {
+      console.error('Failed to parse cart from localStorage', e);
+    }
   }, []);
 
+  // Snimanje korpe prilikom svake promjene i ažuriranje napuštenih korpi
   useEffect(() => {
-    try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-    } catch (e) {
-      console.error('Failed to save cart to localStorage', e);
+    if (isMounted) {
+      try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+        
+        // Ažuriranje sesije napuštene korpe i pri promjeni količine/brisanju (Q1 Fix)
+        if (items.length > 0) {
+          const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+          saveCartSession({ items, subtotal }).catch(() => {});
+        }
+      } catch (e) {
+        console.error('Failed to save cart to localStorage', e);
+      }
     }
-  }, [items]);
+  }, [items, isMounted]);
 
   const addToCart = (product: Product, size: Size, quantity: number = 1) => {
     const availableStock = product.sizes[size] ?? 0;
     if (availableStock <= 0) return;
 
-    setItems((prev) => {
-      const existingIndex = prev.findIndex(
-        (item) => item.id === product.id && item.size === size
-      );
+    const existingIndex = items.findIndex(
+      (item) => item.id === product.id && item.size === size
+    );
 
-      if (existingIndex > -1) {
-        const updated = [...prev];
-        const newQty = Math.min(
-          updated[existingIndex].quantity + quantity,
-          availableStock
-        );
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: newQty,
-          maxStock: availableStock,
-        };
-        trackAddToCart(updated[existingIndex]);
-        recordAddToCartEvent({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          size,
-        });
-        saveCartSession({ items: updated, subtotal: updated.reduce((s, i) => s + i.price * i.quantity, 0) });
-        return updated;
-      } else {
-        const newItem: CartItem = {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.images[0] || '',
-          size,
-          quantity: Math.min(quantity, availableStock),
-          maxStock: availableStock,
-        };
-        trackAddToCart(newItem);
-        recordAddToCartEvent({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          size,
-        });
-        const nextItems = [...prev, newItem];
-        saveCartSession({ items: nextItems, subtotal: nextItems.reduce((s, i) => s + i.price * i.quantity, 0) });
-        return nextItems;
-      }
+    let newItems = [...items];
+
+    // Nečiste funkcije i analitika izvučeni iz updatera (Q1 Fix)
+    if (existingIndex > -1) {
+      const newQty = Math.min(newItems[existingIndex].quantity + quantity, availableStock);
+      newItems[existingIndex] = {
+        ...newItems[existingIndex],
+        quantity: newQty,
+        maxStock: availableStock,
+      };
+      trackAddToCart(newItems[existingIndex]);
+    } else {
+      const newItem: CartItem = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images[0] || '',
+        size,
+        quantity: Math.min(quantity, availableStock),
+        maxStock: availableStock,
+      };
+      newItems.push(newItem);
+      trackAddToCart(newItem);
+    }
+
+    recordAddToCartEvent({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      size,
     });
 
+    setItems(newItems);
     setIsCartOpen(true);
   };
 
   const removeFromCart = (productId: string, size: Size) => {
-    setItems((prev) =>
-      prev.filter((item) => !(item.id === productId && item.size === size))
-    );
+    setItems((prev) => prev.filter((item) => !(item.id === productId && item.size === size)));
   };
 
   const updateQuantity = (productId: string, size: Size, quantity: number) => {
@@ -141,12 +141,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems([]);
   };
 
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const freeThreshold = settings.freeShippingThreshold || 100.0;
+  // Q1 Fix: Promijenjeno || na ?? da prag dostave od 0 KM ne preskoči na 100 KM
+  const freeThreshold = settings.freeShippingThreshold ?? 100.0;
   const standardFee = settings.shippingFee ?? 10.0;
 
   const shippingFee =
@@ -176,6 +174,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsCartOpen,
         settings,
         refreshSettings,
+        isMounted,
       }}
     >
       {children}
