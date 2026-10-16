@@ -129,6 +129,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       const deliveryStatus = isPickup ? `Lično Sarajevo (${c.note || ''})` : `${c.city}, ${c.address}`;
       const itemsText = (orderData.items || []).map((i: any) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
       
+      // Slanje na Telegram
       const msg = `🛍️ NOVA NARUDŽBA #${orderData.orderNumber}\nKupac: ${c.firstName} ${c.lastName}\nIznos: ${orderData.total} KM\nDostava: ${deliveryStatus}\nTel: ${c.phone}\n\nArtikli:\n${itemsText}`;
       
       await Promise.all(chatIds.map(chatId => 
@@ -139,20 +140,38 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         })
       ));
 
+      // Slanje na EmailJS
       const to = String(orderData?.customer?.email || '').trim();
       if (to && env.EMAILJS_SERVICE_ID && env.EMAILJS_TEMPLATE_ID && env.EMAILJS_PUBLIC_KEY) {
-        const itemsSummary = (orderData.items || []).map((i: any) => `${i.quantity}x ${i.name} (${i.size})`).join(', ');
         
+        // Formatiranje lijepog teksta e-maila
+        const itemsTextEmail = (orderData.items || []).map((i: any) => `👉 ${i.quantity}x ${i.name} (Veličina: ${i.size})`).join('\n');
+        
+        const emailBody = `Poštovani/a ${c.firstName || 'Kupac'},
+
+Hvala Vam na povjerenju! Vaša narudžba #${orderData.orderNumber} je uspješno zaprimljena i trenutno je u obradi.
+
+Detalji narudžbe:
+${itemsTextEmail}
+
+💰 Ukupan iznos za platiti: ${Number(orderData.total).toFixed(2)} KM
+📦 Način dostave: ${deliveryStatus}
+
+Ukoliko imate bilo kakvih pitanja ili želite napraviti izmjenu, slobodno odgovorite na ovaj e-mail.
+
+Lijep pozdrav,
+Casual Shop BiH tim`;
+
+        // OVDJE JE ISPRAVKA: Koristimo varijable subject, email_body i customer_email koje vaš šablon očekuje!
         const orderEmailPayload: any = {
           service_id: env.EMAILJS_SERVICE_ID,
           template_id: env.EMAILJS_TEMPLATE_ID,
           user_id: env.EMAILJS_PUBLIC_KEY,
           template_params: {
             to_email: to,
-            customer_name: c.firstName || 'Kupac',
-            order_number: orderData.orderNumber,
-            order_total: Number(orderData.total).toFixed(2),
-            order_items: itemsSummary
+            customer_email: to,
+            subject: `Potvrda narudžbe #${orderData.orderNumber} - Casual Shop BiH`,
+            email_body: emailBody
           }
         };
 
@@ -189,7 +208,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
       const is5d = followUpType === '5d';
       
-      // PREPRAVKA: Formatiranje lijepe liste artikala sa cijenama
       let formattedItems = '';
       if (cartData.items && Array.isArray(cartData.items) && cartData.items.length > 0) {
         formattedItems = cartData.items
