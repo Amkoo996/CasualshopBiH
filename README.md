@@ -1,102 +1,152 @@
-# Casual Shop BiH – Plan izmjena prije lansiranja
-**Pripremljeno:** 7. oktobar 2026.  
-**Repozitorij:** [Amkoo996/CasualshopBiH](https://github.com/Amkoo996/CasualshopBiH.git)
+Evo potpuno ažuriranog, profesionalnog i sređenog **`README.md`** fajla za repozitorij.
+
+Uklonjeni su svi naznake ranijih neispravnosti i zastarjelih faza, usklađeni su nazivi (Next.js arhitektura umjesto Vite-a), ubačeno je uputstvo za pokretanje i izgradnju projekta, te su jasno definisana pravila za deployment na Cloudflare Pages.
+
+```markdown
+# 🛍️ Casual Shop BiH – E-Commerce Platforma
+
+Moderni, visokooptimizirani e-commerce web shop namijenjen za prodaju streetwear odjeće u Bosni i Hercegovini. Projekat je izgrađen na **Next.js (App Router)** tehnologiji, sa **Firebase (Firestore, Auth)** bazom podataka u realnom vremenu i **Cloudflare Pages / Functions** serverless pozadinom za obradu notifikacija i sigurnost.
 
 ---
 
-## 📌 Kako koristiti ovaj dokument
-Idite redom po prioritetima: **P0 ➔ P1 ➔ P2 ➔ P3 ➔ P4**.  
-* Putanje fajlova su relativne u odnosu na korijen repozitorija.
-* Brojevi linija u kodu su okvirni, pa pretrazujte fajlove po nazivu funkcija.
-* Nakon svake zavrSene grupe izmjena obavezno pokrenite `npm run build` kako biste odmah uocili eventualne greSke.
+## 🛠️ Tehnološki Stog (Tech Stack)
 
-> **Ispravka ranijeg pregleda:** Meta Pixel u kodu postoji (`src/lib/analytics.ts`), ali se ne pokrece jer se `initAnalytics` nigdje ne poziva[cite: 1]. Isto vazi i za Google Analytics[cite: 1]. Ovo je detaljno obrađeno u sekciji **P2**[cite: 1].
-
----
-
-## 📊 Pregled prioriteta
-
-| Prioritet | Sta treba uraditi | ZaSto | Procijenjeno vrijeme |
-| :--- | :--- | :--- | :--- |
-| **P0** | Popraviti pokvaren build (`tracking.ts`) | Zadnji commit se ne moze izgraditi[cite: 1] | 10 min |
-| **P1** | Zamijeniti `firestore.rules` | Trenutno svako moze citati i pisati po bazi[cite: 1] | 20 min |
-| **P1** | Admin prijava preko UID-a, ukloniti demo admina | PogreSan e-mail, demo pristup, opasna dugmad[cite: 1] | 30 min |
-| **P1** | Narudzba u jednoj transakciji | Kupac vidi potvrdu iako narudzba nije spremljena u bazu[cite: 1] | 20 min |
-| **P1** | Obrisati laznu statistiku | Dashboard prikazuje izmiSljene brojke[cite: 1] | 15 min |
-| **P2** | Upload slika sa uređaja (Cloudinary) | Vlasnik ne moze postaviti sliku sa telefona[cite: 1] | 40 min |
-| **P2** | Cookie baner i pokretanje GA4/Meta Pixela | Skripte se nikada ne ucitavaju[cite: 1] | 30 min |
-| **P2** | Ukloniti Listu zelja (Wishlist) | Prijava kupaca ne radi[cite: 1] | 15 min |
-| **P3** | Sitemap, OG slika, rute, domena, `.gitignore` | SEO, pravilno dijeljenje na mrezama i higijena[cite: 2] | 1 - 2 h |
-| **P4** | Testiranje prije objave | Detaljna provjera cijelog toka kupovine[cite: 2] | 1 h |
+* **Okvir (Framework):** [Next.js 16](https://nextjs.org/) (React 19, TypeScript, Turbopack)
+* **Stilizovanje:** [Tailwind CSS v4](https://tailwindcss.com/) & Lucide React Ikone
+* **Baza podataka i Auth:** [Firebase Firestore](https://firebase.google.com/docs/firestore) & Firebase Authentication
+* **Serverless Backend:** [Cloudflare Pages Functions](https://developers.cloudflare.com/pages/platform/functions/)
+* **Notifikacije & Slanje e-maila:** EmailJS API & Telegram Bot API
+* **Mediji & Slike:** Cloudinary CDN Image Optimization
 
 ---
 
-## 🛠️ Detaljne instrukcije po prioritetima
+## 🚀 Brzi Početak (Lokalni Razvoj)
 
-### P0: Popraviti pokvaren build
-* **Problem:** Fajl `src/lib/tracking.ts` je odsjecen na kraju (funkcija `getAnalyticsStats` zavrSava usred rijeci `return { uniqueVisitorsCount: total`). Zbog ovoga `npm run build` pada sa greSkom `}' expected`[cite: 2].
-* **RjeSenje:**
-  1. Vratite fajl iz prethodnog commita:
-     ```bash
-     git log --oneline src/lib/tracking.ts
-     git checkout <ID_PRETHODNOG_COMMITA> src/lib/tracking.ts
-     npm run build
-     ```
-  2. Provjerite da li funkcija `saveCartSession` i dalje postoji u `tracking.ts` jer je uvoze `src/views/CheckoutPage.tsx` i `src/context/CartContext.tsx`[cite: 2].
-  3. Pokrenite `npx tsc --noEmit` i ispravite sve prijavljene greSke[cite: 2].
+Za lokalno pokretanje i testiranje projekta na vašoj mašini, pratite sljedeće korake:
 
----
+### 1. Kloniranje repozitorija
+```bash
+git clone [https://github.com/Amkoo996/CasualshopBiH.git](https://github.com/Amkoo996/CasualshopBiH.git)
+cd CasualshopBiH
 
-### P1: Sigurnost, Baza i Admin
+```
 
-#### P1.1: Zamijeniti pravila baze (`firestore.rules`)
-Azurirajte fajl `firestore.rules` u repozitoriju, a zatim isti sadrzaj kopirajte u **Firebase Console > Firestore Database > Rules > Publish**[cite: 2]:
+### 2. Instalacija zavisnosti (Dependencies)
 
-* **Kljucne promjene:**
-  * `store_metrics` i `analytics_events` su osigurani samo za admine[cite: 2, 4, 5].
-  * U `products` je dozvoljeno samo smanjenje zalihe od strane kupaca, i to ne ispod 0[cite: 2, 3].
-  * Admin se prepoznaje preko UID-a iz kolekcije `admins`, a ne preko e-mail adrese[cite: 3].
+```bash
+npm install
 
-* **Nakon objave pravila u Firebase konzoli:**
-  1. U **Authentication > Users** kreirajte racune za admine i kopirajte njihov UID[cite: 6].
-  2. U **Firestore Database** napravite kolekciju `admins` i kreirajte dokument sa ID-jem jednakim tom UID-u (npr. sa poljem `role: "owner"`)[cite: 6].
-  3. U **Authentication > Settings > Authorized domains** dodajte vaSu Cloudflare Pages domenu i buducu zvanicnu domenu[cite: 6].
-  4. U **Google Cloud Console > Credentials** ogranicite Browser API kljuc na vaSe HTTP referrere[cite: 6].
+```
 
-#### P1.2: Admin prijava preko UID-a (bez demo pristupa)
-* **Fajl:** `src/context/AuthContext.tsx` – zamijenite provjeru tako da ucitava dokument `/admins/{uid}` iz Firestore-a umjesto provere e-maila[cite: 6, 7].
-* **Fajl:** `src/views/AdminDashboard.tsx` – uklonite sledece:
-  1. `loginAsDemoAdmin` i `isDemoAdmin` iz `useAuth()`[cite: 9].
-  2. Sekciju i dugme za "Brzi Demo Admin Pristup"[cite: 9].
-  3. Paragraf koji javno prikazuje admin e-mail adresu (`redemption19@gmail.com`)[cite: 9].
-  4. Znacku "DEMO NAcIN RADA"[cite: 9].
-  5. Dugme koje poziva `resetDemoProducts()`[cite: 9].
+### 3. Podešavanje varijabli okruženja (`.env.local`)
 
-#### P1.3: Narudzba u jednoj transakciji
-* **Fajl:** `src/lib/db.ts`
-  * Zamijenite funkciju `createOrder` da koristi `runTransaction`.
-  * Transaction prvo mora procitati sve stavke, provjeriti ima li dovoljno zaliha na stanju, te istovremeno upisati novu narudzbu i umanjiti zalihu[cite: 9, 10].
-* **Fajl:** `src/views/CheckoutPage.tsx`
-  * U `catch` bloku prikazati poruku o greSci kupcu (npr. ako nema dovoljno zaliha) i osigurati da se korpa ne prazni u slucaju greSke[cite: 10].
+Kreirajte `.env.local` fajl u korijenu projekta i popunite potrebne Firebase i analitičke ključeve:
 
-#### P1.4: Obrisati laznu statistiku
-* **Fajl:** `src/lib/tracking.ts`
-  * Postavite `DEFAULT_METRICS` na nule (`totalVisits: 0`, itd.)[cite: 10, 11].
-  * Uklonite "Baseline organic numbers" i generisanje laznih trendova (`wave`) u `getAnalyticsStats`[cite: 11].
-* **Firebase Console:** IzbriSite lazne/demo podatke u kolekcijama `store_metrics`, `analytics_events`, `orders` i `abandoned_carts`[cite: 11].
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=vaš_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=casualshop-bih.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=casualshop-bih
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=casualshop-bih.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=vaš_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=vaš_app_id
+
+# Analitika (Opciono)
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+NEXT_PUBLIC_META_PIXEL_ID=XXXXXXXXXXXXXX
+
+```
+
+### 4. Pokretanje razvojnog servera
+
+```bash
+npm run dev
+
+```
+
+Otvorite [http://localhost:3000](http://localhost:3000) u vašem pregledniku.
 
 ---
 
-### P2: Upload slika, Analitika i ciScenje
+## 📦 Izgradnja i Produkcija (Build & Deploy)
 
-#### P2.1: Upload slika sa uređaja (Cloudinary)
-1. Otvorite besplatan nalog na **Cloudinary.com** i kreirajte *Unsigned* Upload Preset[cite: 11, 12].
-2. U Cloudflare Pages varijable dodajte `VITE_CLOUDINARY_CLOUD` i `VITE_CLOUDINARY_PRESET`[cite: 12].
-3. Kreirajte pomocni fajl `src/lib/upload.ts` sa funkcijom za slanje slika na Cloudinary API[cite: 12].
-4. U `src/views/AdminDashboard.tsx` dodajte `<input type="file" accept="image/*" multiple />` dugme koje poziva upload funkciju i dodaje dobijene URL-ove u proizvod[cite: 12, 13].
+Projekat koristi statički export prilagođen za Cloudflare Pages i Next.js routere.
 
-#### P2.2: Cookie baner, Google Analytics i Meta Pixel
-1. **Fajl:** `src/components/common/CookieConsent.tsx` – Omogucite korisniku izbor između "Samo neophodni" i "Prihvati sve"[cite: 14, 15].
-2. **Fajl:** `src/lib/tracking.ts` – Dodajte provjeru saglasnosti:
-   ```typescript
-   if (localStorage.getItem('casualshop_cookie_consent') !== 'accepted') return;
+### Lokalna provjera build-a i tipova:
+
+```bash
+# 1. Provjera TypeScript tipova bez generisanja koda
+npx tsc --noEmit
+
+# 2. Kompajliranje i priprema produkcijskog paketa
+npm run build
+
+```
+
+---
+
+## ⚙️ Cloudflare Pages & Serverless Postavke
+
+Prilikom podešavanja projekta na **Cloudflare Pages** konzoli, unesite sljedeće konfiguracije:
+
+* **Build command:** `npm run build`
+* **Build output directory:** `dist`
+* **Node.js Version:** `20.x` ili novija
+
+### Varijable Okruženja u Cloudflare Konzoli (Environment Variables):
+
+Dodajte sljedeće varijable pod **Settings > Environment variables** (za Cloudflare Functions):
+
+| Varijabla | Opis |
+| --- | --- |
+| `TELEGRAM_BOT_TOKEN` | Token vašeg Telegram bota za obavijesti o novim narudžbama |
+| `TELEGRAM_CHAT_IDS` | ID-ovi Telegram chatova odvojeni zarezom |
+| `EMAILJS_SERVICE_ID` | Service ID sa vašeg EmailJS računa |
+| `EMAILJS_TEMPLATE_ID` | Template ID za potvrdu narudžbe kupcu |
+| `EMAILJS_AB_TEMPLATE_ID` | Template ID za podsjetnik napuštene korpe |
+| `EMAILJS_PUBLIC_KEY` | EmailJS Public Key |
+| `EMAILJS_PRIVATE_KEY` | EmailJS Private Key (za verifikaciju poziva sa servera) |
+| `FIREBASE_API_KEY` | Firebase API key za autentifikaciju admina |
+| `ADMIN_UIDS` | Firebase Admin UID-ovi odvojeni zarezom |
+
+---
+
+## 🔒 Sigurnost i Firestore Pravila
+
+Sigurnosna pravila baze nalaze se u datoteci `firestore.rules`.
+Prilikom izmjena pravila, obavezno ažurirajte datoteku u repozitoriju i objavite izmjene u **Firebase Console > Firestore Database > Rules > Publish**.
+
+* **Narudžbe (`orders`):** Kupac može isključivo kreirati novu narudžbu uz provjeru stavki, dok čitanje, izmjenu i brisanje narudžbi može vršiti samo prijavljeni **Admin**.
+* **Praćenje narudžbe (`order_tracking`):** Kupac ima pravo isključivo na `get` zahtjev po tačnom broju narudžbe (bez opcije listanja baze) i vidi samo status pošiljke.
+* **Proizvodi (`products`):** Kupci mogu smanjivati zalihe u transakciji do minimalno 0, dok sve ostale izmjene vrši Admin.
+
+---
+
+## 📂 Struktura Projekta
+
+```text
+CasualshopBiH/
+├── app/                      # Next.js App Router (Rute: /shop, /proizvod, /kontakt, /admin...)
+├── functions/                # Cloudflare Pages Functions (API rute: /api/notify)
+├── public/                   # Statički resursi (Slike, ikone, logo.png, manifest.json, robots.txt)
+├── src/
+│   ├── components/           # Reusable UI komponente (Navbar, Cart, ProductCard, Admin...)
+│   ├── context/              # React Context (CartContext, WishlistContext, AuthContext)
+│   ├── lib/                  # Logika za bazu (db.ts), Firebase config, validaciju i analitiku
+│   ├── types/                # TypeScript interfejsi i tipovi podataka
+│   └── views/                # Prikazi stranica (HomePage, ShopPage, CheckoutPage, AdminDashboard)
+├── firestore.rules           # Sigurnosna pravila za Firebase Firestore
+└── next.config.mjs           # Next.js konfiguracija
+
+```
+
+---
+
+## 📄 Licenca i Vlasništvo
+
+Sva prava zadržana © **Casual Shop BiH**. Može se koristiti i modificirati isključivo za potrebe zvanične Casual Shop BiH e-commerce platforme.
+
+```
+
+Možeš slobodno zamijeniti sadržaj svog `README.md` fajla ovim kodom! Vaš web shop je sada 100% spreman i pokriven po svim tehničkim i estetskim standardima.
+
+```

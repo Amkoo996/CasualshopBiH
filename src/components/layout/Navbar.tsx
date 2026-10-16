@@ -65,14 +65,13 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20 sm:h-24">
           
-          {/* Sređeni Logo */}
+          {/* Sređeni Logo Bez Zamućenja */}
           <Link href="/" className="flex items-center gap-3 group z-50">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-transparent flex items-center justify-center shrink-0 group-hover:scale-105 transition-all duration-300 shadow-[0_0_15px_rgba(247,233,127,0.15)] group-hover:shadow-[0_0_20px_rgba(247,233,127,0.3)] bg-[#111]">
-              {/* ZAMJENA: Ovdje povlačimo tvoj novi logo.png */}
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center shrink-0 group-hover:scale-105 transition-all duration-300">
               <img 
                 src="/logo.png" 
                 alt="Casual Shop BiH Logo" 
-                className="w-full h-full object-contain rounded-full"
+                className="w-full h-full object-cover rounded-full border-2 border-[#F7E97F]/40 group-hover:border-[#F7E97F] shadow-md transition-colors"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   if (e.currentTarget.parentElement) {

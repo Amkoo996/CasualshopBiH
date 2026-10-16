@@ -1,24 +1,41 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import ClientLayout from './ClientLayout';
 import './globals.css';
 
+export const viewport: Viewport = {
+  themeColor: '#0A0A0A',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
-  // Dodana definicija baze za tvoj domen kako bi Next.js znao kako učitati Open Graph slike
-  metadataBase: new URL('https://casualshopbih.pages.dev'),
+  metadataBase: new URL('https://casualshop.ba'),
   title: 'Casual Shop BiH • Autentični Streetwear',
   description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
+  manifest: '/manifest.json',
   icons: {
-    icon: '/logo-favicon.svg',
-    apple: '/logo-favicon.svg',
+    icon: [
+      { url: '/logo.png', sizes: 'any', type: 'image/png' },
+    ],
+    shortcut: '/logo.png',
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Casual Shop',
   },
   openGraph: {
     title: 'Casual Shop BiH • Autentični Streetwear',
     description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
-    url: 'https://casualshopbih.pages.dev',
+    url: 'https://casualshop.ba',
     siteName: 'Casual Shop BiH',
     images: [
       {
-        url: '/hero-streetwear.webp',
+        url: '/images/seo-cover.jpg',
         width: 1200,
         height: 630,
         alt: 'Casual Shop BiH Kolekcija',
