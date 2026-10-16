@@ -2,16 +2,16 @@ import { Product } from '../types';
 
 // Pomoćna funkcija za generisanje direktnog URL-a proizvoda za dijeljenje (Viber, WhatsApp, Social)
 export const getProductShareUrl = (productId: string): string => {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://casualshop.ba';
-  return `${origin}/#product-detail?id=${productId}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://casualshopbih.pages.dev';
+  return `${origin}/proizvod?id=${productId}`;
 };
 
 export const updateMetaTags = (product?: Product | null, pageTitle?: string) => {
   const siteName = 'Casual Shop BiH';
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://casualshop.ba';
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://casualshopbih.pages.dev';
   
-  // Ovdje postavljamo putanju do nove SEO slike (iz public/images/ foldera)
-  const defaultImage = `${currentOrigin}/images/seo-cover.webp`;
+  // Putanja do zadane SEO slike
+  const defaultImage = `${currentOrigin}/images/seo-cover.jpg`;
 
   let title = pageTitle || 'Casual Shop BiH | Streetwear Odjeća Online';
   let description = 'Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom. Plaćanje pouzećem širom BiH.';
@@ -25,7 +25,7 @@ export const updateMetaTags = (product?: Product | null, pageTitle?: string) => 
     canonicalUrl = getProductShareUrl(product.id);
   }
 
-  // Ažuriranje standardnog naslova browsera
+  // Ažuriranje naslova dokumenta
   document.title = title;
 
   // Pomoćna funkcija za postavljanje meta taga
@@ -51,7 +51,7 @@ export const updateMetaTags = (product?: Product | null, pageTitle?: string) => 
     link.setAttribute('href', url);
   };
 
-  // OpenGraph Tagovi (Viber, WhatsApp, Facebook, Instagram)
+  // OpenGraph Tagovi
   setMetaTag('og:title', title);
   setMetaTag('og:description', description);
   setMetaTag('og:image', image);
