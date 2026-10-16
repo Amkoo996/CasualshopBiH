@@ -51,6 +51,8 @@ export const onRequestPost = async (context: {
     // 2. PARSIRANJE I VALIDACIJA EMAIL-A (N3 Fix: uklonjen \)
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
+    
+    // ISPRAVLJENO: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/
     const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(email);
 
     if (!isValidEmail) {

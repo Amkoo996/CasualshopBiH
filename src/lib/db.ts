@@ -85,33 +85,24 @@ export const getOrders = async (): Promise<Order[]> => {
   }
 };
 
-export const getOrderByNumberAndPhone = async (orderNumber: string, phone: string): Promise<Order | null> => {
+// F1 FIX: Zamjena za staru funkciju. Čita samo 'order_tracking' kolekciju
+export const getOrderStatus = async (orderNumber: string) => {
   try {
-    const cleanNum = orderNumber.trim().replace(/^#/, '').toLowerCase();
-    const cleanPhone = phone.trim().replace(/[\s\-().\/]/g, '');
-    const snap = await getDocs(collection(db, 'orders'));
-    let found: Order | null = null;
-    snap.forEach((d) => {
-      const data = { ...(d.data() as Order), id: d.id };
-      const oNum = (data.orderNumber || data.id || '').replace(/^#/, '').trim().toLowerCase();
-      const c = (data.customer as any) || {};
-      const oPhone = (c.phone || (data as any).phone || '').replace(/[\s\-().\/]/g, '');
-      if (oNum === cleanNum && (oPhone.includes(cleanPhone) || cleanPhone.includes(oPhone))) {
-        found = data;
-      }
-    });
-    return found;
+    const id = orderNumber.trim().replace(/^#/, '').toUpperCase();
+    const snap = await getDoc(doc(db, 'order_tracking', id));
+    return snap.exists() ? (snap.data() as { status: OrderStatus; createdAt: string }) : null;
   } catch (error) {
-    console.error('Greška pri traženju narudžbe:', error);
+    console.error('Greška pri traženju statusa narudžbe:', error);
     return null;
   }
 };
 
 export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
-  const newOrderRef = doc(collection(db, 'orders'));
+  // S3 FIX: Dokument u orders kolekciji dobiva ID jednak broju narudžbe
+  const newOrderRef = doc(db, 'orders', orderData.orderNumber);
   const orderId = newOrderRef.id;
 
-  // 1. Upis u bazu i ažuriranje zaliha
+  // 1. Upis u bazu, ažuriranje zaliha i kreiranje order_tracking dokumenta
   await runTransaction(db, async (transaction) => {
     const productReads = [];
     for (const item of orderData.items) {
@@ -145,7 +136,16 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       discountAmount: orderData.discountAmount || 0,
     };
 
+    // Glavni upis
     transaction.set(newOrderRef, cleanOrderPayload);
+
+    // F1 FIX: Transakcijski upis u order_tracking
+    const trackingRef = doc(db, 'order_tracking', orderData.orderNumber);
+    transaction.set(trackingRef, {
+      orderNumber: orderData.orderNumber,
+      status: 'Nova',
+      createdAt: cleanOrderPayload.createdAt
+    });
   });
 
   const fullOrderObject: Order = { ...orderData, id: orderId };
@@ -198,7 +198,17 @@ export const updateOrderStatus = async (
   if (trackingInfo?.courierName !== undefined) {
     updateData.courierName = trackingInfo.courierName;
   }
+  
+  // Ažuriranje glavne narudžbe
   await updateDoc(orderRef, updateData);
+
+  // F1 FIX: Sinhronizacija statusa sa order_tracking
+  try {
+    const trackingRef = doc(db, 'order_tracking', orderId);
+    await updateDoc(trackingRef, { status });
+  } catch (err) {
+    console.warn('Upozorenje: Praćenje narudžbe nije ažurirano:', err);
+  }
 };
 
 // ==========================================
