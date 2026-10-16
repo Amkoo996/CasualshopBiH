@@ -23,12 +23,10 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   const [selectedSize, setSelectedSize] = useState<Size | ''>('');
   const [sortOption, setSortOption] = useState<string>('newest');
 
-  // Sinhronizacija kategorije pri kliku na meni/Navbar
   useEffect(() => {
     setSelectedCategory(initialCategory);
   }, [initialCategory]);
 
-  // Dinamicka filtracija lista kategorija na osnovu postavki u Admin Panelu
   const hiddenCats = settings?.hiddenCategories || [];
   const categories = useMemo(() => {
     const visibleFromGlobal = CATEGORIES.filter(
@@ -37,7 +35,6 @@ export const ShopPage: React.FC<ShopPageProps> = ({
     return ['Sve', ...visibleFromGlobal];
   }, [hiddenCats]);
 
-  // Izracun maksimalne cijene za slider
   const maxProductPrice = useMemo(() => {
     if (products.length === 0) return 150;
     return Math.ceil(Math.max(...products.map((p) => p.price), 150));
@@ -45,32 +42,26 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
   const [priceRange, setPriceRange] = useState<number>(maxProductPrice);
 
-  // Azuriranje priceRange ako se ucitaju novi proizvodi
   useEffect(() => {
     setPriceRange(maxProductPrice);
   }, [maxProductPrice]);
 
-  // Logika filtriranja i sortiranja artikala
   const filteredProducts = useMemo(() => {
     const normalizedSelectedCat = selectedCategory.trim().toLowerCase();
 
     return products
       .filter((product) => {
-        // Ukupna zaliha po svim velicinama
         const totalStock = Object.values(product.sizes || {}).reduce(
           (sum, val) => sum + (val || 0),
           0
         );
         const isSoldOut = totalStock <= 0;
 
-        // Ako je odabrana kategorija "Rasprodano", prikazi SAMO rasprodane artikle
         if (normalizedSelectedCat === 'rasprodano') {
           if (!isSoldOut) return false;
         } else {
-          // Za sve ostale kategorije (ukljucujuci "Sve"), SAKRIJ rasprodane artikle
           if (isSoldOut) return false;
 
-          // Filtriranje po specificnoj kategoriji
           if (
             normalizedSelectedCat !== 'sve' &&
             (product.category || '').trim().toLowerCase() !== normalizedSelectedCat
@@ -79,18 +70,15 @@ export const ShopPage: React.FC<ShopPageProps> = ({
           }
         }
 
-        // Filtriranje po velicini
         if (selectedSize !== '') {
           const sizeStock = product.sizes?.[selectedSize] ?? 0;
           if (sizeStock <= 0) return false;
         }
 
-        // Filtriranje po cijeni
         if (product.price > priceRange) {
           return false;
         }
 
-        // Pretraga po nazivu, opisu ili kategoriji
         if (searchTerm.trim() !== '') {
           const term = searchTerm.trim().toLowerCase();
           const matchName = (product.name || '').toLowerCase().includes(term);
@@ -106,7 +94,6 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         if (sortOption === 'price-high') return b.price - a.price;
         if (sortOption === 'name') return a.name.localeCompare(b.name);
 
-        // Zadano: Najnovije
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return timeB - timeA;
@@ -129,7 +116,6 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16 font-['Inter']">
-      {/* Naslov stranice */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
           <span className="bg-[#0A0A0A] text-[#F7E97F] text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] px-2 py-0.5 border border-[#F7E97F]">
@@ -140,10 +126,9 @@ export const ShopPage: React.FC<ShopPageProps> = ({
           STREETWEAR KOLEKCIJA
         </h1>
         <p className="text-xs sm:text-sm text-neutral-600 mt-1 max-w-xl font-['Inter']">
-          Kompletna ponuda muSke i uniseks ulicne odjece. Pronađite savrSenu velicinu i kroj uz brzu dostavu u BiH.
+          Kompletna ponuda muške i uniseks ulične odjeće. Pronađite savršenu veličinu i kroj uz brzu dostavu u BiH.
         </p>
 
-        {/* Aktivni Filteri / Tags Bar */}
         {hasActiveFilters && (
           <div className="mt-4 flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-200">
             <span className="text-[11px] font-['Poppins'] font-bold uppercase text-neutral-500 mr-1 flex items-center gap-1">
@@ -166,7 +151,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 onClick={() => setSelectedSize('')}
                 className="inline-flex items-center gap-1 bg-[#0A0A0A] text-white text-[11px] font-['Poppins'] font-bold uppercase px-2.5 py-1 rounded-xs hover:bg-neutral-800 transition-colors cursor-pointer"
               >
-                <span>Velicina: {selectedSize}</span>
+                <span>Veličina: {selectedSize}</span>
                 <X className="w-3.5 h-3.5 text-[#F7E97F]" />
               </button>
             )}
@@ -197,7 +182,6 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         )}
       </div>
 
-      {/* Filter Traka */}
       <FilterBar
         categories={categories}
         selectedCategory={selectedCategory}
@@ -213,14 +197,13 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         totalProductsCount={filteredProducts.length}
       />
 
-      {/* Prikaz Mreze Proizvoda */}
       {filteredProducts.length === 0 ? (
         <div className="text-center py-20 bg-white border-2 border-neutral-300 p-8 shadow-sm space-y-3">
           <p className="text-sm font-black uppercase tracking-wider text-black font-['Poppins']">
             Nema artikala koji odgovaraju odabranim filterima.
           </p>
           <p className="text-xs text-neutral-600 max-w-md mx-auto font-['Inter']">
-            PokuSajte promijeniti raspon cijene, odabrati drugu kategoriju ili ukloniti odabranu velicinu.
+            Pokušajte promijeniti raspon cijene, odabrati drugu kategoriju ili ukloniti odabranu veličinu.
           </p>
           <button
             onClick={handleReset}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Heart, Share2, Check } from 'lucide-react';
 import { Product } from '../../types';
 import { useWishlist } from '../../context/WishlistContext';
@@ -34,11 +35,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
   const hasDiscount = Boolean(product.originalPrice && product.originalPrice > product.price);
 
   const handleHeartClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     toggleWishlist(product.id);
   };
 
   const handleShareClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     const productUrl = getProductShareUrl(product.id);
     const shareData = {
@@ -59,7 +62,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        console.error('NeuspjeSno kopiranje linka:', err);
+        console.error('Neuspješno kopiranje linka:', err);
       }
     }
   };
@@ -70,8 +73,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
   );
 
   return (
-    <div
-      onClick={() => onSelect(product)}
+    // Umjesto onClick koristimo pravi Next Link na ispravan URL
+    <Link
+      href={`/proizvod?id=${product.id}`}
       className="group cursor-pointer flex flex-col bg-white border-2 border-neutral-200 hover:border-[#F7E97F] transition-all duration-300 shadow-sm relative"
     >
       <div className="relative aspect-[3/4] bg-neutral-100 overflow-hidden">
@@ -79,7 +83,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           <button
             type="button"
             onClick={handleHeartClick}
-            aria-label={isSaved ? 'Ukloni iz liste zelja' : 'Dodaj u listu zelja'}
+            aria-label={isSaved ? 'Ukloni iz liste želja' : 'Dodaj u listu želja'}
             className={`p-2 rounded-full transition-all duration-200 shadow-md ${
               isSaved
                 ? 'bg-[#0A0A0A] text-red-500 border border-neutral-700 hover:scale-110'
@@ -106,7 +110,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
 
         {copied && (
           <div className="absolute bottom-10 inset-x-2 z-30 bg-[#0A0A0A] text-[#F7E97F] text-[10px] font-['Poppins'] font-bold uppercase tracking-wider py-1 px-2 text-center border border-[#F7E97F] shadow-lg animate-fadeIn">
-            Link kopiran u međuspremnik!
+            Link kopiran!
           </div>
         )}
 
@@ -199,13 +203,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
             {isSoldOut ? (
               <span className="text-[#9A9A9A]">RASPRODANO</span>
             ) : isLowStock ? (
-              <span className="text-[#E63946]">POSLJEDNJI KOMADI</span>
+              <span className="text-[#E63946]">POSLJEDNJE</span>
             ) : (
               <span className="text-neutral-400">DOSTUPNO</span>
             )}
           </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
