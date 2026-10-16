@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { db, app } from '../../lib/firebase';
+import { db, auth } from '../../lib/firebase';
 import { Trash2, ShoppingCart, AlertTriangle, Phone, Mail, Clock, Ticket, CheckCircle2 } from 'lucide-react';
-
-// Inicijalizacija Firebase Auth instance
-const auth = getAuth(app);
 
 export const AbandonedCartsPromo = () => {
   const [carts, setCarts] = useState<any[]>([]);
@@ -54,7 +50,6 @@ export const AbandonedCartsPromo = () => {
     
     setSendingId(cart.id);
     try {
-      // S1 FIX: Dohvatanje sigurnosnog ID tokena aktivnog administratora
       const currentUser = auth.currentUser;
       if (!currentUser) {
         alert('Pristup odbijen. Niste prijavljeni kao administrator.');
@@ -64,14 +59,12 @@ export const AbandonedCartsPromo = () => {
       
       const idToken = await currentUser.getIdToken();
 
-      // Šaljemo postojeći promo kod CASUAL10
       const promoCode = type === '5d' ? 'CASUAL10' : '';
       
       const res = await fetch('/api/notify', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          // S1 FIX: Slanje tokena u zaglavlju
           'Authorization': `Bearer ${idToken}` 
         },
         body: JSON.stringify({ 
@@ -195,7 +188,6 @@ export const AbandonedCartsPromo = () => {
                   </div>
                 </div>
 
-                {/* Sekcija za slanje Emailova */}
                 {cart.email && (
                   <div className="pt-3 border-t border-neutral-200 space-y-2 mt-auto">
                     <button
