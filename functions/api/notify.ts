@@ -5,7 +5,6 @@ interface Env {
   EMAILJS_TEMPLATE_ID?: string;
   EMAILJS_AB_TEMPLATE_ID?: string;
   EMAILJS_PUBLIC_KEY?: string;
-  ADMIN_SECRET_KEY?: string; // Tajni ključ za admin akcije
   [key: string]: any;
 }
 
@@ -24,7 +23,7 @@ export const onRequestOptions = async (context: { request: Request }) => {
     headers: {
       'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Auth',
+      'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
 };
@@ -33,19 +32,40 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   const { request, env } = context;
   const origin = request.headers.get('Origin') || '';
 
-  // 1. Provjera porijekla (Origin Check) - blokira vanjske curl i skriptne pozive
-  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
-    return new Response(JSON.stringify({ error: 'Nedozvoljen domen.' }), { status: 403 });
+  // S1 FIX: STRIKTNA PROVJERA PORIJEKLA
+  // Blokira "curl" i pokušaje slanja s drugih domena (Origin ne smije biti prazan)
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    return new Response(JSON.stringify({ error: 'Nedozvoljen domen ili prazan Origin.' }), { 
+      status: 403,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Origin': origin,
   };
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { type, orderData, cartData, followUpType, promoCode } = body;
+    const { type, text, orderData, cartData, followUpType, promoCode } = body;
+
+    // F3 FIX: KONTAKT GRANA ZA TELEGRAM
+    if (type === 'contact') {
+      const botToken = env.TELEGRAM_BOT_TOKEN;
+      const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+
+      if (botToken && chatIds.length > 0 && text) {
+        await Promise.all(chatIds.map(chatId => 
+          fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: text })
+          })
+        ));
+      }
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers });
+    }
 
     // 2. Telegram obavijest o narudžbi
     if (type === 'order') {
@@ -66,7 +86,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // 3. Napuštene korpe - Dozvoljeno samo uz verifikaciju
+    // 3. Napuštene korpe
     if (type === 'abandoned') {
       const serviceId = env.EMAILJS_SERVICE_ID;
       const templateId = env.EMAILJS_AB_TEMPLATE_ID || env.EMAILJS_TEMPLATE_ID;

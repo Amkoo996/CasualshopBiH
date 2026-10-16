@@ -15,12 +15,12 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { createOrder } from '../lib/db';
+import { validateAndApplyPromoCode, markPromoCodeAsUsed } from '../lib/promo';
 import { isValidPhone, isValidName } from '../lib/validation';
-import { Order, Size } from '../types';
+import { Order } from '../types';
 import { db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
-// Jednostavna i pouzdana validacija e-maila
 const checkValidEmail = (emailStr: string): boolean => {
   if (!emailStr) return false;
   const clean = emailStr.trim();
@@ -139,7 +139,8 @@ export const CheckoutPage: React.FC<{
     }
   };
 
-  const handleApplyPromo = (e: React.FormEvent) => {
+  // F2 FIX: Stvarna validacija promo koda iz baze podataka umjesto hardkodiranja
+  const handleApplyPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     setPromoError('');
     setPromoSuccess('');
@@ -147,31 +148,29 @@ export const CheckoutPage: React.FC<{
     const cleanCode = promoCodeInput.trim().toUpperCase();
     if (!cleanCode) return;
 
-    if (cleanCode === 'FIRST100' || cleanCode === 'CASUAL10') {
-      setAppliedPromo({ code: cleanCode, discountPercent: 10 });
-      setPromoSuccess(`Kupon "${cleanCode}" je aktiviran! Ostvarili ste 10% popusta.`);
-    } else if (cleanCode === 'CASUAL20') {
-      setAppliedPromo({ code: cleanCode, discountPercent: 20 });
-      setPromoSuccess(`Kupon "${cleanCode}" je aktiviran! Ostvarili ste 20% popusta.`);
+    const result = await validateAndApplyPromoCode(cleanCode);
+
+    if (result.valid) {
+      setAppliedPromo({ code: cleanCode, discountPercent: result.discountPercent });
+      setPromoSuccess(result.message);
     } else {
-      setPromoError('Navedeni promo kod nije važeći ili je istekao.');
+      setAppliedPromo(null);
+      setPromoError(result.message);
     }
   };
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Q2 FIX: Spriječi dvostruko slanje ili praznu korpu
+    if (isSubmitting || items.length === 0) return;
+
     setGeneralError('');
     const newErrors: Record<string, string> = {};
 
-    if (!isValidName(formData.firstName)) {
-      newErrors.firstName = 'Molimo unesite vaše ime.';
-    }
-    if (!isValidName(formData.lastName)) {
-      newErrors.lastName = 'Molimo unesite vaše prezime.';
-    }
-    if (!isValidPhone(formData.phone)) {
-      newErrors.phone = 'Molimo unesite ispravan broj telefona (npr. 061 123 456).';
-    }
+    if (!isValidName(formData.firstName)) newErrors.firstName = 'Molimo unesite vaše ime.';
+    if (!isValidName(formData.lastName)) newErrors.lastName = 'Molimo unesite vaše prezime.';
+    if (!isValidPhone(formData.phone)) newErrors.phone = 'Molimo unesite ispravan broj telefona (npr. 061 123 456).';
     
     if (!formData.email || !formData.email.trim()) {
       newErrors.email = 'E-mail adresa je obavezna.';
@@ -180,19 +179,13 @@ export const CheckoutPage: React.FC<{
     }
 
     if (deliveryMethod === 'delivery') {
-      if (!formData.city.trim()) {
-        newErrors.city = 'Molimo unesite grad dostave.';
-      }
-      if (!formData.address.trim()) {
-        newErrors.address = 'Molimo unesite ulicu i kućni broj.';
-      }
+      if (!formData.city.trim()) newErrors.city = 'Molimo unesite grad dostave.';
+      if (!formData.address.trim()) newErrors.address = 'Molimo unesite ulicu i kućni broj.';
       if (formData.postalCode.trim() && !checkValidPostal(formData.postalCode)) {
         newErrors.postalCode = 'Poštanski broj mora imati 5 cifara (npr. 71000).';
       }
     } else {
-      if (!formData.pickupTime.trim()) {
-        newErrors.pickupTime = 'Molimo navedite željeni dan i vrijeme preuzimanja.';
-      }
+      if (!formData.pickupTime.trim()) newErrors.pickupTime = 'Molimo navedite željeni dan i vrijeme preuzimanja.';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -244,6 +237,11 @@ export const CheckoutPage: React.FC<{
 
       const createdOrderId = await createOrder(orderPayload);
       const fullOrderRecord: Order = { ...orderPayload, id: createdOrderId };
+
+      // F2 FIX: Zabilježi korištenje promo koda u bazi
+      if (appliedPromo) {
+        await markPromoCodeAsUsed(appliedPromo.code).catch(() => {});
+      }
 
       setCompletedOrder(fullOrderRecord);
       clearCart();
