@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ShoppingBag, Search, Menu, X, Heart, Instagram, ChevronDown, MonitorPlay } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X, Heart, Instagram, ChevronDown } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { CATEGORIES } from '../../types';
@@ -24,6 +24,18 @@ export const Navbar = () => {
 
   const cartItemCount = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
   const wishlistItemCount = wishlistItems.length;
+
+  // Zaključavanje skrolanja kada je otvoren mobilni meni
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -224,10 +236,6 @@ export const Navbar = () => {
                 <Instagram className="w-5 h-5 text-pink-500" />Instagram
               </a>
             </div>
-            
-            <Link href="/admin" className="flex items-center justify-center gap-2 text-[#0A0A0A] text-xs font-black uppercase tracking-wider bg-[#F7E97F] p-4 rounded-sm mt-4 hover:bg-white transition-colors">
-              <MonitorPlay className="w-4 h-4" />Admin Panel
-            </Link>
           </div>
         </div>
       )}
