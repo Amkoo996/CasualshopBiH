@@ -57,7 +57,6 @@ export const AbandonedCartsPromo = () => {
         return;
       }
       
-      // Forsirano osvježavanje Firebase tokena
       const idToken = await currentUser.getIdToken(true);
       const promoCode = type === '5d' ? 'CASUAL10' : '';
       
@@ -76,16 +75,23 @@ export const AbandonedCartsPromo = () => {
       });
       
       if (res.ok) {
-        const updateField = type === '3d' ? { notified3d: true } : { notified5d: true };
-        await updateDoc(doc(db, 'abandoned_carts', cart.id), updateField);
-        alert(`E-mail uspješno poslan kupcu ${cart.customerName || 'Kupac'}!`);
-        fetchCarts();
+        // E-mail je uspješno poslan sa servera!
+        try {
+          // Sada pokušavamo ažurirati bazu da sakrijemo dugme
+          const updateField = type === '3d' ? { notified3d: true } : { notified5d: true };
+          await updateDoc(doc(db, 'abandoned_carts', cart.id), updateField);
+          alert(`E-mail je uspješno poslan kupcu ${cart.customerName || 'Kupac'}!`);
+          fetchCarts();
+        } catch (firebaseErr: any) {
+          console.error("Firebase greška:", firebaseErr);
+          alert(`E-MAIL JE POSLAN, ali sistem nije uspio ažurirati status u bazi. (Razlog: ${firebaseErr.message}). Provjerite firestore.rules za abandoned_carts!`);
+        }
       } else {
         const errData = await res.json().catch(() => ({}));
-        alert(`Greška: ${errData.error || 'Server nije uspio poslati e-mail.'}`);
+        alert(`Server greška: ${errData.error || 'Neovlašten zahtjev.'}`);
       }
-    } catch (e) {
-      alert('Došlo je do greške prilikom konekcije sa serverom.');
+    } catch (e: any) {
+      alert(`Sistemska greška: ${e.message || 'Mrežni problem prilikom konekcije.'}`);
     } finally {
       setSendingId(null);
     }
