@@ -38,8 +38,8 @@ export const Footer: React.FC = () => {
           
           {/* Logo i Kratki opis brenda */}
           <div className="space-y-4">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-12 h-12 rounded-full border border-neutral-800 flex items-center justify-center shrink-0 bg-[#111] group-hover:scale-105 transition-transform">
+            <Link href="/" className="flex items-center gap-3.5 group">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#0A0A0A] border-2 border-[#F7E97F]/50 group-hover:border-[#F7E97F] p-1 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(247,233,127,0.15)] group-hover:scale-105 transition-all">
                 <img 
                   src="/logo.png" 
                   alt="Casual Shop BiH" 
@@ -129,7 +129,6 @@ export const Footer: React.FC = () => {
             <span>Plaćanje pouzećem</span>
             <span className="text-neutral-700">•</span>
             
-            {/* Katanac za skriveni ulaz u Admin Dashboard */}
             <Link
               href="/admin"
               className="p-1 text-neutral-600 hover:text-[#F7E97F] transition-colors cursor-pointer"

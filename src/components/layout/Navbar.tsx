@@ -65,17 +65,17 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20 sm:h-24">
           
-          {/* Sređeni Logo Bez Zamućenja */}
-          <Link href="/" className="flex items-center gap-3 group z-50">
-            <div className="relative w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center shrink-0 group-hover:scale-105 transition-all duration-300">
+          {/* Povećani i oštriji Logo */}
+          <Link href="/" className="flex items-center gap-3.5 group z-50">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#0A0A0A] border-2 border-[#F7E97F]/60 group-hover:border-[#F7E97F] p-1 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(247,233,127,0.2)] group-hover:scale-105 transition-all duration-300">
               <img 
                 src="/logo.png" 
-                alt="Casual Shop BiH Logo" 
-                className="w-full h-full object-cover rounded-full border-2 border-[#F7E97F]/40 group-hover:border-[#F7E97F] shadow-md transition-colors"
+                alt="Casual Shop Logo" 
+                className="w-full h-full object-contain rounded-full"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   if (e.currentTarget.parentElement) {
-                    e.currentTarget.parentElement.innerHTML = `<span class="font-['Poppins'] font-black text-sm text-[#F7E97F] leading-none">CS</span>`;
+                    e.currentTarget.parentElement.innerHTML = `<span class="font-['Poppins'] font-black text-xs text-[#F7E97F] leading-none">CS</span>`;
                   }
                 }}
               />
