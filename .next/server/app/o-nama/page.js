@@ -1,0 +1,13 @@
+var R=require("../../chunks/ssr/[turbopack]_runtime.js")("server/app/o-nama/page.js")
+R.c("server/chunks/ssr/node_modules_next_dist_esm_build_templates_app-page_13osgl7mgz1lw.js")
+R.c("server/chunks/ssr/[root-of-the-server]__0m7gxzz37ge9s._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__1u42et14cepfi._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__0_1n4t6a0-h5a._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__17flz9-em-wv3._.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_0wpq8j32_ibz4._.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_forbidden_0symwr9mbf-fh.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_unauthorized_0l_sp0xky89qu.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_global-error_0q-w892nagajq.js")
+R.c("server/chunks/ssr/_next-internal_server_app_o-nama_page_actions_17kr9fndcpk_n.js")
+R.m(78444)
+module.exports=R.m(78444).exports

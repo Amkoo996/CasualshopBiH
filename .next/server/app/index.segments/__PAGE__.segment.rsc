@@ -1,0 +1,36 @@
+1:"$Sreact.fragment"
+2:"/_next/static/chunks/23k1thx2x6-2c.js"
+3:"/_next/static/chunks/23likk3l_mvqd.js"
+4:"/_next/static/chunks/3tp1urttrxvb6.js"
+5:I[75995,["$2","$3","$4"],"default"]
+6:I[39756,["$2","$3","$4"],"default"]
+7:I[37457,["$2","$3","$4"],"default"]
+b:I[47257,["$2","$3","$4"],"ClientPageRoot"]
+c:"/_next/static/chunks/0t1pec_yttzl1.js"
+d:I[31713,["$2","$3","$4","$c"],"default"]
+10:I[97367,["$2","$3","$4"],"OutletBoundary"]
+11:"$Sreact.suspense"
+14:"ViewportBoundary"
+15:I[97367,["$2","$3","$4"],"$14"]
+16:"MetadataBoundary"
+17:I[97367,["$2","$3","$4"],"$16"]
+:HL["/_next/static/chunks/43fibaew_4ei4.css","style"]
+:HL["https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;800;900&display=swap","style"]
+9:X
+a:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$1","c",{"children":[["$","$Lb",null,{"Component":"$d","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@e","$@f"]}}],[["$","script","script-0",{"src":"/_next/static/chunks/0t1pec_yttzl1.js","async":true}]],["$","$L10",null,{"children":["$","$11",null,{"name":"Next.MetadataOutlet","children":"$@12"}]}]]}],"p":"$@13","v":null,"s":"$9"}}]]
+0:{"t":{"t":{"s":"","h":80,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/43fibaew_4ei4.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/23k1thx2x6-2c.js","async":true}],["$","script","script-1",{"src":"/_next/static/chunks/23likk3l_mvqd.js","async":true}],["$","script","script-2",{"src":"/_next/static/chunks/3tp1urttrxvb6.js","async":true}]],["$","html",null,{"lang":"bs","children":[["$","head",null,{"children":[["$","link",null,{"rel":"preconnect","href":"https://fonts.googleapis.com"}],["$","link",null,{"rel":"preconnect","href":"https://fonts.gstatic.com","crossOrigin":"anonymous"}],["$","link",null,{"rel":"stylesheet","href":"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;800;900&display=swap"}]]}],["$","body",null,{"className":"bg-[#FAF9F5] text-neutral-900 antialiased font-['Inter']","children":["$","$L5",null,{"children":["$","$L6",null,{"parallelRouterKey":"children","template":["$","$L7",null,{}],"notFound":[[["$","title",null,{"children":"404: This page could not be found."}],["$","div",null,{"style":{"fontFamily":"system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\"","height":"100vh","textAlign":"center","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center"},"children":["$","div",null,{"children":[["$","style",null,{"dangerouslySetInnerHTML":{"__html":"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}"}}],["$","h1",null,{"className":"next-error-h1","style":{"display":"inline-block","margin":"0 20px 0 0","padding":"0 23px 0 0","fontSize":24,"fontWeight":500,"verticalAlign":"top","lineHeight":"49px"},"children":404}],["$","div",null,{"style":{"display":"inline-block"},"children":["$","h2",null,{"style":{"fontSize":14,"fontWeight":400,"lineHeight":"49px","margin":0},"children":"This page could not be found."}]}]]}]}]],[]]}]}]}]]}]]}],"p":"$@8","v":null,"s":"$9"},"c":"$Qa"},"h":{"r":["$","$1","h",{"children":[null,["$","$L15",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1, maximum-scale=1"}],["$","meta","2",{"name":"theme-color","content":"#0A0A0A"}]]}],["$","$L17",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$11",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Casual Shop BiH • Autentični Streetwear"}],["$","meta","1",{"name":"description","content":"Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine."}],["$","link","2",{"rel":"manifest","href":"/manifest.json"}],["$","meta","3",{"name":"mobile-web-app-capable","content":"yes"}],["$","meta","4",{"name":"apple-mobile-web-app-title","content":"Casual Shop"}],["$","meta","5",{"name":"apple-mobile-web-app-status-bar-style","content":"black-translucent"}],["$","meta","6",{"property":"og:title","content":"Casual Shop BiH • Autentični Streetwear"}],["$","meta","7",{"property":"og:description","content":"Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine."}],["$","meta","8",{"property":"og:url","content":"https://casualshopbih.pages.dev"}],["$","meta","9",{"property":"og:site_name","content":"Casual Shop BiH"}],["$","meta","10",{"property":"og:locale","content":"bs_BA"}],["$","meta","11",{"property":"og:image","content":"https://casualshopbih.pages.dev/images/seo-cover.webp"}],["$","meta","12",{"property":"og:image:width","content":"1200"}],["$","meta","13",{"property":"og:image:height","content":"630"}],["$","meta","14",{"property":"og:image:alt","content":"Casual Shop BiH Kolekcija"}],["$","meta","15",{"property":"og:type","content":"website"}],["$","meta","16",{"name":"twitter:card","content":"summary_large_image"}],["$","meta","17",{"name":"twitter:title","content":"Casual Shop BiH • Autentični Streetwear"}],["$","meta","18",{"name":"twitter:description","content":"Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine."}],["$","meta","19",{"name":"twitter:image","content":"https://casualshopbih.pages.dev/images/seo-cover.webp"}],"$L18","$L19","$L1a","$L1b"]}]}],null]}],null]}],"p":"$@1c","v":null,"s":"$9"}},"a":"$@1d","u":"$@1e","b":"V3PttRQIIv4onpvSceGCW"}
+1f:I[27201,["$2","$3","$4"],"IconMark"]
+e:{}
+f:"$a:0:1:d:r:props:children:0:props:serverProvidedParams:params"
+12:null
+18:["$","link","20",{"rel":"shortcut icon","href":"/novi-logo.jpeg"}]
+19:["$","link","21",{"rel":"icon","href":"/novi-logo.jpeg","sizes":"any","type":"image/jpeg"}]
+1a:["$","link","22",{"rel":"apple-touch-icon","href":"/novi-logo.jpeg","sizes":"180x180","type":"image/jpeg"}]
+1b:["$","$L1f","23",{}]
+9:300
+1e:true
+9:C
+1d:0
+8:"$undefined"
+1c:"$undefined"
+13:"$undefined"

@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/checkout/page": "app/checkout/page.js",
+  "/dostava-i-povrat/page": "app/dostava-i-povrat/page.js",
+  "/kontakt/page": "app/kontakt/page.js",
+  "/o-nama/page": "app/o-nama/page.js",
+  "/page": "app/page.js",
+  "/politika-privatnosti/page": "app/politika-privatnosti/page.js",
+  "/proizvod/page": "app/proizvod/page.js",
+  "/shop/page": "app/shop/page.js",
+  "/uslovi-koristenja/page": "app/uslovi-koristenja/page.js",
+  "/wishlist/page": "app/wishlist/page.js"
+}

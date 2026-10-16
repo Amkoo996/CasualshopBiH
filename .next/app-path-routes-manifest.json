@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/admin/page": "/admin",
+  "/checkout/page": "/checkout",
+  "/dostava-i-povrat/page": "/dostava-i-povrat",
+  "/kontakt/page": "/kontakt",
+  "/o-nama/page": "/o-nama",
+  "/page": "/",
+  "/politika-privatnosti/page": "/politika-privatnosti",
+  "/proizvod/page": "/proizvod",
+  "/shop/page": "/shop",
+  "/uslovi-koristenja/page": "/uslovi-koristenja",
+  "/wishlist/page": "/wishlist"
+}
