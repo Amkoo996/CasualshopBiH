@@ -101,16 +101,22 @@ export const HomePage = () => {
               </div>
             </Link>
 
-            {/* DODACI (PRIVJESCI & STIKERI) */}
+            {/* DODACI (PRIVJESCI & STIKERI) - DODANA SLIKA */}
             <Link href="/shop?category=Dodaci%20(Accessories)" className="relative group overflow-hidden bg-[#0A0A0A] border-2 border-neutral-800">
-              <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-black to-neutral-900 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-              <div className="absolute top-4 right-4 bg-[#F7E97F] text-[#0A0A0A] text-[9px] font-['Poppins'] font-black uppercase px-2.5 py-1 tracking-wider flex items-center gap-1">
+              <img 
+                src="/images/sarajevo_geo_tee.jpg" 
+                alt="Dodaci" 
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60 mix-blend-overlay"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent group-hover:from-black/70 transition-colors"></div>
+              
+              <div className="absolute top-4 right-4 bg-[#F7E97F] text-[#0A0A0A] text-[9px] font-['Poppins'] font-black uppercase px-2.5 py-1 tracking-wider flex items-center gap-1 z-10">
                 <Sparkles className="w-3 h-3" /> USKORO
               </div>
-              <div className="absolute bottom-6 left-6">
+              <div className="absolute bottom-6 left-6 z-10">
                 <h2 className="text-white font-['Poppins'] text-2xl font-black uppercase tracking-widest mb-1 drop-shadow-lg">Dodaci</h2>
-                <p className="text-[#F7E97F] text-[10px] font-bold uppercase tracking-widest mb-2">Privjesci • Stikeri • Kape</p>
-                <span className="text-neutral-300 text-xs font-bold uppercase tracking-wider border-b-2 border-[#F7E97F] pb-0.5 group-hover:text-white">Pregledaj ponudu</span>
+                <p className="text-[#F7E97F] text-[10px] font-bold uppercase tracking-widest mb-2 drop-shadow-md">Privjesci • Stikeri • Kape</p>
+                <span className="text-neutral-200 text-xs font-bold uppercase tracking-wider border-b-2 border-[#F7E97F] pb-0.5 group-hover:text-white transition-colors">Pregledaj ponudu</span>
               </div>
             </Link>
           </div>
@@ -133,8 +139,8 @@ export const HomePage = () => {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {featuredProducts.map((product) => (
-                <Link key={product.id} href={`/proizvod/${product.id}`} className="group relative block bg-[#FAF9F5] border-2 border-transparent hover:border-black transition-colors">
-                  <div className="aspect-4/5 overflow-hidden bg-neutral-100">
+                <Link key={product.id} href={`/proizvod?id=${product.id}`} className="group relative block bg-[#FAF9F5] border-2 border-transparent hover:border-black transition-colors shadow-sm">
+                  <div className="aspect-[4/5] overflow-hidden bg-neutral-100">
                     <img src={product.images?.[0] || '/hero-streetwear.webp'} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                   <div className="p-4 bg-white border-t border-neutral-100">
@@ -172,11 +178,11 @@ export const HomePage = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {newDropProducts.map((product) => (
-              <Link key={product.id} href={`/proizvod/${product.id}`} className="group relative block border-2 border-neutral-200 hover:border-black transition-colors">
-                <span className="absolute top-2 left-2 z-10 bg-[#0A0A0A] text-[#F7E97F] text-[9px] font-black uppercase px-2 py-1 tracking-widest">
+              <Link key={product.id} href={`/proizvod?id=${product.id}`} className="group relative block border-2 border-neutral-200 hover:border-black transition-colors shadow-sm">
+                <span className="absolute top-2 left-2 z-10 bg-[#0A0A0A] text-[#F7E97F] text-[9px] font-black uppercase px-2 py-1 tracking-widest shadow-md">
                   NOVO
                 </span>
-                <div className="aspect-4/5 overflow-hidden bg-white">
+                <div className="aspect-[4/5] overflow-hidden bg-white">
                   <img src={product.images?.[0] || '/hero-streetwear.webp'} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
                 <div className="p-4 bg-white border-t border-neutral-100 text-center">
@@ -196,14 +202,14 @@ export const HomePage = () => {
           <p className="text-xs text-neutral-500 font-bold tracking-widest uppercase mb-8">@casualshop.bih</p>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-  {[1, 2, 3, 4].map((item) => (
-    <div key={item} className="aspect-square bg-neutral-100 overflow-hidden relative group border border-neutral-200 shadow-sm">
-      <img 
-        src={`/images/insta-${item}.webp`} 
-        alt="Casual Shop Lifestyle" 
-        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100" 
-      />
-    </div>
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="aspect-square bg-neutral-100 overflow-hidden relative group border border-neutral-200 shadow-sm">
+                <img 
+                  src={`/images/insta-${item}.webp`} 
+                  alt="Casual Shop Lifestyle" 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100" 
+                />
+              </div>
             ))}
           </div>
           
@@ -212,7 +218,7 @@ export const HomePage = () => {
               href="https://www.instagram.com/casualshop.bih" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-white font-['Poppins'] text-xs font-bold uppercase tracking-wider px-8 py-4 shadow-md bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-90 transition-opacity rounded-sm cursor-pointer"
+              className="inline-flex items-center gap-2 text-white font-['Poppins'] text-xs font-bold uppercase tracking-wider px-8 py-4 shadow-md bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-90 transition-opacity rounded-sm cursor-pointer hover:scale-105"
             >
               <Instagram className="w-5 h-5" />
               Pridruži se ekipi na Instagramu
