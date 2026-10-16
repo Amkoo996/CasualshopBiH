@@ -10,7 +10,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://casualshop.ba'),
+  metadataBase: new URL('https://casualshopbih.pages.dev'),
   title: 'Casual Shop BiH • Autentični Streetwear',
   description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
   manifest: '/manifest.json',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Casual Shop BiH • Autentični Streetwear',
     description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
-    url: 'https://casualshop.ba',
+    url: 'https://casualshopbih.pages.dev',
     siteName: 'Casual Shop BiH',
     images: [
       {
