@@ -178,8 +178,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       }
 
       const serviceId = env.EMAILJS_SERVICE_ID;
-      
-      // Ovdje je ispravka: Sada striktno koristimo samo AB template!
       const templateId = env.EMAILJS_AB_TEMPLATE_ID; 
       const publicKey = env.EMAILJS_PUBLIC_KEY;
 
@@ -190,6 +188,20 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       }
 
       const is5d = followUpType === '5d';
+      
+      // PREPRAVKA: Formatiranje lijepe liste artikala sa cijenama
+      let formattedItems = '';
+      if (cartData.items && Array.isArray(cartData.items) && cartData.items.length > 0) {
+        formattedItems = cartData.items
+          .map((i: any) => `👉 ${i.quantity}x ${i.name} (Veličina: ${i.size}) - ${(Number(i.price) * Number(i.quantity)).toFixed(2)} KM`)
+          .join('\n');
+        
+        const total = cartData.total ? Number(cartData.total).toFixed(2) : '0.00';
+        formattedItems += `\n\n💰 Ukupna vrijednost korpe: ${total} KM`;
+      } else {
+        formattedItems = cartData.itemsSummary || 'Vaši odabrani artikli';
+      }
+
       const emailPayload: any = {
         service_id: serviceId,
         template_id: templateId,
@@ -199,9 +211,9 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           customer_name: cartData.customerName || 'Kupac',
           subject: is5d ? 'Poklon za vas: 10% popusta! 🎁' : 'Zaboravili ste artikle u korpi? 🛒',
           custom_message: is5d 
-            ? `Iskoristite promo kod ${promoCode || 'CASUAL10'} za 10% popusta!`
-            : 'Artikli u vašoj korpi vas čekaju, ali zalihe su ograničene.',
-          cart_items: cartData.itemsSummary || 'Artikli iz korpe'
+            ? `Primijetili smo da ste ostavili neke artikle u korpi. Kao mali znak pažnje, poklanjamo vam promo kod "${promoCode || 'CASUAL10'}" za 10% popusta na vašu narudžbu!\nIskoristite ga na kasi i završite svoju kupovinu.`
+            : 'Primijetili smo da niste završili kupovinu. Artikli u vašoj korpi vas i dalje čekaju, ali su naše zalihe ograničene. Osigurajte svoje komade na vrijeme!',
+          cart_items: formattedItems
         }
       };
 
