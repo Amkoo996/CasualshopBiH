@@ -178,12 +178,14 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       }
 
       const serviceId = env.EMAILJS_SERVICE_ID;
-      const templateId = env.EMAILJS_AB_TEMPLATE_ID || env.EMAILJS_TEMPLATE_ID;
+      
+      // Ovdje je ispravka: Sada striktno koristimo samo AB template!
+      const templateId = env.EMAILJS_AB_TEMPLATE_ID; 
       const publicKey = env.EMAILJS_PUBLIC_KEY;
 
       if (!serviceId || !templateId || !publicKey || !cartData?.email) {
         return new Response(JSON.stringify({ 
-          error: `Nedostaju podaci: serviceId=${!!serviceId}, templateId=${!!templateId}, publicKey=${!!publicKey}, email=${!!cartData?.email}` 
+          error: `Nedostaju podaci: serviceId=${!!serviceId}, templateId (AB)=${!!templateId}, publicKey=${!!publicKey}, email=${!!cartData?.email}. Provjerite EMAILJS_AB_TEMPLATE_ID u Cloudflare-u.` 
         }), { status: 400, headers });
       }
 
