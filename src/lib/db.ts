@@ -61,7 +61,6 @@ export const saveProduct = async (productData: Partial<Product>): Promise<void> 
   const id = productData.id || `cs-${Date.now()}`;
   const docRef = doc(db, 'products', id);
   
-  // UKLONJENO: Firebase se ruši na 'undefined', pa ih ovdje automatski brišemo
   const cleanData = Object.fromEntries(
     Object.entries(productData).filter(([_, v]) => v !== undefined)
   );
@@ -91,7 +90,6 @@ export const getOrders = async (): Promise<Order[]> => {
   }
 };
 
-// F1 FIX: Zamjena za staru funkciju. Čita samo 'order_tracking' kolekciju
 export const getOrderStatus = async (orderNumber: string) => {
   try {
     const id = orderNumber.trim().replace(/^#/, '').toUpperCase();
@@ -104,11 +102,9 @@ export const getOrderStatus = async (orderNumber: string) => {
 };
 
 export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
-  // S3 FIX: Dokument u orders kolekciji dobiva ID jednak broju narudžbe
   const newOrderRef = doc(db, 'orders', orderData.orderNumber);
   const orderId = newOrderRef.id;
 
-  // 1. Upis u bazu, ažuriranje zaliha i kreiranje order_tracking dokumenta
   await runTransaction(db, async (transaction) => {
     const productReads = [];
     for (const item of orderData.items) {
@@ -122,7 +118,12 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
         const prodData = prodSnap.data() as any;
         const currentSizes = { ...(prodData.sizes || {}) };
         const currentStock = currentSizes[item.size] ?? 0;
-        currentSizes[item.size] = Math.max(0, currentStock - item.quantity);
+        
+        if (currentStock < item.quantity) {
+          throw new Error('INSUFFICIENT_STOCK:' + item.name + ':' + item.size);
+        }
+        
+        currentSizes[item.size] = currentStock - item.quantity;
         transaction.update(prodRef, { sizes: currentSizes });
       }
     }
@@ -142,10 +143,8 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
       discountAmount: orderData.discountAmount || 0,
     };
 
-    // Glavni upis
     transaction.set(newOrderRef, cleanOrderPayload);
 
-    // F1 FIX: Transakcijski upis u order_tracking
     const trackingRef = doc(db, 'order_tracking', orderData.orderNumber);
     transaction.set(trackingRef, {
       orderNumber: orderData.orderNumber,
@@ -156,7 +155,6 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
 
   const fullOrderObject: Order = { ...orderData, id: orderId };
 
-  // 2. Slanje notifikacije na Telegram i EmailJS
   try {
     const c = orderData.customer || ({} as any);
     const buyerName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Kupac';
@@ -205,10 +203,8 @@ export const updateOrderStatus = async (
     updateData.courierName = trackingInfo.courierName;
   }
   
-  // Ažuriranje glavne narudžbe
   await updateDoc(orderRef, updateData);
 
-  // F1 FIX: Sinhronizacija statusa sa order_tracking
   try {
     const trackingRef = doc(db, 'order_tracking', orderId);
     await updateDoc(trackingRef, { status });

@@ -2,7 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper funkcija za provjeru admin prava
     function isAdmin() {
       return request.auth != null && (
         request.auth.uid == 'Jt35lHyxq1feiEyi1exOKRA9xJl2' || 
@@ -11,12 +10,10 @@ service cloud.firestore {
       );
     }
 
-    // Dozvoljene veličine proizvoda
     function validSizes() {
       return ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
     }
 
-    // Helper: osigurava da kupac može isključivo smanjiti postojeću zalihu
     function sizeOk(s) {
       return !(s in request.resource.data.sizes) || (
         !(s in resource.data.sizes) || (
@@ -27,14 +24,9 @@ service cloud.firestore {
       );
     }
 
-    // ==========================================
-    // 1. PROIZVODI (PRODUCTS)
-    // ==========================================
     match /products/{productId} {
       allow read: if true;
       allow create, delete: if isAdmin();
-      
-      // Admin mijenja sve; Kupci smiju mijenjati ISKLJUČIVO 'sizes' bez ubacivanja nepoznatih ključeva
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sizes']) &&
         request.resource.data.sizes.keys().hasOnly(validSizes()) &&
@@ -43,11 +35,7 @@ service cloud.firestore {
       );
     }
 
-    // ==========================================
-    // 2. NARUDŽBE (ORDERS)
-    // ==========================================
     match /orders/{orderId} {
-      // Kupci kreiraju narudžbu uz provjeru stavki i iznosa veće od 0 KM
       allow create: if request.resource.data.keys().hasOnly([
         'id', 'orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 
         'total', 'paymentMethod', 'status', 'createdAt', 'promoCode', 'discountAmount'
@@ -61,46 +49,35 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // ==========================================
-    // 3. PRAĆENJE NARUDŽBI (ORDER TRACKING)
-    // ==========================================
     match /order_tracking/{orderNumber} {
       allow get: if true;
       allow list: if isAdmin();
-      // Dokument praćenja se može kreirati SAMO ako se u istoj transakciji kreira i stvarna narudžba pod istim ID-om
       allow create: if existsAfter(/databases/$(database)/documents/orders/$(orderNumber))
                     && request.resource.data.keys().hasOnly(['orderNumber', 'status', 'createdAt'])
                     && request.resource.data.status == 'Nova';
       allow update, delete: if isAdmin();
     }
 
-    // ==========================================
-    // 4. PROMO KODOVI (PROMO CODES)
-    // ==========================================
     match /promo_codes/{codeId} {
       allow get: if true;
       allow list: if isAdmin();
       allow create, delete: if isAdmin();
       
-      // Dozvoljeno samo evidentiranje iskorištenja (povećanje brojača za 1)
       allow update: if isAdmin() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount', 'usedAt']) &&
-        request.resource.data.usageCount == resource.data.get('usageCount', 0) + 1
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount', 'usedAt', 'used', 'active']) &&
+        request.resource.data.usageCount == resource.data.get('usageCount', 0) + 1 &&
+        request.resource.data.get('active', false) <= resource.data.get('active', false) &&
+        request.resource.data.get('used', false) >= resource.data.get('used', false)
       );
     }
 
-    // ==========================================
-    // 5. NAPUŠTENE KORPE I ANALITIKA
-    // ==========================================
     match /abandoned_carts/{cartId} {
-      // Klijent (kupac) smije upisati samo osnovne podatke o korpi
       allow create, update: if request.resource.data.keys().hasOnly([
         'customerName', 'phone', 'email', 'city', 'address', 'deliveryMethod', 
         'items', 'itemsSummary', 'total', 'updatedAt', 'status'
       ]) && request.resource.data.items is list
          && request.resource.data.items.size() <= 20;
          
-      // Admin ima puno pravo čitanja, ažuriranja (uključujući notified3d/5d) i brisanja
       allow read, update, delete: if isAdmin();
     }
 
@@ -122,9 +99,6 @@ service cloud.firestore {
       ]);
     }
 
-    // ==========================================
-    // 6. KONTAKT PORUKE (CONTACT MESSAGES)
-    // ==========================================
     match /contact_messages/{messageId} {
       allow create: if request.resource.data.keys().hasOnly([
         'name', 'email', 'phone', 'message', 'createdAt', 'read'
@@ -134,9 +108,6 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // ==========================================
-    // 7. NEWSLETTER PRETPLATNICI (SUBSCRIBERS)
-    // ==========================================
     match /subscribers/{email} {
       allow create: if request.resource.data.keys().hasOnly([
         'email', 'subscribedAt', 'createdAt', 'consent'
@@ -146,9 +117,6 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // ==========================================
-    // 8. RECENZIJE PROIZVODA (REVIEWS)
-    // ==========================================
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if request.resource.data.keys().hasOnly([
@@ -164,9 +132,6 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // ==========================================
-    // 9. POSTAVKE I CMS (SETTINGS)
-    // ==========================================
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();

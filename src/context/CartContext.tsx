@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, Product, Size, StoreSettings, DEFAULT_STORE_SETTINGS } from '../types';
 import { trackAddToCart } from '../lib/analytics';
-import { recordAddToCartEvent, saveCartSession } from '../lib/tracking';
+import { recordAddToCartEvent } from '../lib/tracking';
 import { getStoreSettings } from '../lib/db';
 
 interface CartContextType {
@@ -43,7 +43,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Učitavanje iz localStorage nakon prvog rendera (Rješava Q1 Hydration problem)
   useEffect(() => {
     setIsMounted(true);
     refreshSettings();
@@ -55,17 +54,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Snimanje korpe prilikom svake promjene i ažuriranje napuštenih korpi
   useEffect(() => {
     if (isMounted) {
       try {
         localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-        
-        // Ažuriranje sesije napuštene korpe i pri promjeni količine/brisanju (Q1 Fix)
-        if (items.length > 0) {
-          const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-          saveCartSession({ items, subtotal }).catch(() => {});
-        }
       } catch (e) {
         console.error('Failed to save cart to localStorage', e);
       }
@@ -82,7 +74,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let newItems = [...items];
 
-    // Nečiste funkcije i analitika izvučeni iz updatera (Q1 Fix)
     if (existingIndex > -1) {
       const newQty = Math.min(newItems[existingIndex].quantity + quantity, availableStock);
       newItems[existingIndex] = {
@@ -143,7 +134,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Q1 Fix: Promijenjeno || na ?? da prag dostave od 0 KM ne preskoči na 100 KM
   const freeThreshold = settings.freeShippingThreshold ?? 100.0;
   const standardFee = settings.shippingFee ?? 10.0;
 

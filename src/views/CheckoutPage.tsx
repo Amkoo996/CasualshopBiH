@@ -236,6 +236,17 @@ export const CheckoutPage: React.FC<{
       const createdOrderId = await createOrder(orderPayload);
       const fullOrderRecord: Order = { ...orderPayload, id: createdOrderId };
 
+      try {
+        const digits = formData.phone.replace(/\D/g, '');
+        const id = 'cart-' + (digits || formData.email.replace(/[^a-zA-Z0-9]/g, ''));
+        await setDoc(doc(db, 'abandoned_carts', id), {
+          status: 'converted',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (err) {
+        console.warn('Silent fail: Failed to mark abandoned cart as converted.');
+      }
+
       if (appliedPromo) {
         await markPromoCodeAsUsed(appliedPromo.code).catch(() => {});
       }
@@ -248,7 +259,6 @@ export const CheckoutPage: React.FC<{
       }
     } catch (err: any) {
       console.error('Greška pri kreiranju narudžbe:', err);
-      // Q2 FIX: Hvatanje i prikaz jasne greške o zalihama iz db.ts transakcije
       if (err.message && (err.message.includes('INSUFFICIENT_STOCK') || err.message.includes('nema dovoljno') || err.message.includes('nije dostupan') || err.message.includes('Cijena'))) {
         if (err.message.includes('INSUFFICIENT_STOCK')) {
           const parts = err.message.split(':');
@@ -519,7 +529,6 @@ export const CheckoutPage: React.FC<{
                     placeholder="npr. adresa@gmail.com"
                     className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.email ? 'border-red-500' : 'border-neutral-300'}`}
                   />
-                  {/* S4 FIX: GDPR napomena i saglasnost za prikupljanje e-maila */}
                   <span className="text-[10px] text-neutral-400 mt-0.5 block">
                     Služi isključivo za slanje potvrde i praćenje pošiljke. 
                     Unosom se slažete s našom <Link href="/politika-privatnosti" className="underline hover:text-black">Politikom privatnosti</Link>.
