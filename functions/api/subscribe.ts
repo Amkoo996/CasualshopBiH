@@ -50,7 +50,7 @@ export const onRequestPost = async (context: {
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
     
-    // ISPRAVLJENO: Uklonjen \ ispred $const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(email);
 
     if (!isValidEmail) {
       return new Response(
