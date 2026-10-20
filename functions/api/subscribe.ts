@@ -28,7 +28,6 @@ export const onRequestPost = async (context: {
   try {
     const { request, env } = context;
 
-    // 1. ORIGIN / REFERER ZAŠTITA (K4)
     const origin = request.headers.get('Origin') || '';
     const referer = request.headers.get('Referer') || '';
 
@@ -37,7 +36,7 @@ export const onRequestPost = async (context: {
     );
 
     if (!isValidOrigin) {
-      return new Response(JSON.stringify({ error: 'Pristup odbijen.' }), {
+      return new Response(JSON.stringify({ error: 'Zabranjeno' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -48,12 +47,10 @@ export const onRequestPost = async (context: {
       'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
     };
 
-    // 2. PARSIRANJE I VALIDACIJA EMAIL-A (N3 Fix: uklonjen \)
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
     
-    // ISPRAVLJENO: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/
-    const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(email);
+    // ISPRAVLJENO: Uklonjen \ ispred $const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 
     if (!isValidEmail) {
       return new Response(
@@ -64,7 +61,7 @@ export const onRequestPost = async (context: {
 
     const apiKey = env.BREVO_API_KEY?.trim();
     if (!apiKey) {
-      console.error('BREVO_API_KEY nije konfigurisana u Cloudflare varijablama.');
+      console.error('BREVO_API_KEY nije konfigurisana.');
       return new Response(
         JSON.stringify({ error: 'Sistemska greška na serveru.' }),
         { status: 500, headers: responseHeaders }

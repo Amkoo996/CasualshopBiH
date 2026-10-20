@@ -21,11 +21,12 @@ async function checkAdminStatus(request: Request, env: Env): Promise<{ ok: boole
   const idToken = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   
   if (!idToken) {
-    return { ok: false, message: 'Nedostaje autorizacijski token (niste prijavljeni kao admin).' };
+    return { ok: false, message: 'Nije autorizovano.' };
   }
   
   if (!env.FIREBASE_API_KEY) {
-    return { ok: false, message: 'FIREBASE_API_KEY nije definisan u Cloudflare Environment Variables.' };
+    console.error('Nedostaje FIREBASE_API_KEY');
+    return { ok: false, message: 'Nije autorizovano.' };
   }
   
   const res = await fetch(
@@ -38,23 +39,17 @@ async function checkAdminStatus(request: Request, env: Env): Promise<{ ok: boole
   );
   
   if (!res.ok) {
-    const errData: any = await res.json().catch(() => ({}));
-    return { 
-      ok: false, 
-      message: `Firebase odbio token (${res.status}): ${errData?.error?.message || 'Nevažeći token ili pogrešan API ključ'}` 
-    };
+    console.error('Firebase odbio token:', res.status);
+    return { ok: false, message: 'Nije autorizovano.' };
   }
   
   const data: any = await res.json();
   const uid = data?.users?.[0]?.localId;
   const admins = (env.ADMIN_UIDS || '').split(',').map((s) => s.trim()).filter(Boolean);
   
-  if (admins.length === 0) {
-    return { ok: false, message: 'ADMIN_UIDS varijabla nije definisana u Cloudflare postavkama.' };
-  }
-  
-  if (!uid || !admins.includes(uid)) {
-    return { ok: false, message: `Vaš UID (${uid || 'nepoznat'}) nije naveden u ADMIN_UIDS listi.` };
+  if (admins.length === 0 || !uid || !admins.includes(uid)) {
+    console.error('UID nije u ADMIN_UIDS listi');
+    return { ok: false, message: 'Nije autorizovano.' };
   }
   
   return { ok: true };
@@ -78,8 +73,9 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   const { request, env } = context;
   const origin = request.headers.get('Origin') || '';
 
-  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
-    return new Response(JSON.stringify({ error: 'Nedozvoljen domen.' }), { 
+  // ISPRAVLJENO: Striktna Origin provjera (blokira prazan Origin)
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    return new Response(JSON.stringify({ error: 'Zabranjeno' }), { 
       status: 403,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -87,20 +83,20 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Origin': origin,
   };
 
   try {
     const body = await request.json().catch(() => ({}));
     const { type, text, orderData, cartData, followUpType, promoCode } = body;
 
-    // 1. KONTAKT FORMA
     if (type === 'contact') {
       const botToken = env.TELEGRAM_BOT_TOKEN;
       const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 
       if (!botToken || chatIds.length === 0) {
-        return new Response(JSON.stringify({ success: false, error: 'Telegram nije konfigurisan.' }), { status: 500, headers });
+        console.error('Telegram nije konfigurisan.');
+        return new Response(JSON.stringify({ success: false, error: 'Sistemska greška' }), { status: 500, headers });
       }
 
       if (text) {
@@ -115,36 +111,31 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // 2. NOVA NARUDŽBA
     if (type === 'order' && orderData) {
       const botToken = env.TELEGRAM_BOT_TOKEN;
       const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
       
-      if (!botToken || chatIds.length === 0) {
-        return new Response(JSON.stringify({ success: false, error: 'Telegram nije konfigurisan.' }), { status: 500, headers });
-      }
-
       const c = orderData.customer || {};
       const isPickup = c.address?.includes('Lično');
       const deliveryStatus = isPickup ? `Lično Sarajevo (${c.note || ''})` : `${c.city}, ${c.address}`;
       const itemsText = (orderData.items || []).map((i: any) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
       
-      // Slanje na Telegram
-      const msg = `🛍️ NOVA NARUDŽBA #${orderData.orderNumber}\nKupac: ${c.firstName} ${c.lastName}\nIznos: ${orderData.total} KM\nDostava: ${deliveryStatus}\nTel: ${c.phone}\n\nArtikli:\n${itemsText}`;
-      
-      await Promise.all(chatIds.map(chatId => 
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ chat_id: chatId, text: String(msg).slice(0, 3500) })
-        })
-      ));
+      if (botToken && chatIds.length > 0) {
+        const msg = `🛍️ NOVA NARUDŽBA #${orderData.orderNumber}\nKupac: ${c.firstName} ${c.lastName}\nIznos: ${orderData.total} KM\nDostava: ${deliveryStatus}\nTel: ${c.phone}\n\nArtikli:\n${itemsText}`;
+        
+        await Promise.all(chatIds.map(chatId => 
+          fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ chat_id: chatId, text: String(msg).slice(0, 3500) })
+          })
+        ));
+      } else {
+        console.error('Telegram notifikacije su preskočene jer nedostaje token ili chat ID.');
+      }
 
-      // Slanje na EmailJS
       const to = String(orderData?.customer?.email || '').trim();
       if (to && env.EMAILJS_SERVICE_ID && env.EMAILJS_TEMPLATE_ID && env.EMAILJS_PUBLIC_KEY) {
-        
-        // Formatiranje lijepog teksta e-maila
         const itemsTextEmail = (orderData.items || []).map((i: any) => `👉 ${i.quantity}x ${i.name} (Veličina: ${i.size})`).join('\n');
         
         const emailBody = `Poštovani/a ${c.firstName || 'Kupac'},
@@ -162,7 +153,6 @@ Ukoliko imate bilo kakvih pitanja ili želite napraviti izmjenu, slobodno odgovo
 Lijep pozdrav,
 Casual Shop BiH tim`;
 
-        // OVDJE JE ISPRAVKA: Koristimo varijable subject, email_body i customer_email koje vaš šablon očekuje!
         const orderEmailPayload: any = {
           service_id: env.EMAILJS_SERVICE_ID,
           template_id: env.EMAILJS_TEMPLATE_ID,
@@ -189,7 +179,6 @@ Casual Shop BiH tim`;
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // 3. NAPUŠTENE KORPE
     if (type === 'abandoned') {
       const adminCheck = await checkAdminStatus(request, env);
       if (!adminCheck.ok) {
@@ -201,9 +190,8 @@ Casual Shop BiH tim`;
       const publicKey = env.EMAILJS_PUBLIC_KEY;
 
       if (!serviceId || !templateId || !publicKey || !cartData?.email) {
-        return new Response(JSON.stringify({ 
-          error: `Nedostaju podaci: serviceId=${!!serviceId}, templateId (AB)=${!!templateId}, publicKey=${!!publicKey}, email=${!!cartData?.email}. Provjerite EMAILJS_AB_TEMPLATE_ID u Cloudflare-u.` 
-        }), { status: 400, headers });
+        console.error('Nedostaju EmailJS podaci za abandoned cart');
+        return new Response(JSON.stringify({ error: 'Sistemska greška' }), { status: 400, headers });
       }
 
       const is5d = followUpType === '5d';
@@ -245,12 +233,9 @@ Casual Shop BiH tim`;
         body: JSON.stringify(emailPayload)
       });
 
-      const responseText = await emailRes.text();
-
       if (!emailRes.ok) {
-        return new Response(JSON.stringify({ 
-          error: `EmailJS greška (${emailRes.status}): ${responseText || 'Nepoznat razlog odbijanja.'}` 
-        }), { status: emailRes.status, headers });
+        console.error('EmailJS greška:', await emailRes.text());
+        return new Response(JSON.stringify({ error: 'Sistemska greška' }), { status: emailRes.status, headers });
       }
 
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
@@ -258,6 +243,7 @@ Casual Shop BiH tim`;
 
     return new Response(JSON.stringify({ error: 'Nepoznat tip zahtjeva.' }), { status: 400, headers });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
+    console.error('Sistemska greška:', err);
+    return new Response(JSON.stringify({ error: 'Sistemska greška' }), { status: 500, headers });
   }
 };
