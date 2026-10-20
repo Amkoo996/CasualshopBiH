@@ -50,7 +50,7 @@ export const onRequestPost = async (context: {
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
     
-    // ISPRAVLJENO: uklonjen kosi znak prije \$ znaka
+    // Znak \$ označava kraj stringa i NE smije imati backslash ispred sebe
     const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(email);
 
     if (!isValidEmail) {
