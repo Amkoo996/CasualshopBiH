@@ -56,8 +56,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         const availableSizes = Object.entries(propProduct.sizes || {})
           .filter(([_, stock]) => (stock as number) > 0)
           .map(([sz]) => sz as Size);
-        if (availableSizes.length > 0) {
-          setSelectedSize(availableSizes[0]);
+          
+        if (propProduct.category === 'Dodaci (Accessories)') {
+          if (availableSizes.includes('One size')) setSelectedSize('One size');
+          else if (availableSizes.length > 0) setSelectedSize(availableSizes[0]);
+        } else {
+          if (availableSizes.length > 0) {
+            setSelectedSize(availableSizes[0]);
+          }
         }
 
         try {
@@ -82,8 +88,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           const availableSizes = Object.entries(data.sizes || {})
             .filter(([_, stock]) => (stock as number) > 0)
             .map(([sz]) => sz as Size);
-          if (availableSizes.length > 0) {
-            setSelectedSize(availableSizes[0]);
+            
+          if (data.category === 'Dodaci (Accessories)') {
+            if (availableSizes.includes('One size')) setSelectedSize('One size');
+            else if (availableSizes.length > 0) setSelectedSize(availableSizes[0]);
+          } else {
+            if (availableSizes.length > 0) {
+              setSelectedSize(availableSizes[0]);
+            }
           }
 
           const allProds = await getProducts();
@@ -139,6 +151,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const images = product.images && product.images.length > 0 ? product.images : ['/hero-streetwear.webp'];
   const currentStock = selectedSize && product.sizes ? (product.sizes[selectedSize] ?? 0) : 0;
   const isSoldOut = Object.values(product.sizes || {}).every((s) => (s as number) <= 0);
+  const isAccessory = product.category === 'Dodaci (Accessories)';
 
   const handleAddToCart = () => {
     if (!selectedSize) {
@@ -280,47 +293,53 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             <div className="space-y-2.5 pt-2 border-t border-neutral-200">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-['Poppins'] font-bold uppercase text-black">
-                  Odaberite veličinu:
+                  {isAccessory ? 'Veličina:' : 'Odaberite veličinu:'}
                 </span>
-                {sizeError && (
+                {sizeError && !isAccessory && (
                   <span className="text-red-600 font-bold text-[11px] animate-pulse text-right">
                     Molimo izaberite veličinu!
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                {sizesToDisplay.map((sz) => {
-                  const stock = product.sizes ? (product.sizes[sz as Size] ?? 0) : 0;
-                  const isAvailable = stock > 0;
-                  const isSelected = selectedSize === sz;
+              {isAccessory ? (
+                <div className="bg-[#FAF9F5] border-2 border-neutral-300 p-3 text-sm font-['Poppins'] font-bold uppercase text-center text-neutral-700 shadow-sm">
+                  Univerzalna veličina (One Size)
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                  {sizesToDisplay.map((sz) => {
+                    const stock = product.sizes ? (product.sizes[sz as Size] ?? 0) : 0;
+                    const isAvailable = stock > 0;
+                    const isSelected = selectedSize === sz;
 
-                  return (
-                    <button
-                      key={sz}
-                      type="button"
-                      disabled={!isAvailable}
-                      onClick={() => {
-                        setSelectedSize(sz as Size);
-                        setSizeError(false);
-                      }}
-                      className={`py-2.5 border-2 text-xs font-['Poppins'] font-black uppercase transition-all cursor-pointer ${
-                        !isAvailable
-                          ? 'bg-neutral-100 text-neutral-400 border-neutral-300 line-through cursor-not-allowed'
-                          : isSelected
-                          ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A] shadow-md'
-                          : 'bg-white text-black border-neutral-300 hover:border-black'
-                      }`}
-                    >
-                      {sz}
-                    </button>
-                  );
-                })}
-              </div>
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        disabled={!isAvailable}
+                        onClick={() => {
+                          setSelectedSize(sz as Size);
+                          setSizeError(false);
+                        }}
+                        className={`py-2.5 border-2 text-xs font-['Poppins'] font-black uppercase transition-all cursor-pointer ${
+                          !isAvailable
+                            ? 'bg-neutral-100 text-neutral-400 border-neutral-300 line-through cursor-not-allowed'
+                            : isSelected
+                            ? 'bg-[#0A0A0A] text-[#F7E97F] border-[#0A0A0A] shadow-md'
+                            : 'bg-white text-black border-neutral-300 hover:border-black'
+                        }`}
+                      >
+                        {sz}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {selectedSize && (
                 <p className="text-[11px] text-neutral-500">
-                  Stanje za {selectedSize}:{' '}
+                  Stanje {isAccessory ? '' : `za ${selectedSize}`}:{' '}
                   <strong className={currentStock > 0 ? 'text-emerald-600' : 'text-red-600'}>
                     {currentStock > 0 ? 'Dostupno na stanju' : 'Rasprodano'}
                   </strong>
@@ -408,7 +427,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
             </div>
 
-            {/* ISPRAVLJENO: Opis proizvoda se dinamički vuče isključivo iz baze */}
             {(product.description || product.material || product.color || product.careInstructions) && (
               <div className="space-y-4 pt-4 border-t border-neutral-200 text-xs text-neutral-700 leading-relaxed">
                 {product.description && (

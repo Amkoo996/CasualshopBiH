@@ -28,7 +28,6 @@ import { StockManagementTab } from '../components/admin/StockManagementTab';
 import { HomeCMSEditor } from '../components/admin/HomeCMSEditor';
 import DevSettings from '../components/admin/DevSettings';
 
-// Zamjena specifičnih karaktera za pravilno procesuiranje u PDF Adresnici
 const cleanPdfText = (str: string = ''): string => {
   return str
     .replace(/[čČ]/g, (m) => (m === 'č' ? 'c' : 'C'))
@@ -257,7 +256,6 @@ export const AdminDashboard: React.FC = () => {
       const productPayload: any = {
         name: editingProduct.name,
         price: Number(editingProduct.price),
-        // ISPRAVLJENO: Koristimo null umjesto undefined
         originalPrice: editingProduct.originalPrice ? Number(editingProduct.originalPrice) : null,
         category: editingProduct.category || 'Majice',
         color: editingProduct.color || 'Crna',
@@ -273,7 +271,6 @@ export const AdminDashboard: React.FC = () => {
         createdAt: editingProduct.createdAt || new Date().toISOString(),
       };
 
-      // ID se dodaje samo ako već postoji (kod uređivanja)
       if (editingProduct.id) {
         productPayload.id = editingProduct.id;
       }
@@ -410,7 +407,6 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="flex h-[100dvh] bg-[#FAF9F5] font-['Inter'] overflow-hidden">
       
-      {/* MOBILE HAMBURGER HEADER */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#0A0A0A] text-white flex items-center justify-between px-4 z-[60] shadow-md">
         <span className="font-['Poppins'] font-black uppercase text-sm tracking-widest text-[#F7E97F]">Casual Admin</span>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 cursor-pointer z-50">
@@ -418,12 +414,10 @@ export const AdminDashboard: React.FC = () => {
         </button>
       </div>
 
-      {/* OVERLAY FOR MOBILE MENU */}
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 bg-black/60 z-[50]" onClick={() => setIsMobileMenuOpen(false)} />
       )}
 
-      {/* LEFT SIDEBAR NAVIGATION */}
       <div className={`fixed inset-y-0 left-0 z-[55] w-64 bg-[#0A0A0A] text-neutral-300 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 mt-14' : '-translate-x-full'} flex flex-col h-[calc(100dvh-3.5rem)] md:h-full overflow-y-auto`}>
         <div className="p-6 hidden md:block border-b border-neutral-800">
           <span className="text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] bg-[#F7E97F] text-[#0A0A0A] px-2 py-0.5 rounded-sm">
@@ -468,10 +462,8 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* MAIN CONTENT AREA */}
       <div className="flex-1 h-[100dvh] overflow-y-auto p-4 sm:p-8 md:p-10 pt-20 md:pt-16 bg-[#FAF9F5]">
         
-        {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-6 sm:space-y-8 animate-fadeIn max-w-6xl">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
@@ -516,16 +508,12 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* CMS TAB */}
         {activeTab === 'cms' && <div className="animate-fadeIn max-w-5xl"><HomeCMSEditor /></div>}
 
-        {/* ANALYTICS TAB */}
         {activeTab === 'analytics' && <div className="animate-fadeIn max-w-5xl overflow-x-auto"><div className="min-w-[700px]"><FunnelAnalytics ordersCount={orders.length} /></div></div>}
 
-        {/* LEADS TAB */}
         {activeTab === 'leads' && <div className="animate-fadeIn max-w-6xl"><AbandonedCartsPromo /></div>}
 
-        {/* PRODUCTS TAB */}
         {activeTab === 'products' && (
           <div className="space-y-6 animate-fadeIn max-w-6xl">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -592,10 +580,8 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* STOCK TAB */}
         {activeTab === 'stock' && <div className="animate-fadeIn max-w-6xl overflow-x-auto"><div className="min-w-[600px]"><StockManagementTab products={products} onRefreshData={loadData} /></div></div>}
 
-        {/* ORDERS TAB */}
         {activeTab === 'orders' && (
           <div className="space-y-6 animate-fadeIn max-w-6xl">
             <div className="flex justify-between items-center">
@@ -686,7 +672,6 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* PROMO KODOVI TAB */}
         {activeTab === 'promo' && (
           <div className="space-y-6 animate-fadeIn max-w-5xl">
             <h2 className="font-['Poppins'] text-xl font-black uppercase text-black">Promo Kuponi</h2>
@@ -732,7 +717,6 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* SUBSCRIBERS TAB */}
         {activeTab === 'subscribers' && (
           <div className="space-y-6 animate-fadeIn max-w-5xl">
             <h2 className="font-['Poppins'] text-xl font-black uppercase text-black">Email Baza ({subscribers.length})</h2>
@@ -755,7 +739,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* SETTINGS TAB */}
+        {/* SETTINGS TAB SA E-MAIL POLJEM */}
         {activeTab === 'settings' && (
           <div className="space-y-6 animate-fadeIn max-w-4xl">
             <h2 className="font-['Poppins'] text-xl font-black uppercase text-black">Postavke Trgovine</h2>
@@ -765,7 +749,23 @@ export const AdminDashboard: React.FC = () => {
               </div>
             )}
             <form onSubmit={handleSaveSettings} className="bg-white p-6 sm:p-8 border-2 border-neutral-300 space-y-6 shadow-sm">
-              <div className="space-y-4 border-b pb-6 border-neutral-200">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-6 border-b border-neutral-200">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-neutral-700 mb-1">Email za kontakt</label>
+                  <input type="email" value={storeSettings.email || ''} onChange={(e) => setStoreSettings({ ...storeSettings, email: e.target.value })} placeholder="info@casualshop.ba" className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-bold" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-neutral-700 mb-1">Cijena dostave (KM)</label>
+                  <input type="number" step="0.5" value={storeSettings.shippingFee} onChange={(e) => setStoreSettings({ ...storeSettings, shippingFee: Number(e.target.value) })} className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-bold" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-neutral-700 mb-1">Besplatna dostava iznad (KM)</label>
+                  <input type="number" step="1" value={storeSettings.freeShippingThreshold} onChange={(e) => setStoreSettings({ ...storeSettings, freeShippingThreshold: Number(e.target.value) })} className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-bold" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
                 <h3 className="font-['Poppins'] text-xs font-black uppercase text-black flex items-center gap-2">
                   <EyeOff className="w-4 h-4" /><span>Sakrivene kategorije</span>
                 </h3>
@@ -785,16 +785,7 @@ export const AdminDashboard: React.FC = () => {
                   })}
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-neutral-700 mb-1">Cijena dostave (KM)</label>
-                  <input type="number" step="0.5" value={storeSettings.shippingFee} onChange={(e) => setStoreSettings({ ...storeSettings, shippingFee: Number(e.target.value) })} className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-bold" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-neutral-700 mb-1">Prag za besplatnu dostavu (KM)</label>
-                  <input type="number" step="1" value={storeSettings.freeShippingThreshold} onChange={(e) => setStoreSettings({ ...storeSettings, freeShippingThreshold: Number(e.target.value) })} className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 text-xs font-bold" />
-                </div>
-              </div>
+              
               <button type="submit" className="w-full sm:w-auto px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase cursor-pointer">
                 Spremi postavke
               </button>
@@ -802,12 +793,10 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* DEV SETTINGS TAB */}
         {activeTab === 'dev-settings' && <div className="animate-fadeIn max-w-5xl"><DevSettings /></div>}
 
       </div>
 
-      {/* MODAL ZA PRIJE-ŠTAMPNU PROVJERU ADRESNICE */}
       {printModalOrder && (
         <div className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full p-6 border-2 border-[#F7E97F] shadow-2xl space-y-4">
@@ -839,7 +828,6 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* TRACKING MODAL */}
       {trackingModalOrder && (
         <div className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full p-6 border-2 border-[#F7E97F] shadow-2xl space-y-4">
@@ -868,7 +856,6 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* PRODUCT SIDEBAR DRAWER */}
       {isSidebarOpen && editingProduct && (
         <div className="fixed inset-0 z-[60] overflow-hidden font-['Inter']">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)} />

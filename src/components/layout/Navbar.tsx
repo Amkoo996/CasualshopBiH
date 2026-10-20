@@ -75,11 +75,11 @@ export const Navbar = () => {
       
       {/* Glavni Meni */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20 sm:h-24">
+        <div className="flex justify-between items-center h-24 sm:h-28">
           
-          {/* Povećani i oštriji Logo */}
+          {/* POVEĆANI LOGO */}
           <Link href="/" className="flex items-center gap-3.5 group z-50">
-            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#0A0A0A] border-2 border-[#F7E97F]/60 group-hover:border-[#F7E97F] p-1 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(247,233,127,0.2)] group-hover:scale-105 transition-all duration-300">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#0A0A0A] border-2 border-[#F7E97F]/60 group-hover:border-[#F7E97F] p-1 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(247,233,127,0.2)] group-hover:scale-105 transition-all duration-300">
               <img 
                 src="/logo.png" 
                 alt="Casual Shop Logo" 
@@ -93,10 +93,10 @@ export const Navbar = () => {
               />
             </div>
             <div className="flex flex-col justify-center">
-              <span className="font-['Poppins'] text-lg sm:text-xl font-black tracking-widest text-white leading-none group-hover:text-[#F7E97F] transition-colors">
+              <span className="font-['Poppins'] text-xl sm:text-2xl font-black tracking-widest text-white leading-none group-hover:text-[#F7E97F] transition-colors">
                 CASUAL <span className="text-[#F7E97F] text-sm group-hover:text-white transition-colors">shop</span>
               </span>
-              <span className="text-[9px] sm:text-[10px] text-neutral-400 font-bold tracking-[0.25em] uppercase mt-1 hidden sm:block">
+              <span className="text-[10px] sm:text-[11px] text-neutral-400 font-bold tracking-[0.25em] uppercase mt-1 hidden sm:block">
                 BiH • Ulična pravila
               </span>
             </div>
@@ -149,7 +149,8 @@ export const Navbar = () => {
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            <a href={(settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih'} target="_blank" rel="noopener noreferrer" className="hidden sm:block text-neutral-300 hover:text-[#F7E97F] hover:scale-110 transition-all p-1">
+            {/* INSTAGRAM DM LINK (DESKTOP) */}
+            <a href="https://ig.me/m/casualshop.bih" target="_blank" rel="noopener noreferrer" className="hidden sm:block text-neutral-300 hover:text-[#F7E97F] hover:scale-110 transition-all p-1">
               <Instagram className="w-4 h-4 sm:w-5 sm:h-5" />
             </a>
 
@@ -232,7 +233,8 @@ export const Navbar = () => {
               <Link href="/wishlist" className="flex flex-col items-center justify-center gap-2 text-white text-[10px] font-bold uppercase bg-neutral-900 p-4 rounded-sm border border-neutral-800 hover:border-red-500 transition-colors">
                 <Heart className="w-5 h-5 text-red-500" />Lista želja ({wishlistItemCount})
               </Link>
-              <a href={(settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-2 text-white text-[10px] font-bold uppercase bg-neutral-900 p-4 rounded-sm border border-neutral-800 hover:border-pink-500 transition-colors">
+              {/* INSTAGRAM DM LINK (MOBILE) */}
+              <a href="https://ig.me/m/casualshop.bih" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-2 text-white text-[10px] font-bold uppercase bg-neutral-900 p-4 rounded-sm border border-neutral-800 hover:border-pink-500 transition-colors">
                 <Instagram className="w-5 h-5 text-pink-500" />Instagram
               </a>
             </div>
