@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Truck, ShieldCheck, RotateCcw } from 'lucide-react';
+import { ArrowRight, Truck, ShieldCheck, RotateCcw, Mail, CheckCircle2 } from 'lucide-react';
 import { getProducts } from '../lib/db';
 import { Product } from '../types';
 
@@ -11,6 +11,12 @@ export const HomePage = () => {
   const [newDropProducts, setNewDropProducts] = useState<Product[]>([]);
   const [accessoryImage, setAccessoryImage] = useState<string>('');
   const [loading, setLoading] = useState(true);
+
+  // Newsletter stanja
+  const [email, setEmail] = useState('');
+  const [subLoading, setSubLoading] = useState(false);
+  const [subSuccess, setSubSuccess] = useState(false);
+  const [subError, setSubError] = useState('');
 
   useEffect(() => {
     async function loadHomepageData() {
@@ -46,6 +52,36 @@ export const HomePage = () => {
     }
     loadHomepageData();
   }, []);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setSubLoading(true);
+    setSubError('');
+    setSubSuccess(false);
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success !== false) {
+        setSubSuccess(true);
+        setEmail('');
+      } else {
+        setSubError(data.error || 'Došlo je do greške. Pokušajte ponovo.');
+      }
+    } catch (err) {
+      setSubError('Greška pri povezivanju sa serverom. Pokušajte ponovo.');
+    } finally {
+      setSubLoading(false);
+    }
+  };
 
   return (
     <div className="font-['Inter'] bg-[#FAF9F5] overflow-x-hidden">
@@ -194,6 +230,61 @@ export const HomePage = () => {
           </div>
         </section>
       )}
+
+      {/* 6. NEWSLETTER SEKCIJA */}
+      <section className="bg-[#0A0A0A] border-t-4 border-[#F7E97F] py-16 sm:py-20 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#1A1A1A] text-[#F7E97F] border border-neutral-800 mb-4">
+            <Mail className="w-6 h-6" />
+          </div>
+
+          <div>
+            <span className="text-[#0A0A0A] font-['Poppins'] font-black uppercase tracking-widest text-[10px] bg-[#F7E97F] px-2.5 py-1 mb-3 inline-block">
+              BUDI DIO EKIPE
+            </span>
+          </div>
+
+          <h2 className="text-3xl sm:text-4xl font-black uppercase font-['Poppins'] tracking-tight mb-3">
+            Ne propusti novi drop
+          </h2>
+
+          <p className="text-neutral-400 text-xs sm:text-sm max-w-lg mx-auto mb-8 font-medium">
+            Prijavi se na newsletter i saznaj prvi za nove streetwear kolekcije, ograničene zalihe i ekskluzivne pogodnosti.
+          </p>
+
+          <form onSubmit={handleSubscribe} className="max-w-md mx-auto flex flex-col sm:flex-row gap-2">
+            <input
+              type="email"
+              required
+              placeholder="Unesite Vaš e-mail..."
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={subLoading || subSuccess}
+              className="flex-1 bg-[#141414] border-2 border-neutral-700 focus:border-[#F7E97F] px-4 py-3 text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={subLoading || subSuccess}
+              className="bg-[#F7E97F] text-[#0A0A0A] hover:bg-white px-6 py-3 font-['Poppins'] font-black uppercase text-xs sm:text-sm tracking-wider transition-all disabled:opacity-50 cursor-pointer shrink-0"
+            >
+              {subLoading ? 'Prijava...' : 'Prijavi se'}
+            </button>
+          </form>
+
+          {subSuccess && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-emerald-400 text-xs sm:text-sm font-bold">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Uspješno ste se pretplatili! Hvala na povjerenju.</span>
+            </div>
+          )}
+
+          {subError && (
+            <p className="mt-4 text-red-400 text-xs sm:text-sm font-bold">
+              {subError}
+            </p>
+          )}
+        </div>
+      </section>
 
     </div>
   );
