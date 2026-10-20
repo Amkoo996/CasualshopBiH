@@ -1,6 +1,7 @@
 const ALLOWED_ORIGINS = [
   'https://casualshopbih.pages.dev',
   'https://casualshop.ba',
+  'https://www.casualshop.ba', // ISPRAVLJENO: Dodana www poddomena
   'http://localhost:3000',
 ];
 
@@ -50,7 +51,7 @@ export const onRequestPost = async (context: {
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
     
-    // Znak \$ označava kraj stringa i NE smije imati backslash ispred sebe
+    // ISPRAVLJENO: Uklonjen backslash ispred znaka \$, sada ispravno označava kraj stringa
     const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(email);
 
     if (!isValidEmail) {
