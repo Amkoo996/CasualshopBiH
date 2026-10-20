@@ -77,13 +77,13 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-24 sm:h-28">
           
-          {/* POVEĆANI LOGO */}
+          {/* LOGO BEZ VANJSKOG KRUGA I BORDERA */}
           <Link href="/" className="flex items-center gap-3.5 group z-50">
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#0A0A0A] border-2 border-[#F7E97F]/60 group-hover:border-[#F7E97F] p-1 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(247,233,127,0.2)] group-hover:scale-105 transition-all duration-300">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
               <img 
                 src="/logo.png" 
                 alt="Casual Shop Logo" 
-                className="w-full h-full object-contain rounded-full"
+                className="w-full h-full object-contain"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   if (e.currentTarget.parentElement) {
