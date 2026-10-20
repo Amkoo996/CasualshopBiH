@@ -26,7 +26,6 @@ export const TrafficAndCartStatsTable: React.FC<TrafficAndCartStatsTableProps> =
         const visits = data.uniqueVisitorsCount || 0;
         const cartUsers = data.uniqueAddToCartUsersCount || 0;
         
-        // SPRJEČAVANJE DIJELJENJA SA NULOM KADA NEMA POSJETA
         const calculatedRate = visits > 0 ? Number(((cartUsers / visits) * 100).toFixed(1)) : 0;
 
         setStats({
@@ -36,7 +35,7 @@ export const TrafficAndCartStatsTable: React.FC<TrafficAndCartStatsTableProps> =
           uniqueAddToCartUsersCount: cartUsers,
           addToCartRate: calculatedRate,
           dailyTrends: data.dailyTrends || [],
-          recentEvents: data.recentEvents || [],
+          recentEvents: [], // ISPRAVLJENO: Uklonjeno data.recentEvents koje je rušilo build
         });
       } catch (err) {
         console.error('Greška pri učitavanju tabele statistike:', err);
