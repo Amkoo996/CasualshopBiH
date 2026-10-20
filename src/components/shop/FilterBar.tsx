@@ -76,10 +76,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               onChange={(e) => onSelectSort(e.target.value)}
               className="bg-[#FAF9F5] border-2 border-neutral-900 text-xs font-['Poppins'] font-bold px-3 py-2 text-neutral-900 focus:border-[#F7E97F] focus:outline-none cursor-pointer"
             >
-              <option value="newest">Najnovije u ponudi</option>
+              <option value="newest">Najnovije dodano</option>
+              <option value="position">Pozicija u kolekciji</option>
               <option value="price-low">Cijena: Niža prema višoj</option>
               <option value="price-high">Cijena: Viša prema nižoj</option>
-              <option value="name">Naziv (A-Z)</option>
             </select>
           </div>
         </div>

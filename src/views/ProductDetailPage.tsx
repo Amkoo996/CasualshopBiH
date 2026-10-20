@@ -157,9 +157,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }
     setSizeError(false);
     
-    // Generiše poruku za Instagram
     const message = `Pozdrav, želim naručiti artikal: ${product.name} (Veličina: ${selectedSize}, Količina: ${quantity}). Da li ga imate na stanju?`;
-    const instagramUrl = (settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih';
+    const instagramUrl = 'https://ig.me/m/casualshop.bih';
     
     window.open(instagramUrl, '_blank');
     navigator.clipboard.writeText(message);
@@ -184,20 +183,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }
   };
 
-  // Filtriramo veličine tako da se XXL i 3XL uopšte ne prikazuju ako ih nema na stanju
-  const sizesToDisplay = ['S', 'M', 'L', 'XL', 'XXL', '3XL'].filter(sz => {
+  const sizesToDisplay = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'].filter(sz => {
     const stock = product.sizes ? (product.sizes[sz as Size] ?? 0) : 0;
     if ((sz === 'XXL' || sz === '3XL') && stock <= 0) {
-      return false; // Potpuno skrivamo XXL i 3XL
+      return false; 
     }
-    return true; // S, M, L, XL ostaju vidljivi u svakom slučaju
+    return true; 
   });
 
   return (
     <div className="bg-[#FAF9F5] text-neutral-900 min-h-screen py-6 sm:py-12 font-['Inter'] overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-12">
         
-        {/* Navigacija */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-200 pb-4 gap-3">
           <button
             onClick={() => router.back()}
@@ -216,10 +213,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           </div>
         </div>
 
-        {/* Glavna sekcija */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-14 items-start">
           
-          {/* Slike */}
           <div className="space-y-4 w-full">
             <div className="relative aspect-4/5 w-full bg-white border-2 border-neutral-200 overflow-hidden shadow-sm">
               <img
@@ -258,7 +253,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             )}
           </div>
 
-          {/* Detalji */}
           <div className="space-y-6 w-full">
             <div>
               <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.2em] text-[#0A0A0A] bg-[#F7E97F] px-2 py-0.5 inline-block mb-2">
@@ -283,7 +277,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
             </div>
 
-            {/* Veličine */}
             <div className="space-y-2.5 pt-2 border-t border-neutral-200">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-['Poppins'] font-bold uppercase text-black">
@@ -335,7 +328,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               )}
             </div>
 
-            {/* Akcije */}
             <div className="space-y-3 pt-2">
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex items-center justify-center border-2 border-neutral-300 bg-white w-full sm:w-auto h-[52px]">
@@ -391,7 +383,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </div>
               </div>
               
-              {/* Instagram Naručivanje */}
               <button
                 type="button"
                 onClick={handleInstagramDM}
@@ -417,40 +408,50 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
             </div>
 
-            {/* Opis */}
-            <div className="space-y-4 pt-4 border-t border-neutral-200 text-xs text-neutral-700 leading-relaxed">
-              <div>
-                <h3 className="font-['Poppins'] font-black uppercase text-black mb-1.5 text-xs">
-                  Opis artikla:
-                </h3>
-                <p>{product.description || 'Premium streetwear casual kroj. Vrhunska udobnost i postojanost materijala.'}</p>
-              </div>
+            {/* ISPRAVLJENO: Opis proizvoda se dinamički vuče isključivo iz baze */}
+            {(product.description || product.material || product.color || product.careInstructions) && (
+              <div className="space-y-4 pt-4 border-t border-neutral-200 text-xs text-neutral-700 leading-relaxed">
+                {product.description && (
+                  <div>
+                    <h3 className="font-['Poppins'] font-black uppercase text-black mb-1.5 text-xs">
+                      Opis artikla:
+                    </h3>
+                    <p>{product.description}</p>
+                  </div>
+                )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-4 border border-neutral-200">
-                <div>
-                  <span className="font-bold text-black block">Materijal:</span>
-                  <span>{product.material || '100% češljani pamuk 240 GSM'}</span>
-                </div>
-                <div>
-                  <span className="font-bold text-black block">Boja:</span>
-                  <span>{product.color || 'Kao na slici'}</span>
-                </div>
-                <div className="sm:col-span-2 pt-2 border-t border-neutral-100">
-                  <span className="font-bold text-black block">Održavanje:</span>
-                  <span>{product.careInstructions || 'Prati na 30°C izvrnuto, ne peglati preko štampe'}</span>
-                </div>
+                {(product.material || product.color || product.careInstructions) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-4 border border-neutral-200">
+                    {product.material && (
+                      <div>
+                        <span className="font-bold text-black block">Materijal:</span>
+                        <span>{product.material}</span>
+                      </div>
+                    )}
+                    {product.color && (
+                      <div>
+                        <span className="font-bold text-black block">Boja:</span>
+                        <span>{product.color}</span>
+                      </div>
+                    )}
+                    {product.careInstructions && (
+                      <div className="sm:col-span-2 pt-2 border-t border-neutral-100">
+                        <span className="font-bold text-black block">Održavanje:</span>
+                        <span>{product.careInstructions}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
           </div>
         </div>
 
-        {/* RECENZIJE KUPACA */}
         <div className="pt-8 border-t-2 border-neutral-200">
           <ProductReviews productId={product.id} />
         </div>
 
-        {/* PREPORUČENI ARTIKLI */}
         {relatedProducts.length > 0 && (
           <div className="space-y-6 pt-8 border-t-2 border-neutral-200">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
@@ -497,7 +498,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
       </div>
 
-      {/* SKOČNI PROZOR */}
       {showAddedModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full p-6 border-2 border-[#0A0A0A] shadow-2xl space-y-5 animate-fadeIn">
