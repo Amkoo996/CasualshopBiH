@@ -67,7 +67,7 @@ export const Footer: React.FC = () => {
             </p>
 
             <a
-              href={(settings as any)?.instagramUrl || 'https://www.instagram.com/casualshop.bih'}
+              href="https://ig.me/m/casualshop.bih"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-3.5 py-2 border border-neutral-700 hover:border-[#F7E97F] text-xs font-['Poppins'] font-bold uppercase tracking-wider text-neutral-300 hover:text-[#F7E97F] hover:bg-neutral-900 transition-all rounded-xs"

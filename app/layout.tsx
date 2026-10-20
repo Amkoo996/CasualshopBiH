@@ -10,18 +10,17 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  // metadataBase osigurava da svi relativni linkovi postanu apsolutni za društvene mreže
-  metadataBase: new URL('https://casualshopbih.pages.dev'),
+  metadataBase: new URL('https://casualshop.ba'), // Ažurirano na novu domenu
   title: 'Casual Shop BiH • Autentični Streetwear',
   description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/novi-logo.jpeg', sizes: 'any', type: 'image/jpeg' },
+      { url: '/logo.png', sizes: 'any', type: 'image/png' },
     ],
-    shortcut: '/novi-logo.jpeg',
+    shortcut: '/logo.png',
     apple: [
-      { url: '/novi-logo.jpeg', sizes: '180x180', type: 'image/jpeg' },
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   appleWebApp: {
@@ -32,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Casual Shop BiH • Autentični Streetwear',
     description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
-    url: 'https://casualshopbih.pages.dev',
+    url: 'https://casualshop.ba',
     siteName: 'Casual Shop BiH',
     images: [
       {

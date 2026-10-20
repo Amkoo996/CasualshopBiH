@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Truck, ShieldCheck, RotateCcw, Instagram, Zap, Sparkles } from 'lucide-react';
+import { ArrowRight, Truck, ShieldCheck, RotateCcw, Instagram, Sparkles } from 'lucide-react';
 import { getProducts } from '../lib/db';
 import { Product } from '../types';
 
@@ -18,7 +18,14 @@ export const HomePage = () => {
         const activeProds = allProds.filter(p => !p.isHidden);
         
         setFeaturedProducts(activeProds.filter(p => p.featured).slice(0, 4));
-        setNewDropProducts(activeProds.filter(p => p.isNew).slice(0, 4));
+        
+        // ISPRAVLJENO: Sortiranje novih artikala po datumu dodavanja (najnoviji prvi)
+        setNewDropProducts(
+          activeProds
+            .filter(p => p.isNew)
+            .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+            .slice(0, 4)
+        );
       } catch (err) {
         console.error("Greška pri učitavanju proizvoda:", err);
       } finally {
@@ -79,7 +86,6 @@ export const HomePage = () => {
       {/* 3. VIZUELNE KATEGORIJE (GRID) */}
       <section className="py-12 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-auto md:h-[500px]">
-          {/* Velika kocka lijevo - DUKSEVI */}
           <Link href="/shop?category=Duksevi%20i%20hoodice" className="relative group overflow-hidden bg-neutral-200 h-[300px] md:h-full">
             <img src="/images/category-hoodie.webp" alt="Duksevi" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
@@ -89,9 +95,7 @@ export const HomePage = () => {
             </div>
           </Link>
           
-          {/* Dvije kocke desno */}
           <div className="grid grid-rows-2 gap-4 h-[500px] md:h-full">
-            {/* MAJICE */}
             <Link href="/shop?category=Majice" className="relative group overflow-hidden bg-neutral-200">
               <img src="/images/category-tshirt.webp" alt="Majice" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
               <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
@@ -101,7 +105,6 @@ export const HomePage = () => {
               </div>
             </Link>
 
-            {/* DODACI (PRIVJESCI & STIKERI) - DODANA SLIKA */}
             <Link href="/shop?category=Dodaci%20(Accessories)" className="relative group overflow-hidden bg-[#0A0A0A] border-2 border-neutral-800">
               <img 
                 src="/images/sarajevo_geo_tee.jpg" 
@@ -155,20 +158,7 @@ export const HomePage = () => {
         </section>
       )}
 
-      {/* 5. BRAND STORY */}
-      <section className="py-16 sm:py-24 bg-[#0A0A0A] text-white">
-        <div className="max-w-4xl mx-auto px-4 text-center space-y-6">
-          <Zap className="w-12 h-12 text-[#F7E97F] mx-auto mb-4" />
-          <h2 className="text-3xl sm:text-5xl font-['Poppins'] font-black uppercase tracking-tight">
-            Nije samo komad odjeće.
-          </h2>
-          <p className="text-neutral-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-            Svaki artikal u našoj kolekciji izrađen je od <strong className="text-white">100% premium pamuka</strong>. Bez kompromisa na udobnosti, dizajnirano da traje i izdrži ulicu. Plaćate sigurno pouzećem, tek kada se uvjerite u kvalitet vašeg paketa.
-          </p>
-        </div>
-      </section>
-
-      {/* 6. NOVI DROP */}
+      {/* 5. NOVI DROP */}
       {!loading && newDropProducts.length > 0 && (
         <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center mb-10 text-center">
@@ -195,7 +185,7 @@ export const HomePage = () => {
         </section>
       )}
 
-      {/* 7. INSTAGRAM LIFESTYLE SEKCIJA */}
+      {/* 6. INSTAGRAM LIFESTYLE SEKCIJA */}
       <section className="bg-white border-t-2 border-neutral-200 py-16">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-2xl font-black uppercase font-['Poppins'] text-black tracking-tight mb-2">Casual. Svaki dan.</h2>
