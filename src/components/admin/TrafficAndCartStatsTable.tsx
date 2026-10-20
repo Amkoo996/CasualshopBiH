@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, ShoppingBag, TrendingUp, Users } from 'lucide-react';
-import { AnalyticsStats, DEFAULT_STORE_SETTINGS } from '../../types';
+import { AnalyticsStats } from '../../types';
 import { getAnalyticsStats } from '../../lib/tracking';
 
 interface TrafficAndCartStatsTableProps {
@@ -24,17 +23,23 @@ export const TrafficAndCartStatsTable: React.FC<TrafficAndCartStatsTableProps> =
       setLoading(true);
       try {
         const data = await getAnalyticsStats();
-        const visits = data.uniqueVisitorsCount || 1;
+        const visits = data.uniqueVisitorsCount || 0;
         const cartUsers = data.uniqueAddToCartUsersCount || 0;
-        const calculatedRate = Number(((cartUsers / visits) * 100).toFixed(1));
+        
+        // SPRJEČAVANJE DIJELJENJA SA NULOM KADA NEMA POSJETA
+        const calculatedRate = visits > 0 ? Number(((cartUsers / visits) * 100).toFixed(1)) : 0;
 
         setStats({
-          ...data,
+          uniqueVisitorsCount: visits,
+          totalVisitsCount: data.totalVisitsCount || 0,
+          addToCartCount: data.addToCartCount || 0,
+          uniqueAddToCartUsersCount: cartUsers,
           addToCartRate: calculatedRate,
-          recentEvents: [],
+          dailyTrends: data.dailyTrends || [],
+          recentEvents: data.recentEvents || [],
         });
       } catch (err) {
-        console.error('GreSka pri ucitavanju tabele statistike:', err);
+        console.error('Greška pri učitavanju tabele statistike:', err);
       } finally {
         setLoading(false);
       }
@@ -46,7 +51,7 @@ export const TrafficAndCartStatsTable: React.FC<TrafficAndCartStatsTableProps> =
   if (loading) {
     return (
       <div className="bg-white p-6 border-2 border-neutral-200 text-xs text-neutral-500 font-['Inter']">
-        Ucitavanje statistike posjeta i korpe...
+        Učitavanje statistike posjeta i korpe...
       </div>
     );
   }
@@ -136,7 +141,7 @@ export const TrafficAndCartStatsTable: React.FC<TrafficAndCartStatsTableProps> =
               {stats.dailyTrends.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-4 text-center text-neutral-500">
-                    Nema zabiljezenih posjeta u zadnjih 14 dana.
+                    Nema zabilježenih posjeta u zadnjih 14 dana.
                   </td>
                 </tr>
               ) : (
