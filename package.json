@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack && rm -rf dist && cp -r out dist",
+    "build": "next build --webpack && rm -rf dist && cp -r out dist && cp _headers dist/_headers",
     "start": "next start",
     "lint": "next lint"
   },

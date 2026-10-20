@@ -22,6 +22,9 @@ import {
   DEFAULT_CMS_CONTENT,
 } from '../types';
 
+// Eksport instance baze kako bi je AdminDashboard i ostale komponente mogle koristiti
+export { db };
+
 // ==========================================
 // 1. UPRAVLJANJE PROIZVODIMA (PRODUCTS)
 // ==========================================
