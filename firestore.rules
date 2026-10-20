@@ -98,6 +98,17 @@ service cloud.firestore {
         'totalVisits', 'productViews', 'addToCartCount', 'checkoutStarts', 'completedPurchases'
       ]);
     }
+    
+    // NOVO: Dodana pravila za brisanje pregleda iz Admin Dashboarda
+    match /product_views/{viewId} {
+      allow read, create, update: if true;
+      allow delete: if isAdmin();
+    }
+    
+    match /views/{viewId} {
+      allow read, create, update: if true;
+      allow delete: if isAdmin();
+    }
 
     match /contact_messages/{messageId} {
       allow create: if request.resource.data.keys().hasOnly([
