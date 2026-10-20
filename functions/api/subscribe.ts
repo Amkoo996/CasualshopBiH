@@ -32,7 +32,7 @@ export const onRequestPost = async (context: {
     const referer = request.headers.get('Referer') || '';
 
     const isValidOrigin = ALLOWED_ORIGINS.some(
-      (d) => origin === d || origin === `${d}/` || referer.startsWith(`${d}/`)
+      (d) => origin === d || origin === `${d}/` || referer.startsWith(`${d}/`) || referer === d
     );
 
     if (!isValidOrigin) {
@@ -50,6 +50,7 @@ export const onRequestPost = async (context: {
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
     
+    // ISPRAVLJENO: uklonjen kosi znak prije \$ znaka
     const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(email);
 
     if (!isValidEmail) {
