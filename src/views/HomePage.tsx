@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Truck, ShieldCheck, RotateCcw, Instagram, Sparkles } from 'lucide-react';
+import { ArrowRight, Truck, ShieldCheck, RotateCcw, Sparkles } from 'lucide-react';
 import { getProducts } from '../lib/db';
 import { Product } from '../types';
 
@@ -184,38 +184,6 @@ export const HomePage = () => {
           </div>
         </section>
       )}
-
-      {/* 6. INSTAGRAM LIFESTYLE SEKCIJA */}
-      <section className="bg-white border-t-2 border-neutral-200 py-16">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h2 className="text-2xl font-black uppercase font-['Poppins'] text-black tracking-tight mb-2">Casual. Svaki dan.</h2>
-          <p className="text-xs text-neutral-500 font-bold tracking-widest uppercase mb-8">@casualshop.bih</p>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="aspect-square bg-neutral-100 overflow-hidden relative group border border-neutral-200 shadow-sm">
-                <img 
-                  src={`/images/insta-${item}.webp`} 
-                  alt="Casual Shop Lifestyle" 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100" 
-                />
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-8">
-            <a 
-              href="https://www.instagram.com/casualshop.bih" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-white font-['Poppins'] text-xs font-bold uppercase tracking-wider px-8 py-4 shadow-md bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:opacity-90 transition-opacity rounded-sm cursor-pointer hover:scale-105"
-            >
-              <Instagram className="w-5 h-5" />
-              Pridruži se ekipi na Instagramu
-            </a>
-          </div>
-        </div>
-      </section>
 
     </div>
   );
