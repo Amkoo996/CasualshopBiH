@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import ClientLayout from './ClientLayout';
 import './globals.css';
+
+// Ovdje unesite vaš Google Analytics ID ili ga postavite u Cloudflare Environment Variables
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || '';
 
 export const viewport: Viewport = {
   themeColor: '#0A0A0A',
@@ -10,7 +14,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://casualshop.ba'), // Ažurirano na novu domenu
+  metadataBase: new URL('https://casualshop.ba'),
   title: 'Casual Shop BiH • Autentični Streetwear',
   description: 'Urbana streetwear odjeća vrhunskog kvaliteta. Plaćanje pouzećem i brza dostava širom Bosne i Hercegovine.',
   manifest: '/manifest.json',
@@ -66,6 +70,29 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;800;900&display=swap"
         />
+
+        {/* GOOGLE ANALYTICS INTEGRACIJA */}
+        {GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+            />
+            <Script
+              id="google-analytics-init"
+              strategy="afterInteractive"
+            >
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}', {
+                  page_path: window.location.pathname,
+                });
+              `}
+            </Script>
+          </>
+        )}
       </head>
       <body className="bg-[#FAF9F5] text-neutral-900 antialiased font-['Inter']">
         <ClientLayout>
