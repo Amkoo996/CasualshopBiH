@@ -275,6 +275,8 @@ export const getSubscribers = async (): Promise<NewsletterSubscriber[]> => {
 export const subscribeNewsletter = async (email: string): Promise<boolean> => {
   try {
     const cleanEmail = email.trim().toLowerCase();
+    
+    // 1. Spremanje u Firebase Firestore bazu
     const docRef = doc(db, 'subscribers', cleanEmail);
     await setDoc(docRef, {
       email: cleanEmail,
@@ -282,6 +284,27 @@ export const subscribeNewsletter = async (email: string): Promise<boolean> => {
       createdAt: new Date().toISOString(),
       consent: true,
     });
+
+    // 2. Automatsko slanje kontakta na Brevo API
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_BREVO_API_KEY || process.env.BREVO_API_KEY;
+      if (apiKey) {
+        await fetch('https://api.brevo.com/v3/contacts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'api-key': apiKey,
+          },
+          body: JSON.stringify({
+            email: cleanEmail,
+            updateEnabled: true,
+          }),
+        });
+      }
+    } catch (brevoErr) {
+      console.error('Greška pri slanju na Brevo API:', brevoErr);
+    }
+
     return true;
   } catch (error) {
     console.error('Greška pri newsletter prijavi:', error);
