@@ -1,5 +1,6 @@
 interface Env {
   TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CONTACT_BOT_TOKEN?: string;
   TELEGRAM_CHAT_IDS?: string;
   EMAILJS_SERVICE_ID?: string;
   EMAILJS_TEMPLATE_ID?: string;
@@ -91,7 +92,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     const { type, text, orderData, cartData, followUpType, promoCode } = body;
 
     if (type === 'contact') {
-      const botToken = env.TELEGRAM_BOT_TOKEN;
+      const botToken = env.TELEGRAM_CONTACT_BOT_TOKEN || env.TELEGRAM_BOT_TOKEN;
       const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 
       if (!botToken || chatIds.length === 0) {
