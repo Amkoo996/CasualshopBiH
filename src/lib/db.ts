@@ -8,7 +8,6 @@ import {
   updateDoc,
   query,
   where,
-  runTransaction,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import {
@@ -104,92 +103,29 @@ export const getOrderStatus = async (orderNumber: string) => {
   }
 };
 
+// ISPRAVLJENO: Delegiranje cjelokupne kreacije narudžbe na sigurni serverski endpoint
 export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
-  const newOrderRef = doc(db, 'orders', orderData.orderNumber);
-  const orderId = newOrderRef.id;
-
-  await runTransaction(db, async (transaction) => {
-    const productReads = [];
-    for (const item of orderData.items) {
-      const prodRef = doc(db, 'products', item.id);
-      const prodSnap = await transaction.get(prodRef);
-      productReads.push({ item, prodRef, prodSnap });
-    }
-
-    for (const { item, prodRef, prodSnap } of productReads) {
-      if (prodSnap.exists()) {
-        const prodData = prodSnap.data() as any;
-        const currentSizes = { ...(prodData.sizes || {}) };
-        const currentStock = currentSizes[item.size] ?? 0;
-        
-        if (currentStock < item.quantity) {
-          throw new Error('INSUFFICIENT_STOCK:' + item.name + ':' + item.size);
-        }
-        
-        currentSizes[item.size] = currentStock - item.quantity;
-        transaction.update(prodRef, { sizes: currentSizes });
-      }
-    }
-
-    const cleanOrderPayload = {
-      id: orderId,
-      orderNumber: orderData.orderNumber,
-      items: orderData.items,
-      customer: orderData.customer,
-      subtotal: orderData.subtotal,
-      shippingFee: orderData.shippingFee,
-      total: orderData.total,
-      paymentMethod: orderData.paymentMethod || 'cash_on_delivery',
-      status: 'Nova',
-      createdAt: orderData.createdAt || new Date().toISOString(),
-      promoCode: orderData.promoCode || null,
-      discountAmount: orderData.discountAmount || 0,
-    };
-
-    transaction.set(newOrderRef, cleanOrderPayload);
-
-    const trackingRef = doc(db, 'order_tracking', orderData.orderNumber);
-    transaction.set(trackingRef, {
-      orderNumber: orderData.orderNumber,
-      status: 'Nova',
-      createdAt: cleanOrderPayload.createdAt
-    });
+  // Šaljemo sve podatke na naš backend (Cloudflare funkciju) koja sada vrši
+  // validaciju cijena, skidanje zaliha, upisivanje u bazu i slanje notifikacija.
+  const response = await fetch('/api/checkout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      ...orderData,
+      clientTotal: orderData.total // Proslijeđujemo klijentski total za serversku provjeru
+    }),
   });
 
-  const fullOrderObject: Order = { ...orderData, id: orderId };
+  const result = await response.json();
 
-  try {
-    const c = orderData.customer || ({} as any);
-    const buyerName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Kupac';
-    const itemsText = orderData.items.map((i) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
-    const isPickup = c.address?.includes('Lično');
-    const deliveryStatus = isPickup ? `Preuzimanje: Lično Sarajevo (${c.note || ''})` : `Dostava: ${c.city || 'N/A'}, ${c.address || ''}`;
-
-    const telegramText =
-      `🛍️ NOVA NARUDŽBA #${orderData.orderNumber}\n` +
-      `━━━━━━━━━━━━━━━━━━\n` +
-      `👤 Kupac: ${buyerName}\n` +
-      `📞 Tel: ${c.phone || 'N/A'}\n` +
-      `📍 ${deliveryStatus}\n` +
-      `━━━━━━━━━━━━━━━━━━\n` +
-      `📦 Artikli:\n${itemsText}\n` +
-      `━━━━━━━━━━━━━━━━━━\n` +
-      `💰 Iznos: ${orderData.total.toFixed(2)} KM (${isPickup ? 'Lično plaćanje' : 'Pouzećem'})`;
-
-    fetch('/api/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: telegramText,
-        type: 'order',
-        orderData: fullOrderObject,
-      }),
-    }).catch(() => {});
-  } catch (err) {
-    console.error('Greška pri pripremi notifikacije:', err);
+  if (!response.ok) {
+    throw new Error(result.error || 'Sistemska greška pri kreiranju narudžbe.');
   }
 
-  return orderId;
+  // Backend vraća uspjeh ukoliko su cijene i zalihe prošle validaciju
+  return orderData.orderNumber;
 };
 
 export const updateOrderStatus = async (
