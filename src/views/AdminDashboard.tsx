@@ -7,7 +7,7 @@ import {
   Settings, LogOut, Lock, Search, X, Save, Eye, CheckCircle2,
   Mail, Palette, EyeOff, Boxes, Ticket, Power, Layout, Truck,
   Printer, ShieldCheck, ShieldAlert, Image as ImageIcon, Tag, Info, Menu,
-  ArrowLeft
+  ArrowLeft, Zap
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +28,22 @@ import { StockManagementTab } from '../components/admin/StockManagementTab';
 import { HomeCMSEditor } from '../components/admin/HomeCMSEditor';
 import DevSettings from '../components/admin/DevSettings';
 
+// Pomoćna funkcija za automatsko ubacivanje Cloudinary transformacija za smanjenje težine slika
+const optimizeCloudinaryUrl = (url: string): string => {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('cloudinary.com') && url.includes('/upload/')) {
+    if (
+      !url.includes('/upload/f_') &&
+      !url.includes('/upload/q_') &&
+      !url.includes('/upload/w_') &&
+      !url.includes('/upload/c_')
+    ) {
+      return url.replace('/upload/', '/upload/f_auto,q_auto,w_800,c_limit/');
+    }
+  }
+  return url;
+};
+
 const cleanPdfText = (str: string = ''): string => {
   return str
     .replace(/[čČ]/g, (m) => (m === 'č' ? 'c' : 'C'))
@@ -38,7 +54,7 @@ const cleanPdfText = (str: string = ''): string => {
 };
 
 const extractCustomer = (order: Order) => {
-  const c = order.customer as any || {};
+  const c = (order.customer as any) || {};
   let name = '';
   if (c.firstName || c.lastName) {
     name = `${c.firstName || ''} ${c.lastName || ''}`.trim();
@@ -93,6 +109,7 @@ export const AdminDashboard: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [optimizingImages, setOptimizingImages] = useState(false);
 
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('Sve');
   const [orderSearch, setOrderSearch] = useState('');
@@ -237,7 +254,10 @@ export const AdminDashboard: React.FC = () => {
     setUploading(true);
     try {
       const urls: string[] = [];
-      for (const f of files) urls.push(await uploadImage(f));
+      for (const f of files) {
+        const rawUrl = await uploadImage(f);
+        urls.push(optimizeCloudinaryUrl(rawUrl));
+      }
       setEditingProduct((prev: any) => ({ ...prev, images: [...(prev?.images || []), ...urls] }));
     } catch (err: any) { alert(err?.message || 'Upload nije uspio.'); } 
     finally { setUploading(false); e.target.value = ''; }
@@ -249,10 +269,42 @@ export const AdminDashboard: React.FC = () => {
     }));
   };
 
+  const handleBatchOptimizeImages = async () => {
+    if (!confirm('Želite li optimizovati sve Cloudinary linkove slika u bazi (smanjenje veličine za brže učitavanje)?')) return;
+    setOptimizingImages(true);
+    try {
+      let updatedCount = 0;
+      for (const p of products) {
+        if (p.images && p.images.length > 0) {
+          let hasChange = false;
+          const newImages = p.images.map((img) => {
+            const opt = optimizeCloudinaryUrl(img);
+            if (opt !== img) hasChange = true;
+            return opt;
+          });
+          if (hasChange) {
+            await saveProduct({ ...p, images: newImages });
+            updatedCount++;
+          }
+        }
+      }
+      alert(`Uspješno optimizovane slike za ${updatedCount} artikala!`);
+      await loadData();
+    } catch (err) {
+      console.error('Greška pri optimizaciji slika:', err);
+      alert('Došlo je do greške pri optimizaciji.');
+    } finally {
+      setOptimizingImages(false);
+    }
+  };
+
   const handleSaveProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct || !editingProduct.name || !editingProduct.price) return;
     try {
+      const rawImages = editingProduct.images && editingProduct.images.length > 0 ? editingProduct.images : ['/hero-streetwear.webp'];
+      const optimizedImages = rawImages.map((img: string) => optimizeCloudinaryUrl(img));
+
       const productPayload: any = {
         name: editingProduct.name,
         price: Number(editingProduct.price),
@@ -263,7 +315,7 @@ export const AdminDashboard: React.FC = () => {
         description: editingProduct.description || '',
         careInstructions: editingProduct.careInstructions || 'Prati na 30°C izvrnuto',
         details: editingProduct.details || ['Visokokvalitetni pamuk', 'Streetwear casual kroj', 'Plaćanje pouzećem ili lično preuzimanje'],
-        images: editingProduct.images && editingProduct.images.length > 0 ? editingProduct.images : ['/hero-streetwear.webp'],
+        images: optimizedImages,
         sizes: editingProduct.sizes || { S: 0, M: 0, L: 0, XL: 0, XXL: 0, '3XL': 0, 'One size': 0 },
         isNew: Boolean(editingProduct.isNew),
         featured: Boolean(editingProduct.featured),
@@ -518,19 +570,32 @@ export const AdminDashboard: React.FC = () => {
           <div className="space-y-6 animate-fadeIn max-w-6xl">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="font-['Poppins'] text-xl font-black uppercase text-black">Proizvodi ({products.length})</h2>
-              <button
-                onClick={() => {
-                  setEditingProduct({
-                    name: '', price: 0, originalPrice: 0, category: 'Majice', color: 'Crna', material: '100% češljani pamuk 240 GSM',
-                    description: '', careInstructions: 'Prati na 30°C izvrnuto, ne peglati preko štampe', images: [],
-                    sizes: { S: 0, M: 0, L: 0, XL: 0, XXL: 0, '3XL': 0, 'One size': 0 }, isNew: true, featured: false, isHidden: false,
-                  });
-                  setIsSidebarOpen(true);
-                }}
-                className="w-full sm:w-auto px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold uppercase flex items-center justify-center gap-2 border-2 border-[#0A0A0A] cursor-pointer shadow-md"
-              >
-                <Plus className="w-4 h-4" /><span>Novi Artikal</span>
-              </button>
+              
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleBatchOptimizeImages}
+                  disabled={optimizingImages}
+                  title="Automatski dodaje Cloudinary transformacije (f_auto, q_auto, w_800) za sve postojeće slike artikala"
+                  className="w-full sm:w-auto px-4 py-2 bg-white text-black hover:bg-neutral-100 text-xs font-['Poppins'] font-bold uppercase flex items-center justify-center gap-2 border-2 border-black cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  <span>{optimizingImages ? 'Optimizacija...' : 'Optimizuj Slike (Cloudinary)'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setEditingProduct({
+                      name: '', price: 0, originalPrice: 0, category: 'Majice', color: 'Crna', material: '100% češljani pamuk 240 GSM',
+                      description: '', careInstructions: 'Prati na 30°C izvrnuto, ne peglati preko štampe', images: [],
+                      sizes: { S: 0, M: 0, L: 0, XL: 0, XXL: 0, '3XL': 0, 'One size': 0 }, isNew: true, featured: false, isHidden: false,
+                    });
+                    setIsSidebarOpen(true);
+                  }}
+                  className="w-full sm:w-auto px-4 py-2 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] text-xs font-['Poppins'] font-bold uppercase flex items-center justify-center gap-2 border-2 border-[#0A0A0A] cursor-pointer shadow-md"
+                >
+                  <Plus className="w-4 h-4" /><span>Novi Artikal</span>
+                </button>
+              </div>
             </div>
 
             <div className="bg-white border-2 border-neutral-200 overflow-x-auto shadow-sm">
@@ -551,7 +616,7 @@ export const AdminDashboard: React.FC = () => {
                     return (
                       <tr key={p.id} className="hover:bg-neutral-50">
                         <td className="p-3 flex items-center gap-3">
-                          <img src={p.images?.[0] || '/hero-streetwear.webp'} alt={p.name} className="w-10 h-12 object-cover border" />
+                          <img src={optimizeCloudinaryUrl(p.images?.[0] || '/hero-streetwear.webp')} alt={p.name} className="w-10 h-12 object-cover border" />
                           <div>
                             <span className="font-bold text-neutral-900 block">{p.name}</span>
                             <span className="text-[10px] text-neutral-500 font-mono">Zaliha: {totalStock} kom</span>
@@ -891,7 +956,7 @@ export const AdminDashboard: React.FC = () => {
                       <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 pt-2">
                         {editingProduct.images.map((img, idx) => (
                           <div key={idx} className="relative aspect-4/5 bg-neutral-100 border border-neutral-300 group">
-                            <img src={img} alt={`Slika ${idx + 1}`} className="w-full h-full object-cover" />
+                            <img src={optimizeCloudinaryUrl(img)} alt={`Slika ${idx + 1}`} className="w-full h-full object-cover" />
                             <button type="button" onClick={() => handleRemoveImage(idx)} className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"><X className="w-3 h-3" /></button>
                             {idx === 0 && <span className="absolute bottom-0 left-0 right-0 bg-[#0A0A0A] text-[#F7E97F] text-[8px] font-bold text-center py-0.5">GLAVNA</span>}
                           </div>
