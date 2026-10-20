@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Truck, ShieldCheck, RotateCcw, Sparkles } from 'lucide-react';
+import { ArrowRight, Truck, ShieldCheck, RotateCcw } from 'lucide-react';
 import { getProducts } from '../lib/db';
 import { Product } from '../types';
 
 export const HomePage = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newDropProducts, setNewDropProducts] = useState<Product[]>([]);
+  const [accessoryImage, setAccessoryImage] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,13 +20,24 @@ export const HomePage = () => {
         
         setFeaturedProducts(activeProds.filter(p => p.featured).slice(0, 4));
         
-        // ISPRAVLJENO: Sortiranje novih artikala po datumu dodavanja (najnoviji prvi)
+        // Sortiranje novih artikala po datumu dodavanja (najnoviji prvi)
         setNewDropProducts(
           activeProds
             .filter(p => p.isNew)
             .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
             .slice(0, 4)
         );
+
+        // Dinamičko povlačenje slike dodatka koji je aktivan i ima zalihe na stanju
+        const accessoryProd = activeProds.find(p => {
+          if (p.category !== 'Dodaci (Accessories)') return false;
+          const totalStock = Object.values(p.sizes || {}).reduce((sum, val) => sum + (val as number), 0);
+          return totalStock > 0 && p.images && p.images.length > 0;
+        }) || activeProds.find(p => p.category === 'Dodaci (Accessories)' && p.images && p.images.length > 0);
+
+        if (accessoryProd && accessoryProd.images?.[0]) {
+          setAccessoryImage(accessoryProd.images[0]);
+        }
       } catch (err) {
         console.error("Greška pri učitavanju proizvoda:", err);
       } finally {
@@ -105,17 +117,15 @@ export const HomePage = () => {
               </div>
             </Link>
 
-            <Link href="/shop?category=Dodaci%20(Accessories)" className="relative group overflow-hidden bg-[#0A0A0A] border-2 border-neutral-800">
+            {/* DODACI: Dinamički prikazuje sliku artikla koji je na stanju */}
+            <Link href="/shop?category=Dodaci%20(Accessories)" className="relative group overflow-hidden bg-neutral-200">
               <img 
-                src="/images/sarajevo_geo_tee.jpg" 
+                src={accessoryImage || "/images/category-tshirt.webp"} 
                 alt="Dodaci" 
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60 mix-blend-overlay"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent group-hover:from-black/70 transition-colors"></div>
+              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
               
-              <div className="absolute top-4 right-4 bg-[#F7E97F] text-[#0A0A0A] text-[9px] font-['Poppins'] font-black uppercase px-2.5 py-1 tracking-wider flex items-center gap-1 z-10">
-                <Sparkles className="w-3 h-3" /> USKORO
-              </div>
               <div className="absolute bottom-6 left-6 z-10">
                 <h2 className="text-white font-['Poppins'] text-2xl font-black uppercase tracking-widest mb-1 drop-shadow-lg">Dodaci</h2>
                 <p className="text-[#F7E97F] text-[10px] font-bold uppercase tracking-widest mb-2 drop-shadow-md">Privjesci • Stikeri • Kape</p>

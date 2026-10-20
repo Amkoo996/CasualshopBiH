@@ -427,7 +427,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
             </div>
 
-            {(product.description || product.material || product.color || product.careInstructions) && (
+            {/* Opis i Detalji: Materijal, boja i održavanje se prikazuju samo ako artikal NIJE iz kategorije Dodaci */}
+            {(product.description || (!isAccessory && (product.material || product.color || product.careInstructions))) && (
               <div className="space-y-4 pt-4 border-t border-neutral-200 text-xs text-neutral-700 leading-relaxed">
                 {product.description && (
                   <div>
@@ -438,7 +439,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   </div>
                 )}
 
-                {(product.material || product.color || product.careInstructions) && (
+                {!isAccessory && (product.material || product.color || product.careInstructions) && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-4 border border-neutral-200">
                     {product.material && (
                       <div>
