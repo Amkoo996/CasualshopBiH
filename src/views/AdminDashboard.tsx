@@ -7,18 +7,20 @@ import {
   Settings, LogOut, Lock, Search, X, Save, Eye, CheckCircle2,
   Mail, Palette, EyeOff, Boxes, Ticket, Power, Layout, Truck,
   Printer, ShieldCheck, ShieldAlert, Image as ImageIcon, Tag, Info, Menu,
-  ArrowLeft, Zap
+  ArrowLeft, Zap, AlertTriangle
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useAuth } from '../context/AuthContext';
 import { Product, Order, NewsletterSubscriber, Size, OrderStatus, StoreSettings, CATEGORIES, DEFAULT_STORE_SETTINGS } from '../types';
 import {
   getProducts, saveProduct, deleteProduct, getOrders, updateOrderStatus,
-  getSubscribers, getStoreSettings, saveStoreSettings,
+  getSubscribers, getStoreSettings, saveStoreSettings, db
 } from '../lib/db';
+import { collection, getDocs, writeBatch } from 'firebase/firestore';
+import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { uploadImage } from '../lib/upload';
 import { getProductViewStats } from '../lib/tracking';
-import { getAllPromoCodes, createPromoCode, togglePromoCodeStatus, deletePromoCode, getPromoRemainingTime } from '../lib/promo';
+import { getAllPromoCodes, createPromoCode, togglePromoCodeStatus, deletePromoCode } from '../lib/promo';
 import { useCart } from '../context/CartContext';
 import { SalesTrendChart } from '../components/admin/SalesTrendChart';
 import { FunnelAnalytics } from '../components/admin/FunnelAnalytics';
@@ -114,6 +116,18 @@ export const AdminDashboard: React.FC = () => {
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('Sve');
   const [orderSearch, setOrderSearch] = useState('');
 
+  // Stanja za sigurnosno brisanje i resetiranje podataka
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [adminPasswordForDelete, setAdminPasswordForDelete] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  // Kvačice za odabir što se briše
+  const [wipeOrders, setWipeOrders] = useState(true);
+  const [wipeViews, setWipeViews] = useState(true);
+  const [wipeCarts, setWipeCarts] = useState(true);
+  const [wipeSubscribers, setWipeSubscribers] = useState(false);
+
   const availableSizesList: Size[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
 
   const loadData = async (silent = false) => {
@@ -179,6 +193,79 @@ export const AdminDashboard: React.FC = () => {
     if (data.returned > 0) return { label: 'Oprez (Ima povrat)', color: 'bg-red-100 text-red-800 border-red-300', icon: ShieldAlert };
     if (data.delivered >= 1) return { label: 'Provjeren kupac', color: 'bg-emerald-100 text-emerald-800 border-emerald-300', icon: ShieldCheck };
     return { label: 'Više narudžbi', color: 'bg-amber-100 text-amber-900 border-amber-300', icon: ShieldCheck };
+  };
+
+  // FUNKCIJA ZA BRISANJE ODABRANIH PODATAKA UZ POTVRDU LOZINKOM
+  const handleWipeSelectedData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !user.email) return;
+
+    if (!wipeOrders && !wipeViews && !wipeCarts && !wipeSubscribers) {
+      setDeleteError('Morate odabrati barem jednu stavku za brisanje.');
+      return;
+    }
+
+    setDeleteLoading(true);
+    setDeleteError('');
+
+    try {
+      // 1. Provjera lozinke administratorskog računa
+      const credential = EmailAuthProvider.credential(user.email, adminPasswordForDelete);
+      await reauthenticateWithCredential(user, credential);
+
+      // Pomoćna funkcija za sigurno brisanje dokumenata iz kolekcije
+      const wipeCollection = async (colName: string) => {
+        const colRef = collection(db, colName);
+        const snapshot = await getDocs(colRef);
+        if (snapshot.empty) return 0;
+        const batch = writeBatch(db);
+        snapshot.docs.forEach((docSnap) => batch.delete(docSnap.ref));
+        await batch.commit();
+        return snapshot.size;
+      };
+
+      const deletedItemsSummary: string[] = [];
+
+      // 2. Brisanje narudžbi
+      if (wipeOrders) {
+        const countOrders = await wipeCollection('orders');
+        await wipeCollection('order_tracking').catch(() => {});
+        deletedItemsSummary.push(`Narudžbe (${countOrders})`);
+      }
+
+      // 3. Brisanje pregleda artikala
+      if (wipeViews) {
+        const countViews = await wipeCollection('product_views');
+        await wipeCollection('views').catch(() => {});
+        deletedItemsSummary.push(`Pregledi artikala (${countViews})`);
+      }
+
+      // 4. Brisanje napuštenih korpi
+      if (wipeCarts) {
+        const countCarts = await wipeCollection('abandoned_carts');
+        deletedItemsSummary.push(`Napuštene korpe (${countCarts})`);
+      }
+
+      // 5. Brisanje newsletter pretplatnika (ako je odabrano)
+      if (wipeSubscribers) {
+        const countSubs = await wipeCollection('subscribers');
+        deletedItemsSummary.push(`Newsletter baza (${countSubs})`);
+      }
+
+      alert(`Uspješno obrisano i resetirano na 0:\n• ${deletedItemsSummary.join('\n• ')}\n\nSistem je čist i spreman za Live!`);
+      setShowDeleteModal(false);
+      setAdminPasswordForDelete('');
+      window.location.reload();
+    } catch (err: any) {
+      console.error('Greška pri brisanju podataka:', err);
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setDeleteError('Neispravna administratorska lozinka!');
+      } else {
+        setDeleteError('Došlo je do greške pri brisanju iz baze.');
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const generateShippingSlip = (order: Order, customName?: string, customAddress?: string, customCity?: string) => {
@@ -804,7 +891,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* SETTINGS TAB SA E-MAIL POLJEM */}
+        {/* SETTINGS TAB */}
         {activeTab === 'settings' && (
           <div className="space-y-6 animate-fadeIn max-w-4xl">
             <h2 className="font-['Poppins'] text-xl font-black uppercase text-black">Postavke Trgovine</h2>
@@ -814,7 +901,6 @@ export const AdminDashboard: React.FC = () => {
               </div>
             )}
             <form onSubmit={handleSaveSettings} className="bg-white p-6 sm:p-8 border-2 border-neutral-300 space-y-6 shadow-sm">
-              
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-6 border-b border-neutral-200">
                 <div>
                   <label className="block text-xs font-bold uppercase text-neutral-700 mb-1">Email za kontakt</label>
@@ -858,10 +944,137 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'dev-settings' && <div className="animate-fadeIn max-w-5xl"><DevSettings /></div>}
+        {/* DEV SETTINGS TAB SA RESETOM NA 0 */}
+        {activeTab === 'dev-settings' && (
+          <div className="animate-fadeIn max-w-5xl space-y-6">
+            <DevSettings />
+
+            {/* SEKCIJA ZA SIGURNOSNO BRISANJE PODATAKA (GO LIVE) */}
+            <div className="bg-white p-6 border-2 border-red-200 shadow-sm space-y-4 max-w-2xl">
+              <div className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="w-5 h-5" />
+                <h3 className="font-['Poppins'] font-black text-sm uppercase">Čišćenje Podataka i Reset na Nulu (Go Live)</h3>
+              </div>
+              <p className="text-xs text-neutral-600">
+                Prije puštanja trgovine u rad, možete odabrati i trajno obrisati testne podatke iz baze (narudžbe, preglede, napuštene korpe). Proizvodi i njihove zalihe se <strong>neće</strong> obrisati.
+              </p>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-['Poppins'] text-xs font-black uppercase transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                Otvori Čišćenje Baze
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
 
+      {/* MODAL ZA BRISANJE PODATAKA UZ ODABIR I LOZINKU */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4 font-['Inter']">
+          <div className="bg-white max-w-md w-full p-6 sm:p-8 border-2 border-red-600 shadow-2xl space-y-5 animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-neutral-200 pb-3">
+              <h3 className="font-['Poppins'] text-base font-black uppercase text-red-600 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" /> Resetovanje Podataka
+              </h3>
+              <button onClick={() => setShowDeleteModal(false)} className="text-neutral-400 hover:text-black cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+
+            <p className="text-xs text-neutral-600">
+              Označite koje podatke želite trajno obrisati iz baze prije puštanja u rad:
+            </p>
+
+            <div className="space-y-2 bg-[#F4F2EC] p-3.5 border border-neutral-300 text-xs font-bold text-neutral-800">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={wipeOrders} 
+                  onChange={(e) => setWipeOrders(e.target.checked)} 
+                  className="w-4 h-4 accent-red-600 cursor-pointer" 
+                />
+                <span>Testne narudžbe i prihod (Reset na 0.00 KM)</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={wipeViews} 
+                  onChange={(e) => setWipeViews(e.target.checked)} 
+                  className="w-4 h-4 accent-red-600 cursor-pointer" 
+                />
+                <span>Pregledi artikala i statistika posjeta</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={wipeCarts} 
+                  onChange={(e) => setWipeCarts(e.target.checked)} 
+                  className="w-4 h-4 accent-red-600 cursor-pointer" 
+                />
+                <span>Napuštene korpe (Leads)</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer pt-2 border-t border-neutral-300">
+                <input 
+                  type="checkbox" 
+                  checked={wipeSubscribers} 
+                  onChange={(e) => setWipeSubscribers(e.target.checked)} 
+                  className="w-4 h-4 accent-red-600 cursor-pointer" 
+                />
+                <span className="text-neutral-600 font-normal">Isprazni i bazu newsletter pretplatnika</span>
+              </label>
+            </div>
+            
+            {deleteError && (
+              <div className="p-2.5 bg-red-50 text-red-600 text-xs font-bold border border-red-200">
+                {deleteError}
+              </div>
+            )}
+
+            <form onSubmit={handleWipeSelectedData} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold uppercase text-[11px] text-neutral-700 mb-1">
+                  Unesite administratorsku lozinku za nalog ({user?.email}):
+                </label>
+                <input 
+                  type="password" 
+                  required 
+                  autoFocus
+                  placeholder="Lozinka..." 
+                  value={adminPasswordForDelete} 
+                  onChange={(e) => setAdminPasswordForDelete(e.target.value)} 
+                  className="w-full bg-[#F4F2EC] border-2 border-neutral-300 p-2.5 font-mono focus:border-red-600 focus:outline-none" 
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-3 border-t border-neutral-200">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setAdminPasswordForDelete('');
+                    setDeleteError('');
+                  }} 
+                  className="px-4 py-2 border-2 border-neutral-300 font-bold uppercase text-neutral-600 hover:bg-neutral-100 cursor-pointer"
+                >
+                  Odustani
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={deleteLoading}
+                  className="px-6 py-2 bg-red-600 text-white font-['Poppins'] font-black uppercase hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {deleteLoading ? 'Brisanje...' : 'POTVRDI I OBRIŠI'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ZA ADRESNICU */}
       {printModalOrder && (
         <div className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full p-6 border-2 border-[#F7E97F] shadow-2xl space-y-4">
@@ -893,6 +1106,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL ZA TRACKING BROJ */}
       {trackingModalOrder && (
         <div className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full p-6 border-2 border-[#F7E97F] shadow-2xl space-y-4">
@@ -921,6 +1135,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* SIDEBAR ZA NOVI/UREDI ARTIKAL */}
       {isSidebarOpen && editingProduct && (
         <div className="fixed inset-0 z-[60] overflow-hidden font-['Inter']">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)} />
