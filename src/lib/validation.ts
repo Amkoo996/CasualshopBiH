@@ -3,7 +3,7 @@ export const isValidEmail = (v: string): boolean => {
   if (!v || typeof v !== 'string') return false;
   const trimmed = v.trim();
   // Standardni regex za email validaciju
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+\$/.test(trimmed);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 };
 
 // 2. Normalizacija i provjera brojeva telefona
