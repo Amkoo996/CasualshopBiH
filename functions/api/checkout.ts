@@ -40,7 +40,7 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
     iat: now,
   };
 
-  const base64UrlEncode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=+\$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const base64UrlEncode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
   const dataToSign = `${base64UrlEncode(header)}.${base64UrlEncode(payload)}`;
 
   const pemContents = sa.private_key

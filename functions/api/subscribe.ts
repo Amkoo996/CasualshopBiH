@@ -52,7 +52,7 @@ export const onRequestPost = async (context: {
     const email = body.email?.trim().toLowerCase();
     
     // ISPRAVLJENO: Uklonjen backslash ispred znaka \$, sada ispravno označava kraj stringa
-    const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}\$/.test(email);
+    const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 
     if (!isValidEmail) {
       return new Response(
