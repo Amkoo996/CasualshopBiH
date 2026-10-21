@@ -2,16 +2,17 @@ import { Product } from '../types';
 
 // Pomoćna funkcija za generisanje direktnog URL-a proizvoda za dijeljenje (Viber, WhatsApp, Social)
 export const getProductShareUrl = (productId: string): string => {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://casualshopbih.pages.dev';
+  // ISPRAVLJENO P1-6: Koristi se prava domena umjesto pages.dev
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://casualshop.ba';
   return `${origin}/proizvod?id=${productId}`;
 };
 
 export const updateMetaTags = (product?: Product | null, pageTitle?: string) => {
   const siteName = 'Casual Shop BiH';
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://casualshopbih.pages.dev';
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://casualshop.ba';
   
-  // Putanja do zadane SEO slike
-  const defaultImage = `${currentOrigin}/images/seo-cover.jpg`;
+  // ISPRAVLJENO P1-6: Putanja do zadane SEO slike sada koristi .webp (ispravna ekstenzija)
+  const defaultImage = `${currentOrigin}/images/seo-cover.webp`;
 
   let title = pageTitle || 'Casual Shop BiH | Streetwear Odjeća Online';
   let description = 'Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom. Plaćanje pouzećem širom BiH.';

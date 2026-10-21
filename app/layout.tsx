@@ -5,11 +5,11 @@ import './globals.css';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID;
 
+// ISPRAVLJENO P2-3: Uklonjen maximumScale: 1 kako bi korisnici na mobitelima mogli zumirati stranicu (WCAG Pristupačnost)
 export const viewport: Viewport = {
   themeColor: '#0A0A0A',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export const metadata: Metadata = {
@@ -71,26 +71,37 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[#FAF9F5] text-neutral-900 antialiased font-['Inter']">
-        {/* GOOGLE ANALYTICS INTEGRACIJA PREKO VARIJABLE */}
+        
+        {/* ISPRAVLJENO P1-4: GOOGLE ANALYTICS INTEGRACIJA SA CONSENT MODE (Zadano isključeno) */}
         {GA_MEASUREMENT_ID && (
           <>
             <Script
-              strategy="afterInteractive"
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-            />
-            <Script
-              id="google-analytics-init"
-              strategy="afterInteractive"
+              id="google-consent-init"
+              strategy="beforeInteractive"
             >
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
+                
+                // Zabrana praćenja prije nego što korisnik klikne "Prihvatam" na banneru
+                gtag('consent', 'default', {
+                  'analytics_storage': 'denied',
+                  'ad_storage': 'denied',
+                  'ad_user_data': 'denied',
+                  'ad_personalization': 'denied',
+                  'wait_for_update': 500
+                });
+
                 gtag('js', new Date());
                 gtag('config', '${GA_MEASUREMENT_ID}', {
                   page_path: window.location.pathname,
                 });
               `}
             </Script>
+            <Script
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+            />
           </>
         )}
 

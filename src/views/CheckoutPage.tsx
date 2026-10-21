@@ -47,6 +47,9 @@ export const CheckoutPage: React.FC<{
     settings 
   } = useCart();
 
+  // ISPRAVLJENO P1-3: Nasumični ID za napuštenu korpu umjesto predvidljivog (telefona)
+  const cartSessionIdRef = useRef(`cart-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
+
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
 
   const [formData, setFormData] = useState({
@@ -64,6 +67,9 @@ export const CheckoutPage: React.FC<{
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
 
+  // ISPRAVLJENO P1-3: Dodan state za pristanak na obradu podataka
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discountPercent: number } | null>(null);
   const [promoError, setPromoError] = useState('');
@@ -80,20 +86,19 @@ export const CheckoutPage: React.FC<{
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // ISPRAVLJENO P1-3: Korpa se snima tek AKO je korisnik dao explicitan pristanak (privacyConsent)
   useEffect(() => {
-    if (items.length === 0 || completedOrder) return;
+    if (items.length === 0 || completedOrder || !privacyConsent) return;
 
     const safePhone = formData.phone || '';
     const safeEmail = formData.email || '';
-    const cleanPhone = safePhone.replace(/\D/g, '');
 
-    if (cleanPhone.length >= 6 || safeEmail.includes('@')) {
+    if (safePhone.length >= 6 || safeEmail.includes('@')) {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
 
       syncTimeoutRef.current = setTimeout(async () => {
         try {
-          const cartSessionId = `cart-${cleanPhone || safeEmail.replace(/[^a-zA-Z0-9]/g, '')}`;
-          await setDoc(doc(db, 'abandoned_carts', cartSessionId), {
+          await setDoc(doc(db, 'abandoned_carts', cartSessionIdRef.current), {
             customerName: `${formData.firstName} ${formData.lastName}`.trim() || 'Posjetilac',
             phone: safePhone,
             email: safeEmail,
@@ -115,7 +120,7 @@ export const CheckoutPage: React.FC<{
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     };
-  }, [formData, items, finalTotal, deliveryMethod, completedOrder]);
+  }, [formData, items, finalTotal, deliveryMethod, completedOrder, privacyConsent]);
 
   const handleEmailChange = (val: string) => {
     setFormData(prev => ({ ...prev, email: val }));
@@ -186,6 +191,10 @@ export const CheckoutPage: React.FC<{
       if (!formData.pickupTime.trim()) newErrors.pickupTime = 'Molimo navedite željeni dan i vrijeme preuzimanja.';
     }
 
+    if (!privacyConsent) {
+      newErrors.privacyConsent = 'Morate prihvatiti politiku privatnosti da biste nastavili.';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setGeneralError('Molimo ispravite označena polja prije potvrde narudžbe.');
@@ -236,10 +245,9 @@ export const CheckoutPage: React.FC<{
       const createdOrderId = await createOrder(orderPayload);
       const fullOrderRecord: Order = { ...orderPayload, id: createdOrderId };
 
+      // Oznaka da je napuštena korpa konvertovana u narudžbu
       try {
-        const digits = formData.phone.replace(/\D/g, '');
-        const id = 'cart-' + (digits || formData.email.replace(/[^a-zA-Z0-9]/g, ''));
-        await setDoc(doc(db, 'abandoned_carts', id), {
+        await setDoc(doc(db, 'abandoned_carts', cartSessionIdRef.current), {
           status: 'converted',
           updatedAt: new Date().toISOString()
         }, { merge: true });
@@ -531,7 +539,6 @@ export const CheckoutPage: React.FC<{
                   />
                   <span className="text-[10px] text-neutral-400 mt-0.5 block">
                     Služi isključivo za slanje potvrde i praćenje pošiljke. 
-                    Unosom se slažete s našom <Link href="/politika-privatnosti" className="underline hover:text-black">Politikom privatnosti</Link>.
                   </span>
                   {errors.email && (
                     <p className="text-[10px] text-red-600 mt-0.5 font-bold flex items-center gap-1">
@@ -638,10 +645,10 @@ export const CheckoutPage: React.FC<{
 
                 <div className="pt-4 border-t border-neutral-100">
                   <span className="font-['Poppins'] text-xs font-black uppercase tracking-wider text-black block mb-2">
-                    3. Način plaćanja
+                    3. Način plaćanja i Zaštita Podataka
                   </span>
                   
-                  <div className="p-4 bg-[#FAF9F5] border-2 border-black flex items-center justify-between">
+                  <div className="p-4 bg-[#FAF9F5] border-2 border-black flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-4 h-4 rounded-full bg-black flex items-center justify-center">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#F7E97F]" />
@@ -657,6 +664,35 @@ export const CheckoutPage: React.FC<{
                     </div>
                     <Truck className="w-5 h-5 text-black" />
                   </div>
+
+                  <label className="flex items-start gap-2.5 p-3 border border-neutral-200 bg-white cursor-pointer hover:bg-neutral-50 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={privacyConsent}
+                      onChange={(e) => {
+                        setPrivacyConsent(e.target.checked);
+                        if (errors.privacyConsent) {
+                          setErrors(prev => {
+                            const copy = { ...prev };
+                            delete copy.privacyConsent;
+                            return copy;
+                          });
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 accent-black cursor-pointer" 
+                    />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-xs text-black">
+                        Prihvatam Politiku privatnosti i Uslove kupovine *
+                      </span>
+                      <span className="text-[10px] text-neutral-500 leading-tight">
+                        Pristajem na obradu mojih podataka isključivo u svrhu realizacije narudžbe te eventualnog kontakta u slučaju nezavršene kupovine.
+                      </span>
+                      {errors.privacyConsent && (
+                        <span className="text-[10px] text-red-600 font-bold mt-1">{errors.privacyConsent}</span>
+                      )}
+                    </div>
+                  </label>
                 </div>
 
               </form>
@@ -779,7 +815,7 @@ export const CheckoutPage: React.FC<{
                 </p>
                 <p className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Mogućnost zamjene veličine unutar 14 dana.</span>
+                  <span>Mogućnost zamjene veličine unutar 3 dana.</span>
                 </p>
               </div>
 

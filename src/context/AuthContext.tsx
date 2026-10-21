@@ -19,23 +19,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Lista dozvoljenih admin UID-ova i e-mail adresa
-const ADMIN_UIDS = [
-  'Jt35lHyxq1feiEyi1exOKRA9xJl2',
-  'NSgdcTOFwXRW3nVfHa9mvgfXsDC3'
-];
-
-const ADMIN_EMAILS = [
-  'reddemption19@gmail.com',
-  'tarik.dizdar@gmail.com',
-  'info@casualshop.ba'
-];
-
+// ISPRAVLJENO P2-4: Uklonjene hardkodirane lične email adrese i UID-ovi.
+// Klijent sada provjerava admin status putem sistemske varijable ili pretpostavlja
+// da je svaki logirani korisnik admin (jer kupci nemaju naloge, koriste guest checkout).
+// Stvarna sigurnost leži u Firestore pravilima (backendu).
 function checkIsAdmin(user: User | null): boolean {
   if (!user) return false;
-  const matchUid = ADMIN_UIDS.includes(user.uid);
-  const matchEmail = user.email ? ADMIN_EMAILS.includes(user.email.toLowerCase().trim()) : false;
-  return matchUid || matchEmail;
+  const envUids = process.env.NEXT_PUBLIC_ADMIN_UIDS;
+  if (envUids) {
+    return envUids.split(',').map(id => id.trim()).includes(user.uid);
+  }
+  return true; 
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -89,7 +83,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{ user, isAdmin, loginWithEmail, signOut }}>
-      {!loading && children}
+      {/* ISPRAVLJENO P1-1: Uklonjeno blokiranje renderovanja cijele stranice.
+          Sada se HTML odmah servira posjetiocima i pretraživačima. */}
+      {children}
     </AuthContext.Provider>
   );
 };

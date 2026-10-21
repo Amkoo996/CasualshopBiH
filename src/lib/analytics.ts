@@ -21,28 +21,20 @@ const getEnv = (key: string): string => {
   return '';
 };
 
-const GA_ID = getEnv('NEXT_PUBLIC_GA_MEASUREMENT_ID') || getEnv('VITE_GA_MEASUREMENT_ID') || 'G-RL3ZGMND3K';
+// Koristimo isti ključ kao u layout.tsx (bez hardkodiranog ID-a)
 const META_PIXEL_ID = getEnv('NEXT_PUBLIC_META_PIXEL_ID') || getEnv('VITE_META_PIXEL_ID');
 
 export const initAnalytics = (consentGranted: boolean) => {
   if (!consentGranted || typeof window === 'undefined') return;
 
-  // Initialize GA4
-  if (GA_ID && !document.getElementById('ga-script')) {
-    const gaScript = document.createElement('script');
-    gaScript.id = 'ga-script';
-    gaScript.async = true;
-    gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
-    document.head.appendChild(gaScript);
-
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function () {
-      window.dataLayer?.push(arguments);
-    };
-    window.gtag('js', new Date());
-    window.gtag('config', GA_ID, {
-      currency: 'BAM',
-      send_page_view: true,
+  // ISPRAVLJENO P1-4: Skripta je već učitana u layout.tsx sa zabranom praćenja.
+  // Ovdje samo šaljemo signal da je korisnik dao pristanak ("update").
+  if (typeof window.gtag === 'function') {
+    window.gtag('consent', 'update', {
+      'analytics_storage': 'granted',
+      'ad_storage': 'granted',
+      'ad_user_data': 'granted',
+      'ad_personalization': 'granted'
     });
   }
 
