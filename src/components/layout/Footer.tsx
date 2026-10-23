@@ -12,7 +12,6 @@ export const Footer: React.FC = () => {
     <footer className="bg-[#0A0A0A] text-white border-t-2 border-[#F7E97F] pt-16 pb-8 font-['Inter'] relative z-10 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         
-        {/* Benefiti / Prednosti */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-12 border-b border-neutral-800 text-center">
           <div className="flex flex-col items-center p-4 bg-neutral-900/50 border border-neutral-800/80 rounded-xs hover:border-[#F7E97F]/50 transition-colors">
             <Truck className="w-7 h-7 text-[#F7E97F] mb-2.5" />
@@ -33,15 +32,13 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Glavni footer sadržaj */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
           
-          {/* Logo i Kratki opis brenda */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-3.5 group">
               <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#0A0A0A] border-2 border-[#F7E97F]/50 group-hover:border-[#F7E97F] p-1 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(247,233,127,0.15)] group-hover:scale-105 transition-all">
                 <img 
-                  src="/logo.png" 
+                  src="/logo.jpeg" 
                   alt="Casual Shop BiH" 
                   className="w-full h-full object-contain rounded-full"
                   onError={(e) => {
@@ -77,7 +74,6 @@ export const Footer: React.FC = () => {
             </a>
           </div>
 
-          {/* Stranice */}
           <div>
             <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
               STRANICE
@@ -92,7 +88,6 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Kontakt podaci */}
           <div>
             <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] text-[#F7E97F] mb-4">
               KONTAKT
@@ -109,7 +104,6 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Info kurirska služba */}
           <div className="space-y-3 bg-neutral-900/40 border border-neutral-800 p-4 rounded-xs">
             <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.15em] text-[#F7E97F]">
               POUZDANA DOSTAVA
@@ -121,7 +115,6 @@ export const Footer: React.FC = () => {
 
         </div>
 
-        {/* Donja traka + Katanac za Admin */}
         <div className="pt-8 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
           <p>© {new Date().getFullYear()} Casual Shop BiH. Sva prava zadržana.</p>
           

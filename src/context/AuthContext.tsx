@@ -19,17 +19,15 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ISPRAVLJENO P2-4: Uklonjene hardkodirane lične email adrese i UID-ovi.
-// Klijent sada provjerava admin status putem sistemske varijable ili pretpostavlja
-// da je svaki logirani korisnik admin (jer kupci nemaju naloge, koriste guest checkout).
-// Stvarna sigurnost leži u Firestore pravilima (backendu).
 function checkIsAdmin(user: User | null): boolean {
   if (!user) return false;
   const envUids = process.env.NEXT_PUBLIC_ADMIN_UIDS;
   if (envUids) {
     return envUids.split(',').map(id => id.trim()).includes(user.uid);
   }
-  return true; 
+  // ISPRAVLJENO N-2: Sada podrazumijevano vraća false. 
+  // Niko se ne može ulogovati dok se ne postavi NEXT_PUBLIC_ADMIN_UIDS.
+  return false; 
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,8 +81,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{ user, isAdmin, loginWithEmail, signOut }}>
-      {/* ISPRAVLJENO P1-1: Uklonjeno blokiranje renderovanja cijele stranice.
-          Sada se HTML odmah servira posjetiocima i pretraživačima. */}
       {children}
     </AuthContext.Provider>
   );

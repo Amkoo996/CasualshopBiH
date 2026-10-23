@@ -25,7 +25,6 @@ export const Navbar = () => {
   const cartItemCount = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
   const wishlistItemCount = wishlistItems.length;
 
-  // Zaključavanje skrolanja kada je otvoren mobilni meni
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -73,15 +72,13 @@ export const Navbar = () => {
   return (
     <header className={`sticky top-0 z-40 transition-all duration-300 font-['Inter'] ${isScrolled ? 'bg-[#0A0A0A]/95 backdrop-blur-md shadow-2xl border-b border-neutral-800' : 'bg-[#0A0A0A] text-white border-b border-neutral-800'}`}>
       
-      {/* Glavni Meni */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-24 sm:h-28">
           
-          {/* LOGO BEZ VANJSKOG KRUGA I BORDERA */}
           <Link href="/" className="flex items-center gap-3.5 group z-50">
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
               <img 
-                src="/logo.png" 
+                src="/logo.jpeg" 
                 alt="Casual Shop Logo" 
                 className="w-full h-full object-contain"
                 onError={(e) => {
@@ -102,7 +99,6 @@ export const Navbar = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigacija */}
           <nav className="hidden md:flex items-center gap-7">
             {navLinks.map((link) => (
               <Link
@@ -117,7 +113,6 @@ export const Navbar = () => {
               </Link>
             ))}
 
-            {/* Dropdown Kategorije */}
             <div className="relative group py-6">
               <Link
                 href="/shop"
@@ -143,13 +138,11 @@ export const Navbar = () => {
             </div>
           </nav>
 
-          {/* Ikone */}
           <div className="flex items-center gap-4 sm:gap-6 z-50">
             <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="text-neutral-300 hover:text-[#F7E97F] hover:scale-110 transition-all cursor-pointer p-1">
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* INSTAGRAM DM LINK (DESKTOP) */}
             <a href="https://ig.me/m/casualshop.bih" target="_blank" rel="noopener noreferrer" className="hidden sm:block text-neutral-300 hover:text-[#F7E97F] hover:scale-110 transition-all p-1">
               <Instagram className="w-4 h-4 sm:w-5 sm:h-5" />
             </a>
@@ -200,12 +193,10 @@ export const Navbar = () => {
         )}
       </div>
 
-      {/* Promo traka ispod navbara */}
       <div className="bg-[#F7E97F] text-[#0A0A0A] text-center py-2 text-[9px] sm:text-[10px] font-['Poppins'] font-black uppercase tracking-[0.2em] shadow-sm">
         PLAĆANJE POUZEĆEM • DOSTAVA 48-72h ŠIROM BiH
       </div>
 
-      {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-[#0A0A0A] border-b-2 border-[#F7E97F] shadow-2xl h-[calc(100vh-80px)] overflow-y-auto z-30">
           <div className="flex flex-col p-6 space-y-6">
@@ -233,7 +224,6 @@ export const Navbar = () => {
               <Link href="/wishlist" className="flex flex-col items-center justify-center gap-2 text-white text-[10px] font-bold uppercase bg-neutral-900 p-4 rounded-sm border border-neutral-800 hover:border-red-500 transition-colors">
                 <Heart className="w-5 h-5 text-red-500" />Lista želja ({wishlistItemCount})
               </Link>
-              {/* INSTAGRAM DM LINK (MOBILE) */}
               <a href="https://ig.me/m/casualshop.bih" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-2 text-white text-[10px] font-bold uppercase bg-neutral-900 p-4 rounded-sm border border-neutral-800 hover:border-pink-500 transition-colors">
                 <Instagram className="w-5 h-5 text-pink-500" />Instagram
               </a>
