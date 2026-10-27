@@ -411,23 +411,22 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 <span>Naruči preko Instagram DM-a</span>
               </button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-4 border-t border-neutral-200 text-[10px] sm:text-[11px] text-neutral-700">
-                <div className="flex items-center justify-center sm:justify-start gap-2 p-2.5 bg-white border border-neutral-200 text-center sm:text-left">
-                  <Truck className="w-4 h-4 text-black shrink-0 hidden sm:block" />
-                  <span>Dostava 48-72h širom BiH</span>
+              <div className="flex flex-col gap-2 pt-5 border-t border-neutral-200">
+                <div className="flex items-center justify-center gap-3 bg-[#0A0A0A] py-3.5 px-4 rounded-sm border border-neutral-800 shadow-md">
+                  <Truck className="w-5 h-5 text-[#F7E97F] shrink-0" />
+                  <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-widest text-white mt-0.5">Dostava 48-72h</span>
                 </div>
-                <div className="flex items-center justify-center sm:justify-start gap-2 p-2.5 bg-white border border-neutral-200 text-center sm:text-left">
-                  <ShieldCheck className="w-4 h-4 text-black shrink-0 hidden sm:block" />
-                  <span>Pregled paketa prije plaćanja</span>
+                <div className="flex items-center justify-center gap-3 bg-[#0A0A0A] py-3.5 px-4 rounded-sm border border-neutral-800 shadow-md">
+                  <ShieldCheck className="w-5 h-5 text-[#F7E97F] shrink-0" />
+                  <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-widest text-white mt-0.5">Plaćanje pouzećem</span>
                 </div>
-                <div className="flex items-center justify-center sm:justify-start gap-2 p-2.5 bg-white border border-neutral-200 text-center sm:text-left">
-                  <RotateCcw className="w-4 h-4 text-black shrink-0 hidden sm:block" />
-                  <span>Zamjena veličine unutar 3 dana</span>
+                <div className="flex items-center justify-center gap-3 bg-[#0A0A0A] py-3.5 px-4 rounded-sm border border-neutral-800 shadow-md">
+                  <RotateCcw className="w-5 h-5 text-[#F7E97F] shrink-0" />
+                  <span className="text-[11px] font-['Poppins'] font-bold uppercase tracking-widest text-white mt-0.5">Zamjena unutar 3 dana</span>
                 </div>
               </div>
             </div>
 
-            {/* Opis i Detalji: Materijal, boja i održavanje se prikazuju samo ako artikal NIJE iz kategorije Dodaci */}
             {(product.description || (!isAccessory && (product.material || product.color || product.careInstructions))) && (
               <div className="space-y-4 pt-4 border-t border-neutral-200 text-xs text-neutral-700 leading-relaxed">
                 {product.description && (
