@@ -26,7 +26,6 @@ export const HomePage = () => {
         
         setFeaturedProducts(activeProds.filter(p => p.featured).slice(0, 4));
         
-        // Sortiranje novih artikala po datumu dodavanja (najnoviji prvi)
         setNewDropProducts(
           activeProds
             .filter(p => p.isNew)
@@ -34,7 +33,6 @@ export const HomePage = () => {
             .slice(0, 4)
         );
 
-        // Dinamičko povlačenje slike dodatka koji je aktivan i ima zalihe na stanju
         const accessoryProd = activeProds.find(p => {
           if (p.category !== 'Dodaci (Accessories)') return false;
           const totalStock = Object.values(p.sizes || {}).reduce((sum, val) => sum + (val as number), 0);
@@ -111,22 +109,26 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {/* 2. TRAKA POVJERENJA */}
-      <section className="bg-[#0A0A0A] border-b-4 border-[#F7E97F] py-4 sm:py-6">
+      {/* 2. TRAKA POVJERENJA - ISPRAVLJENO CENTRIRANJE */}
+      <section className="bg-[#0A0A0A] border-b-4 border-[#F7E97F] py-2 sm:py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 divide-y sm:divide-y-0 sm:divide-x divide-neutral-800 text-center">
-            <div className="flex items-center justify-center gap-3 pt-4 sm:pt-0">
-              <Truck className="w-6 h-6 text-[#F7E97F]" />
-              <span className="text-white font-['Poppins'] font-bold text-xs uppercase tracking-wider">Dostava 48-72h</span>
+          <div className="flex flex-col sm:flex-row justify-center items-center divide-y sm:divide-y-0 sm:divide-x divide-neutral-800">
+            
+            <div className="flex items-center justify-start gap-4 py-4 sm:py-0 sm:px-10 w-[240px] sm:w-auto mx-auto">
+              <Truck className="w-6 h-6 text-[#F7E97F] shrink-0" />
+              <span className="text-white font-['Poppins'] font-bold text-xs uppercase tracking-wider mt-0.5">Dostava 48-72h</span>
             </div>
-            <div className="flex items-center justify-center gap-3 pt-4 sm:pt-0">
-              <ShieldCheck className="w-6 h-6 text-[#F7E97F]" />
-              <span className="text-white font-['Poppins'] font-bold text-xs uppercase tracking-wider">Plaćanje pouzećem</span>
+            
+            <div className="flex items-center justify-start gap-4 py-4 sm:py-0 sm:px-10 w-[240px] sm:w-auto mx-auto">
+              <ShieldCheck className="w-6 h-6 text-[#F7E97F] shrink-0" />
+              <span className="text-white font-['Poppins'] font-bold text-xs uppercase tracking-wider mt-0.5">Plaćanje pouzećem</span>
             </div>
-            <div className="flex items-center justify-center gap-3 pt-4 sm:pt-0">
-              <RotateCcw className="w-6 h-6 text-[#F7E97F]" />
-              <span className="text-white font-['Poppins'] font-bold text-xs uppercase tracking-wider">Zamjena unutar 3 dana</span>
+            
+            <div className="flex items-center justify-start gap-4 py-4 sm:py-0 sm:px-10 w-[240px] sm:w-auto mx-auto">
+              <RotateCcw className="w-6 h-6 text-[#F7E97F] shrink-0" />
+              <span className="text-white font-['Poppins'] font-bold text-xs uppercase tracking-wider mt-0.5">Zamjena unutar 3 dana</span>
             </div>
+
           </div>
         </div>
       </section>
@@ -153,7 +155,6 @@ export const HomePage = () => {
               </div>
             </Link>
 
-            {/* DODACI: Dinamički prikazuje sliku artikla koji je na stanju */}
             <Link href="/shop?category=Dodaci%20(Accessories)" className="relative group overflow-hidden bg-neutral-200">
               <img 
                 src={accessoryImage || "/images/category-tshirt.webp"} 
