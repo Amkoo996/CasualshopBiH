@@ -493,7 +493,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {relatedProducts.map((rel) => (
                 <Link
                   key={rel.id}
-                  href={`/proizvod/${rel.id}`}
+                  href={`/proizvod?id=${rel.id}`} // <--- ISPRAVLJENO
                   className="group bg-white border-2 border-neutral-200 p-3 flex flex-col justify-between hover:border-black transition-all"
                 >
                   <div className="aspect-4/5 w-full bg-neutral-100 overflow-hidden mb-3">
