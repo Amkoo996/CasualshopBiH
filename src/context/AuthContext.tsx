@@ -8,7 +8,8 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -19,15 +20,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function checkIsAdmin(user: User | null): boolean {
+// Potpuno nova, sigurna validacija preko Firestore baze umjesto preko klijentskih varijabli
+async function checkIsAdmin(user: User | null): Promise<boolean> {
   if (!user) return false;
-  const envUids = process.env.NEXT_PUBLIC_ADMIN_UIDS;
-  if (envUids) {
-    return envUids.split(',').map(id => id.trim()).includes(user.uid);
+  
+  try {
+    // Pokušaj čitanja dokumenta iz 'orders' kolekcije. 
+    // Prema firestore.rules, samo stvarni admini mogu čitati ovu kolekciju.
+    // Ako Firebase ne baci grešku "Permission denied", korisnik je potvrđeni admin.
+    const testDocRef = doc(db, 'orders', 'admin_verification_test');
+    await getDoc(testDocRef);
+    return true;
+  } catch (error: any) {
+    // Greška ukazuje na to da korisnik nema admin prava u bazi
+    console.error('Firebase validacija odbijena:', error.message);
+    return false;
   }
-  // ISPRAVLJENO N-2: Sada podrazumijevano vraća false. 
-  // Niko se ne može ulogovati dok se ne postavi NEXT_PUBLIC_ADMIN_UIDS.
-  return false; 
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -43,7 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
         return;
       }
-      const ok = checkIsAdmin(currentUser);
+      
+      const ok = await checkIsAdmin(currentUser);
       if (ok) {
         setUser(currentUser);
         setIsAdmin(true);
@@ -64,11 +73,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       remember ? browserLocalPersistence : browserSessionPersistence
     );
     const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
-    const ok = checkIsAdmin(cred.user);
+    
+    const ok = await checkIsAdmin(cred.user);
     if (!ok) {
       await firebaseSignOut(auth);
       throw new Error('Nemate dozvolu za pristup admin panelu.');
     }
+    
     setUser(cred.user);
     setIsAdmin(true);
   };
@@ -81,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{ user, isAdmin, loginWithEmail, signOut }}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
