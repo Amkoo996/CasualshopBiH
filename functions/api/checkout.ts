@@ -11,6 +11,33 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ];
 
+function isOriginAllowed(origin: string, requestUrl: string): boolean {
+  // 1. Ako nema Origina (same-origin interni poziv iz browsera ili PWA service workera), dozvoli
+  if (!origin) return true;
+
+  const hostOrigin = new URL(requestUrl).origin;
+  if (origin === hostOrigin) return true;
+
+  const cleanOrigin = origin.replace(/\/$/, '');
+  if (ALLOWED_ORIGINS.includes(cleanOrigin)) return true;
+
+  try {
+    const parsed = new URL(origin);
+    if (
+      parsed.hostname.endsWith('casualshop.ba') ||
+      parsed.hostname.endsWith('pages.dev') ||
+      parsed.hostname === 'localhost' ||
+      parsed.hostname === '127.0.0.1'
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
 function toFirestoreValue(val: any): any {
   if (typeof val === 'string') return { stringValue: val };
   if (typeof val === 'number') {
@@ -36,11 +63,11 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
       sa = JSON.parse(sa);
     }
   } catch (err: any) {
-    throw new Error(`FIREBASE_SERVICE_ACCOUNT nije ispravan JSON format: ${err?.message}`);
+    throw new Error(`FIREBASE_SERVICE_ACCOUNT nije ispravan JSON: ${err?.message}`);
   }
 
   if (!sa || !sa.client_email || !sa.private_key) {
-    throw new Error('Nedostaju client_email ili private_key u FIREBASE_SERVICE_ACCOUNT varijabli.');
+    throw new Error('Nedostaju client_email ili private_key u FIREBASE_SERVICE_ACCOUNT.');
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -61,7 +88,6 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
 
   const dataToSign = `${base64UrlEncode(header)}.${base64UrlEncode(payload)}`;
 
-  // Temeljito čišćenje svih formata novih redova i razmaka iz PEM ključa
   const rawKey = sa.private_key || '';
   const pemContents = rawKey
     .replace(/-----BEGIN PRIVATE KEY-----/g, '')
@@ -78,7 +104,7 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
       binaryDer[i] = binaryString.charCodeAt(i);
     }
   } catch (b64Err: any) {
-    throw new Error(`Greška pri Base64 dekodiranju privatnog ključa (atob): ${b64Err?.message}`);
+    throw new Error(`Greška pri Base64 dekodiranju ključa (atob): ${b64Err?.message}`);
   }
 
   let key: CryptoKey;
@@ -130,11 +156,13 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
 
 export const onRequestOptions = async (context: { request: Request }) => {
   const origin = context.request.headers.get('Origin') || '';
-  const isAllowed = ALLOWED_ORIGINS.includes(origin);
+  const urlObj = new URL(context.request.url);
+  const allowOrigin = isOriginAllowed(origin, context.request.url) ? (origin || urlObj.origin) : ALLOWED_ORIGINS[0];
+
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+      'Access-Control-Allow-Origin': allowOrigin,
       'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
@@ -158,9 +186,10 @@ export const onRequestGet = async () => {
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
   const { request, env } = context;
   const origin = request.headers.get('Origin') || '';
+  const urlObj = new URL(request.url);
 
-  if (!ALLOWED_ORIGINS.includes(origin)) {
-    return new Response(JSON.stringify({ error: 'Zabranjeno' }), {
+  if (!isOriginAllowed(origin, request.url)) {
+    return new Response(JSON.stringify({ error: 'Zabranjeno: Neprepoznat domen.' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -168,7 +197,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Origin': origin || urlObj.origin,
   };
 
   try {
@@ -354,7 +383,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         }),
       });
     } catch (notifyErr) {
-      console.error('Slanje notifikacije nije uspjelo:', notifyErr);
+      console.error('Notifikacija nije uspjela:', notifyErr);
     }
 
     return new Response(
