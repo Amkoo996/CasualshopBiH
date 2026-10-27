@@ -209,7 +209,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     id: 'cs-bucket-hat-signature-08',
     name: 'CS Signature Bucket SeSir "Casual Black"',
     price: 25.0,
-    category: 'Kape i SeSiri',
+    category: 'Kape i šeširi',
     color: 'Crna sa zutim detaljem',
     material: '100% cvrsti pamucni keper',
     careInstructions: 'Rucno pranje u mlakoj vodi.',
