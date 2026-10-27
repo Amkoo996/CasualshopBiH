@@ -493,7 +493,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {relatedProducts.map((rel) => (
                 <Link
                   key={rel.id}
-                  href={`/proizvod?id=${rel.id}`} // <--- ISPRAVLJENO
+                  href={`/proizvod?id=${rel.id}`}
                   className="group bg-white border-2 border-neutral-200 p-3 flex flex-col justify-between hover:border-black transition-all"
                 >
                   <div className="aspect-4/5 w-full bg-neutral-100 overflow-hidden mb-3">
@@ -569,6 +569,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 type="button"
                 onClick={() => {
                   setShowAddedModal(false);
+                  setIsCartOpen(false); // <--- DODANO ZA SIGURNOST
                   router.push('/checkout');
                 }}
                 className="w-full py-2.5 bg-[#0A0A0A] text-white font-['Poppins'] text-xs font-bold uppercase tracking-wider hover:bg-neutral-800 transition-colors cursor-pointer flex items-center justify-center gap-2"
