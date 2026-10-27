@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { X, Trash2, ArrowRight, ShoppingBag, ShieldCheck, Truck } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
@@ -19,6 +19,8 @@ const optimizeCloudinaryUrl = (url: string, width: number = 200) => {
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
   const router = useRouter();
+  const pathname = usePathname();
+  
   const {
     items,
     isCartOpen,
@@ -31,6 +33,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
     settings,
   } = useCart();
 
+  useEffect(() => {
+    setIsCartOpen(false);
+  }, [pathname, setIsCartOpen]);
+
   if (!isCartOpen) return null;
 
   const totalItemPieces = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -39,9 +45,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
   const freeShippingProgress = Math.min(100, (subtotal / freeShippingThreshold) * 100);
 
   const handleContinueShopping = () => {
-    setIsCartOpen(false); // Prvo zatvaramo korpu
+    setIsCartOpen(false);
     setTimeout(() => {
-      router.push('/shop'); // Zatim sigurno preusmjeravamo
+      router.push('/shop');
     }, 150);
   };
 
@@ -120,7 +126,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                     Dodajte artikle iz kolekcije kako biste završili kupovinu.
                   </p>
                 </div>
-                {/* OVDJE SMO POPRAVILI DUGME */}
                 <button
                   type="button"
                   onClick={handleContinueShopping}
