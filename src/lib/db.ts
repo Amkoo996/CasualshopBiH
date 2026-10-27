@@ -21,7 +21,6 @@ import {
   DEFAULT_CMS_CONTENT,
 } from '../types';
 
-// Eksport instance baze kako bi je AdminDashboard i ostale komponente mogle koristiti
 export { db };
 
 // ==========================================
@@ -103,10 +102,7 @@ export const getOrderStatus = async (orderNumber: string) => {
   }
 };
 
-// ISPRAVLJENO: Delegiranje cjelokupne kreacije narudžbe na sigurni serverski endpoint
 export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
-  // Šaljemo sve podatke na naš backend (Cloudflare funkciju) koja sada vrši
-  // validaciju cijena, skidanje zaliha, upisivanje u bazu i slanje notifikacija.
   const response = await fetch('/api/checkout', {
     method: 'POST',
     headers: {
@@ -114,7 +110,7 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
     },
     body: JSON.stringify({
       ...orderData,
-      clientTotal: orderData.total // Proslijeđujemo klijentski total za serversku provjeru
+      clientTotal: orderData.total
     }),
   });
 
@@ -124,7 +120,6 @@ export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string>
     throw new Error(result.error || 'Sistemska greška pri kreiranju narudžbe.');
   }
 
-  // Backend vraća uspjeh ukoliko su cijene i zalihe prošle validaciju
   return orderData.orderNumber;
 };
 
@@ -215,7 +210,6 @@ export const subscribeNewsletter = async (email: string): Promise<boolean> => {
   try {
     const cleanEmail = email.trim().toLowerCase();
     
-    // 1. Spremanje u Firebase Firestore bazu
     const docRef = doc(db, 'subscribers', cleanEmail);
     await setDoc(docRef, {
       email: cleanEmail,
@@ -224,7 +218,6 @@ export const subscribeNewsletter = async (email: string): Promise<boolean> => {
       consent: true,
     });
 
-    // 2. Automatsko slanje kontakta na Brevo API
     try {
       const apiKey = process.env.NEXT_PUBLIC_BREVO_API_KEY || process.env.BREVO_API_KEY;
       if (apiKey) {
