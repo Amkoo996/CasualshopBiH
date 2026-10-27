@@ -257,8 +257,8 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
         {page === 'about' && (
           <div className="space-y-8 animate-fadeIn text-neutral-800 leading-relaxed text-xs sm:text-sm">
             <div className="text-center space-y-2">
-              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-2.5 py-1">NAŠA PRIČA</span>
-              <h1 className="font-['Poppins'] text-2xl sm:text-4xl font-black uppercase tracking-tight text-black">O BRENDU CASUAL SHOP BIH</h1>
+              <span className="text-[11px] font-['Poppins'] font-black uppercase tracking-[0.25em] bg-[#0A0A0A] text-[#F7E97F] px-3 py-1 border border-black shadow-sm">O NAMA</span>
+              <h1 className="font-['Poppins'] text-3xl sm:text-5xl font-black uppercase tracking-tight text-black pt-2">NAŠA PRIČA</h1>
             </div>
 
             <div className="bg-white p-6 sm:p-10 border-2 border-neutral-200 shadow-sm space-y-6">
