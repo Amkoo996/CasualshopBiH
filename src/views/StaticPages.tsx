@@ -54,10 +54,18 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
       const telegramText = `📩 NOVI KONTAKT UPIT\n━━━━━━━━━━━━━━━━━━\n👤 Ime: ${safeName}\n📞 Tel: ${safePhone || 'Nije navedeno'}\n✉️ Email: ${safeEmail}\n━━━━━━━━━━━━━━━━━━\n💬 Poruka:\n${safeMessage}`;
 
-      await fetch('/api/notify', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      // ISPRAVLJENO: Puni origin umjesto relativnog puta
+      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+      
+      const res = await fetch(`${currentOrigin}/api/notify`, {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: telegramText, type: 'contact' }),
       });
+      
+      if (!res.ok) {
+        throw new Error('Prijavljena greška pri slanju notifikacije.');
+      }
 
       setContactSuccess(true);
       setContactForm({ name: '', email: '', phone: '', message: '' });
@@ -120,7 +128,6 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
 
               {trackingError && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" /><span>{trackingError}</span></div>}
               
-              {/* SAKRIVENI LIČNI PODACI ZBOG SIGURNOSTI */}
               {trackedOrder && (
                 <div className="p-4 bg-[#FAF9F5] border-2 border-[#F7E97F] space-y-3 animate-fadeIn text-xs">
                   <div className="flex justify-between items-center border-b border-neutral-200 pb-2">
