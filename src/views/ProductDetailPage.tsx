@@ -579,7 +579,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
               <button
                 type="button"
-                onClick={() => setShowAddedModal(false)}
+                onClick={() => {
+                  setShowAddedModal(false);
+                  router.push('/shop'); // <-- SADA VODI DIREKTNO NA KOLEKCIJU
+                }}
                 className="w-full py-2 text-neutral-500 hover:text-black text-[11px] sm:text-xs font-['Poppins'] font-bold uppercase transition-colors cursor-pointer text-center block"
               >
                 Nastavi kupovinu
