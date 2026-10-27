@@ -569,7 +569,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 type="button"
                 onClick={() => {
                   setShowAddedModal(false);
-                  setIsCartOpen(false); // <--- DODANO ZA SIGURNOST
+                  setIsCartOpen(false); 
                   router.push('/checkout');
                 }}
                 className="w-full py-2.5 bg-[#0A0A0A] text-white font-['Poppins'] text-xs font-bold uppercase tracking-wider hover:bg-neutral-800 transition-colors cursor-pointer flex items-center justify-center gap-2"
