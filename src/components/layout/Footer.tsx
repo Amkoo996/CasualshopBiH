@@ -117,8 +117,12 @@ export const Footer: React.FC = () => {
 
         </div>
 
-        <div className="pt-8 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <p>© {new Date().getFullYear()} Casual Shop BiH. Sva prava zadržana.</p>
+        <div className="pt-8 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500 text-center sm:text-left">
+          <p>
+            © {new Date().getFullYear()} Casual Shop BiH. Sva prava zadržana.
+            <span className="hidden sm:inline mx-2">|</span>
+            <span className="block sm:inline mt-1 sm:mt-0">Dizajn i razvoj: <strong className="text-neutral-400">Amko</strong></span>
+          </p>
           
           <div className="flex items-center gap-3">
             <span>Plaćanje pouzećem</span>
