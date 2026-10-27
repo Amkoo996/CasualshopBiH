@@ -353,7 +353,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         body: JSON.stringify({ writes }),
       }
     );
-    );
 
     if (!commitRes.ok) {
       const commitError = await commitRes.text();
