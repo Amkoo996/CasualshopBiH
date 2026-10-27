@@ -26,6 +26,7 @@ service cloud.firestore {
 
     match /promo_codes/{codeId} {
       allow get: if true;
+      allow list: if isAdmin();
       allow write: if isAdmin();
     }
 
