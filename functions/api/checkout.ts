@@ -11,7 +11,6 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ];
 
-// Pomoćna funkcija koja pretvara običan JS objekat u format koji zahtijeva Firestore REST API
 function toFirestoreValue(val: any): any {
   if (typeof val === 'string') return { stringValue: val };
   if (typeof val === 'number') return Number.isInteger(val) ? { integerValue: val } : { doubleValue: val };
@@ -27,7 +26,6 @@ function toFirestoreValue(val: any): any {
   return { nullValue: null };
 }
 
-// Funkcija za generisanje OAuth2 Tokena iz Firebase Service Accounta direktno u Cloudflare Workeru
 async function getFirestoreAccessToken(serviceAccountJson: string): Promise<string> {
   const sa = JSON.parse(serviceAccountJson);
   const now = Math.floor(Date.now() / 1000);
@@ -40,7 +38,8 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
     iat: now,
   };
 
-  const base64UrlEncode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=+\$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+  // ISPRAVLJENO B-5: regex /=+$/ umjesto /=+\$/ koji je izazivao greške
+  const base64UrlEncode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
   const dataToSign = `${base64UrlEncode(header)}.${base64UrlEncode(payload)}`;
 
   const pemContents = sa.private_key
@@ -58,7 +57,9 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
   );
 
   const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(dataToSign));
-  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=+\$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+  
+  // ISPRAVLJENO B-5: regex /=+$/
+  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
   const jwt = `${dataToSign}.${encodedSignature}`;
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -117,8 +118,13 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
     let calculatedSubtotal = 0;
 
-    // 1. PROVJERA CIJENA I ZALIHA U BAZI (Server-side)
+    // 1. PROVJERA CIJENA I ZALIHA U BAZI
     for (const item of items) {
+      // ISPRAVLJENO B-4: Blokiramo negativne i lažne količine
+      if (typeof item.quantity !== 'number' || item.quantity <= 0 || !Number.isInteger(item.quantity)) {
+         return new Response(JSON.stringify({ error: `Nevažeća količina za artikal: ${item.name}` }), { status: 400, headers });
+      }
+
       const res = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products/${item.id}`, { headers: authHeader });
       
       if (!res.ok) {
@@ -128,7 +134,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       const productDoc: any = await res.json();
       const realPrice = productDoc.fields?.price?.doubleValue || productDoc.fields?.price?.integerValue || 0;
       
-      // Provjera raspoloživih zaliha (ako fali, zaustavljamo proces)
       const currentStock = productDoc.fields?.sizes?.mapValue?.fields?.[item.size]?.integerValue || 0;
       if (Number(currentStock) < item.quantity) {
         return new Response(JSON.stringify({ error: `Nema dovoljno zaliha za: ${item.name} (Veličina: ${item.size})` }), { status: 400, headers });
@@ -139,14 +144,23 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
     // 2. PROVJERA PROMO KODA
     let discountPercent = 0;
+    let promoRef = '';
+    
     if (promoCode) {
       const promoRes = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/promo_codes/${promoCode.toUpperCase()}`, { headers: authHeader });
       if (promoRes.ok) {
         const promoData: any = await promoRes.json();
         const isActive = promoData.fields?.active?.booleanValue ?? true;
         const isUsed = promoData.fields?.used?.booleanValue ?? false;
-        if (isActive && !isUsed) {
+        
+        // Provjera limita
+        const promoMaxUsage = promoData.fields?.maxUsage?.integerValue || 0;
+        const promoUsageCount = promoData.fields?.usageCount?.integerValue || 0;
+        const limitReached = promoMaxUsage > 0 && promoUsageCount >= promoMaxUsage;
+
+        if (isActive && !isUsed && !limitReached) {
           discountPercent = promoData.fields?.discountPercent?.integerValue || promoData.fields?.discountPercent?.doubleValue || 0;
+          promoRef = `projects/${projectId}/databases/(default)/documents/promo_codes/${promoCode.toUpperCase()}`;
         }
       }
     }
@@ -161,7 +175,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
     const createdAt = new Date().toISOString();
     
-    // Objekat narudžbe za upis u bazu
     const fullOrderObject = {
       id: orderNumber,
       orderNumber,
@@ -177,10 +190,9 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       discountAmount,
     };
 
-    // 4. REST API COMMIT - ATOMARAN UPIS (Zapisivanje narudžbe i skidanje zaliha)
+    // 4. REST API COMMIT - ATOMARAN UPIS (Ovdje se skida količina zaliha)
     const writes: any[] = [];
 
-    // Kreiranje dokumenta u "orders"
     writes.push({
       update: {
         name: `projects/${projectId}/databases/(default)/documents/orders/${orderNumber}`,
@@ -189,7 +201,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       currentDocument: { exists: false }
     });
 
-    // Kreiranje dokumenta u "order_tracking"
     writes.push({
       update: {
         name: `projects/${projectId}/databases/(default)/documents/order_tracking/${orderNumber}`,
@@ -198,7 +209,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       currentDocument: { exists: false }
     });
 
-    // Transformacija zaliha u "products" (oduzimanje količine direktno u bazi)
     for (const item of items) {
       writes.push({
         transform: {
@@ -208,6 +218,18 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
               fieldPath: `sizes.${item.size}`,
               increment: { integerValue: -item.quantity }
             }
+          ]
+        }
+      });
+    }
+    
+    // ISPRAVLJENO B-4 (Promo potrošnja u istom commitu): Ako postoji kod, bilježimo korištenje
+    if (promoRef) {
+      writes.push({
+        transform: {
+          document: promoRef,
+          fieldTransforms: [
+            { fieldPath: 'usageCount', increment: { integerValue: 1 } }
           ]
         }
       });
@@ -226,17 +248,20 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
     // 5. SLANJE NOTIFIKACIJA PREKO /api/notify (Telegram i E-mail)
     try {
-      const baseUrl = request.url.split('/api/')[0]; // Dohvatamo root url (https://casualshop.ba)
+      const baseUrl = request.url.split('/api/')[0];
       await fetch(`${baseUrl}/api/notify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Origin': baseUrl // ISPRAVLJENO B-2: Dodan sigurni Origin da notify skripta ne odbije poziv sa 403
+        },
         body: JSON.stringify({
           type: 'order',
-          orderData: fullOrderObject
+          orderData: fullOrderObject // Direktno proslijeđeni podaci
         })
       });
     } catch (notifyErr) {
-      console.error('Slanje notifikacije nije uspjelo (narudžba je ipak kreirana):', notifyErr);
+      console.error('Slanje notifikacije nije uspjelo:', notifyErr);
     }
 
     return new Response(JSON.stringify({ 
