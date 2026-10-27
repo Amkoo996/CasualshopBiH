@@ -3,8 +3,8 @@ export type Category =
   | 'Duksevi i hoodice'
   | 'Jakne'
   | 'Pantalone i trenerke'
-  | 'Sorcevi'
-  | 'Kape i SeSiri'
+  | 'Šorcevi'
+  | 'Kape i šeširi'
   | 'Dodaci (Accessories)'
   | 'Rasprodano';
 
@@ -13,8 +13,8 @@ export const CATEGORIES: Category[] = [
   'Duksevi i hoodice',
   'Jakne',
   'Pantalone i trenerke',
-  'Sorcevi',
-  'Kape i SeSiri',
+  'Šorcevi',
+  'Kape i šeširi',
   'Dodaci (Accessories)',
   'Rasprodano',
 ];
@@ -81,8 +81,8 @@ export interface Order {
   promoCode?: string;
   discountAmount?: number;
   createdAt: string;
-  trackingNumber?: string; // Broj poSiljke brze poSte (opcionalno)
-  courierName?: string;    // Naziv kurirske sluzbe (npr. X Express)
+  trackingNumber?: string;
+  courierName?: string;
 }
 
 export interface NewsletterSubscriber {
@@ -116,23 +116,24 @@ export interface StoreSettings {
   bgImage?: string;
 }
 
+// ISPRAVLJENO PREMA QA: Dostava 12 KM, ispravljen broj telefona i tekst vodiča za veličine
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   shippingFee: 12.0,
   freeShippingThreshold: 100.0,
-  phone: '+387 61 000 000',
+  phone: '+387 61 909 700',
   email: 'info@casualshop.ba',
   instagramUrl: 'https://www.instagram.com/casualshop.bih',
-  whatsappNumber: '+387 61 000 000',
-  topBarText: 'Placanje pouzecem • Brza poSta 12 KM • Moguce otvaranje paketa prije preuzimanja',
-  sizeGuideText: 'Sve naSe majice i duksevi imaju ugodan streetwear kroj. Dimenzije su izrazene u centimetrima (cm): S (Sirina 54cm, Duzina 70cm), M (Sirina 57cm, Duzina 73cm), L (Sirina 60cm, Duzina 76cm), XL (Sirina 63cm, Duzina 79cm), XXL (Sirina 66cm, Duzina 82cm). Kape i dodaci su u univerzalnoj velicini (One size).',
+  whatsappNumber: '+387 61 909 700',
+  topBarText: 'Plaćanje pouzećem • Brza pošta 12 KM • Moguće otvaranje paketa prije preuzimanja',
+  sizeGuideText: 'Sve naše majice i duksevi imaju ugodan streetwear kroj. Dimenzije su izražene u centimetrima (cm): S (Širina 54cm, Dužina 70cm), M (Širina 57cm, Dužina 73cm), L (Širina 60cm, Dužina 76cm), XL (Širina 63cm, Dužina 79cm), XXL (Širina 66cm, Dužina 82cm). Kape i dodaci su u univerzalnoj veličini (One size).',
   sellerName: '',
   sellerAddress: '',
   sellerIdNumber: '',
   telegramChatId: (typeof process !== 'undefined' && process.env ? (process.env['NEXT_PUBLIC_TELEGRAM_CHAT_ID'] || process.env['VITE_TELEGRAM_CHAT_ID'] || '') : ''),  hiddenCategories: [
     'Duksevi i hoodice',
     'Pantalone i trenerke',
-    'Sorcevi',
-    'Kape i SeSiri',
+    'Šorcevi',
+    'Kape i šeširi',
   ],
   bgColor: '#F4F2EC',
   textColor: '#111111',
@@ -144,7 +145,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   bgImage: '',
 };
 
-/* --- NOVI CMS TIPOVI ZA UPRAVLJANJE SADRzAJEM SAJTA --- */
+/* --- NOVI CMS TIPOVI ZA UPRAVLJANJE SADRŽAJEM SAJTA --- */
 export interface HomeCMSContent {
   topBar: {
     enabled: boolean;
@@ -176,24 +177,24 @@ export const DEFAULT_CMS_CONTENT: HomeCMSContent = {
   topBar: {
     enabled: true,
     tagText: 'EKSKLUZIVNO',
-    promoText: 'POPUST ZA PRVIH 100 NARUDzBI: 10% POPUSTA (Kod: FIRST100)',
+    promoText: 'POPUST ZA PRVIH 100 NARUDŽBI: 10% POPUSTA (Kod: FIRST100)',
     showTimer: true,
     targetDate: '2026-11-01T12:00:00+02:00',
   },
   hero: {
     titleLine1: 'CASUAL.',
     titleLine2: 'SVAKI DAN.',
-    subtitle: 'Udobna odjeca za svaki dan.',
-    description: 'Urbani krojevi, kvalitetan ceSljani pamuk i autenticni dizajn inspirisan ulicom. Placanje pouzecem gotovinom prilikom preuzimanja ili licno u Sarajevu.',
+    subtitle: 'Udobna odjeća za svaki dan.',
+    description: 'Urbani krojevi, kvalitetan češljani pamuk i autentični dizajn inspirisan ulicom. Plaćanje pouzećem gotovinom prilikom preuzimanja ili lično u Sarajevu.',
     videoUrl: '/hero-video.mp4',
     ctaPrimaryText: 'Pogledaj kolekciju',
     ctaSecondaryText: 'Instagram @casualshop.bih',
   },
   benefits: {
     shippingTitle: 'Dostava 12 KM • Besplatna preko 100 KM',
-    shippingSub: 'Brzom poStom (48-72h) ili licno preuzimanje u Sarajevu (0 KM)',
-    paymentTitle: '100% Placanje pouzecem',
-    paymentSub: 'Placanje gotovinom kuriru pri preuzimanju paketa.',
+    shippingSub: 'Brzom poštom (48-72h) ili lično preuzimanje u Sarajevu (0 KM)',
+    paymentTitle: '100% Plaćanje pouzećem',
+    paymentSub: 'Plaćanje gotovinom kuriru pri preuzimanju paketa.',
     inspectionTitle: 'Pregled paketa pri dostavi',
     inspectionSub: 'Obavezno otvaranje i provjera ispravnosti paketa prije preuzimanja.',
   },
