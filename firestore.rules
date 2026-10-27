@@ -16,12 +16,13 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow read, write: if isAdmin();
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
     }
 
     match /order_tracking/{orderNumber} {
-      allow get: if true;
-      allow list, write: if isAdmin();
+      allow get, create: if true;
+      allow list, update, delete: if isAdmin();
     }
 
     match /promo_codes/{codeId} {
