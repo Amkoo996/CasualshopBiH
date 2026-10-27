@@ -331,7 +331,7 @@ export const CheckoutPage: React.FC<{
 
           <button
             onClick={onNavigateToPage ? () => onNavigateToPage('home') : () => window.location.href = '/'}
-            className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-black block text-center cursor-pointer"
+            className="w-full py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-wider transition-colors border-2 border-black"
           >
             Nazad na početnu stranicu
           </button>
@@ -472,7 +472,7 @@ export const CheckoutPage: React.FC<{
                       required
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      placeholder="npr. Ahmed"
+                      placeholder="npr. Amar"
                       className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.firstName ? 'border-red-500' : 'border-neutral-300'}`}
                     />
                     {errors.firstName && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.firstName}</p>}
@@ -490,7 +490,7 @@ export const CheckoutPage: React.FC<{
                       required
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      placeholder="npr. Pupalović"
+                      placeholder="npr. Hadžić"
                       className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.lastName ? 'border-red-500' : 'border-neutral-300'}`}
                     />
                     {errors.lastName && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.lastName}</p>}
@@ -794,7 +794,7 @@ export const CheckoutPage: React.FC<{
                 type="submit"
                 form="checkout-form"
                 disabled={isSubmitting}
-                className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 border-2 border-[#0A0A0A] shadow-xl cursor-pointer disabled:opacity-50"
+                className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
               >
                 <Lock className="w-4 h-4" />
                 <span>{isSubmitting ? 'OBRADA NARUDŽBE...' : 'POTVRDI NARUDŽBU'}</span>
