@@ -346,12 +346,13 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     }
 
     const commitRes = await fetch(
-      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default):commit`,
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:commit`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ writes }),
       }
+    );
     );
 
     if (!commitRes.ok) {
