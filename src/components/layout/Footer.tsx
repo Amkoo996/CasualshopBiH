@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Truck, ShieldCheck, Instagram, Mail, MapPin, Lock, CheckCircle2 } from 'lucide-react';
+import { Truck, ShieldCheck, Instagram, Mail, MapPin, CheckCircle2 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
 export const Footer: React.FC = () => {
@@ -35,7 +35,6 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
           
           <div className="space-y-4">
-            {/* ISPRAVLJEN LOGO - Isto kao u Navbaru */}
             <Link href="/" className="flex items-center gap-3.5 group">
               <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
                 <img 
@@ -105,7 +104,6 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* ISPRAVLJENO POUZDANA DOSTAVA - h-fit osigurava da border ne bude predug */}
           <div className="space-y-3 bg-neutral-900/40 border border-neutral-800 p-4 rounded-xs h-fit">
             <h4 className="font-['Poppins'] text-xs font-black uppercase tracking-[0.15em] text-[#F7E97F]">
               POUZDANA DOSTAVA
@@ -127,14 +125,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-3">
             <span>Plaćanje pouzećem</span>
             <span className="text-neutral-700">•</span>
-            
-            <Link
-              href="/admin"
-              className="p-1 text-neutral-600 hover:text-[#F7E97F] transition-colors cursor-pointer"
-              title="Admin Panel"
-            >
-              <Lock className="w-3.5 h-3.5" />
-            </Link>
+            <span className="text-neutral-600">Sigurna kupovina</span>
           </div>
         </div>
 
