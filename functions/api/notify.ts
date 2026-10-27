@@ -5,6 +5,7 @@ interface Env {
   EMAILJS_SERVICE_ID?: string;
   EMAILJS_TEMPLATE_ID?: string;
   EMAILJS_AB_TEMPLATE_ID?: string;
+  EMAILJS_AB_TEMPLATE_?: string;
   EMAILJS_PUBLIC_KEY?: string;
   EMAILJS_PRIVATE_KEY?: string;
   FIREBASE_API_KEY?: string;
@@ -20,65 +21,94 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ];
 
-function isOriginAllowed(origin: string, requestUrl: string): boolean {
-  if (!origin) return true;
+// Rješava QA H-2: Stroga provjera točne domene bez nesigurnog endsWith propusta
+function isOriginAllowed(request: Request): boolean {
+  const origin = request.headers.get('Origin') || '';
+  const referer = request.headers.get('Referer') || '';
 
-  const hostOrigin = new URL(requestUrl).origin;
-  if (origin === hostOrigin) return true;
-
-  const cleanOrigin = origin.replace(/\/$/, '');
-  if (ALLOWED_ORIGINS.includes(cleanOrigin)) return true;
-
-  try {
-    const parsed = new URL(origin);
-    if (
-      parsed.hostname.endsWith('casualshop.ba') ||
-      parsed.hostname.endsWith('pages.dev') ||
-      parsed.hostname === 'localhost' ||
-      parsed.hostname === '127.0.0.1'
-    ) {
-      return true;
-    }
-  } catch {
+  const checkUrl = (urlStr: string): boolean => {
+    try {
+      const parsed = new URL(urlStr);
+      const host = parsed.hostname;
+      if (
+        host === 'casualshop.ba' ||
+        host === 'www.casualshop.ba' ||
+        host === 'casualshopbih.pages.dev' ||
+        host.endsWith('.casualshopbih.pages.dev') ||
+        host === 'localhost' ||
+        host === '127.0.0.1'
+      ) {
+        return true;
+      }
+    } catch {}
     return false;
-  }
+  };
+
+  if (origin && checkUrl(origin)) return true;
+  if (!origin && referer && checkUrl(referer)) return true;
 
   return false;
 }
 
 async function checkAdminStatus(request: Request, env: Env): Promise<{ ok: boolean; message?: string }> {
   const auth = request.headers.get('Authorization') || '';
-  const idToken = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  const idToken = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
   
   if (!idToken) {
+    console.error('checkAdminStatus: Nedostaje Authorization token');
     return { ok: false, message: 'Nije autorizovano.' };
   }
   
-  if (!env.FIREBASE_API_KEY) {
-    console.error('Nedostaje FIREBASE_API_KEY');
+  const apiKey = env.FIREBASE_API_KEY?.trim();
+  if (!apiKey) {
+    console.error('checkAdminStatus: Nedostaje FIREBASE_API_KEY u env');
     return { ok: false, message: 'Nije autorizovano.' };
   }
   
-  const res = await fetch(
-    'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + env.FIREBASE_API_KEY,
-    { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ idToken }) 
+  let uid = '';
+  try {
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
+      { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ idToken }) 
+      }
+    );
+    
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Firebase odbio token:', res.status, errText);
+      return { ok: false, message: 'Nije autorizovano.' };
     }
-  );
-  
-  if (!res.ok) {
-    console.error('Firebase odbio token:', res.status);
+    
+    const data: any = await res.json();
+    uid = data?.users?.[0]?.localId || '';
+  } catch (netErr: any) {
+    console.error('Greška pri provjeri tokena sa Google Identity:', netErr);
     return { ok: false, message: 'Nije autorizovano.' };
   }
   
-  const data: any = await res.json();
-  const uid = data?.users?.[0]?.localId;
-  const admins = (env.ADMIN_UIDS || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (!uid) {
+    console.error('checkAdminStatus: UID nije pronađen u odgovoru');
+    return { ok: false, message: 'Nije autorizovano.' };
+  }
   
-  if (admins.length === 0 || !uid || !admins.includes(uid)) {
-    console.error('UID nije u ADMIN_UIDS listi');
+  // Točni admin UID-ovi iz vaših pravila baze kao trajni fallback
+  const KNOWN_ADMIN_UIDS = [
+    'Jt35lHyxq1feiEyi1exOKRA9xJl2',
+    'NSgdcTOFwXRW3nVfHa9mvgfXsDC3',
+  ];
+  
+  const envAdmins = (env.ADMIN_UIDS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+    
+  const validAdmins = Array.from(new Set([...envAdmins, ...KNOWN_ADMIN_UIDS]));
+  
+  if (!validAdmins.includes(uid)) {
+    console.error(`checkAdminStatus: UID "${uid}" nije u listi administratora`);
     return { ok: false, message: 'Nije autorizovano.' };
   }
   
@@ -87,8 +117,8 @@ async function checkAdminStatus(request: Request, env: Env): Promise<{ ok: boole
 
 export const onRequestOptions = async (context: { request: Request }) => {
   const origin = context.request.headers.get('Origin') || '';
-  const urlObj = new URL(context.request.url);
-  const allowOrigin = isOriginAllowed(origin, context.request.url) ? (origin || urlObj.origin) : ALLOWED_ORIGINS[0];
+  const isAllowed = isOriginAllowed(context.request);
+  const allowOrigin = isAllowed ? (origin || ALLOWED_ORIGINS[0]) : ALLOWED_ORIGINS[0];
 
   return new Response(null, {
     status: 204,
@@ -103,9 +133,8 @@ export const onRequestOptions = async (context: { request: Request }) => {
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
   const { request, env } = context;
   const origin = request.headers.get('Origin') || '';
-  const urlObj = new URL(request.url);
 
-  if (!isOriginAllowed(origin, request.url)) {
+  if (!isOriginAllowed(request)) {
     return new Response(JSON.stringify({ error: 'Zabranjeno: Neprepoznat domen.' }), { 
       status: 403,
       headers: { 'Content-Type': 'application/json' }
@@ -114,7 +143,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': origin || urlObj.origin,
+    'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
   };
 
   try {
@@ -130,7 +159,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         return new Response(JSON.stringify({ success: false, error: 'Sistemska greška' }), { status: 500, headers });
       }
 
-      // Validacija teksta da spriječimo zloupotrebu botova
       if (!text || typeof text !== 'string' || text.trim().length < 5 || text.length > 2000) {
          return new Response(JSON.stringify({ error: 'Nevažeći tekst poruke.' }), { status: 400, headers });
       }
@@ -145,13 +173,12 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // 2. NARUDŽBE - PROVJERA BAZE (Spriječavanje lažnih notifikacija)
+    // 2. NARUDŽBE - PROVJERA BAZE
     if (type === 'order' && orderData) {
       const botToken = env.TELEGRAM_BOT_TOKEN;
       const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
       const projectId = env.FIREBASE_PROJECT_ID;
 
-      // Ako je podešen Project ID, server će provjeriti da li narudžba ZAISTA postoji u bazi
       if (projectId && orderData.orderNumber) {
         const orderRes = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/orders/${orderData.orderNumber}`);
         if (!orderRes.ok) {
@@ -206,7 +233,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       return new Response(JSON.stringify({ success: true }), { status: 200, headers });
     }
 
-    // 3. NAPUŠTENE KORPE (Već zaštićeno sa checkAdminStatus)
+    // 3. NAPUŠTENE KORPE
     if (type === 'abandoned') {
       const adminCheck = await checkAdminStatus(request, env);
       if (!adminCheck.ok) {
@@ -214,10 +241,11 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       }
 
       const serviceId = env.EMAILJS_SERVICE_ID;
-      const templateId = env.EMAILJS_AB_TEMPLATE_ID; 
+      const templateId = env.EMAILJS_AB_TEMPLATE_ID || env.EMAILJS_AB_TEMPLATE_ || env.EMAILJS_TEMPLATE_ID; 
       const publicKey = env.EMAILJS_PUBLIC_KEY;
 
       if (!serviceId || !templateId || !publicKey || !cartData?.email) {
+        console.error('Nedostaju EmailJS konfiguracijski podaci za napuštenu korpu');
         return new Response(JSON.stringify({ error: 'Sistemska greška' }), { status: 400, headers });
       }
 
@@ -257,6 +285,8 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       });
 
       if (!emailRes.ok) {
+        const emailErr = await emailRes.text();
+        console.error('EmailJS greška:', emailRes.status, emailErr);
         return new Response(JSON.stringify({ error: 'Sistemska greška' }), { status: emailRes.status, headers });
       }
 
