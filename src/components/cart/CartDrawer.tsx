@@ -39,8 +39,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
   const freeShippingProgress = Math.min(100, (subtotal / freeShippingThreshold) * 100);
 
   const handleContinueShopping = () => {
-    setIsCartOpen(false);
-    router.push('/shop');
+    setIsCartOpen(false); // Prvo zatvaramo korpu
+    setTimeout(() => {
+      router.push('/shop'); // Zatim sigurno preusmjeravamo
+    }, 150);
   };
 
   const handleProceedToCheckout = () => {
@@ -61,7 +63,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-0 sm:pl-10">
         <div className="w-screen max-w-md bg-white border-l-2 border-neutral-300 shadow-2xl flex flex-col justify-between">
           
-          {/* Header korpe */}
           <div className="p-4 sm:p-6 border-b-2 border-neutral-200 bg-[#0A0A0A] text-white space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -75,7 +76,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                 onClick={() => setIsCartOpen(false)}
                 className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                 title="Zatvori korpu"
-                aria-label="Zatvori korpu"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -106,7 +106,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
             )}
           </div>
 
-          {/* Lista artikala */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             {items.length === 0 ? (
               <div className="text-center py-16 space-y-4">
@@ -121,10 +120,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                     Dodajte artikle iz kolekcije kako biste završili kupovinu.
                   </p>
                 </div>
+                {/* OVDJE SMO POPRAVILI DUGME */}
                 <button
                   type="button"
                   onClick={handleContinueShopping}
-                  className="px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer border border-black"
+                  className="px-6 py-3 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer border border-black z-50 relative"
                 >
                   Nastavi kupovinu →
                 </button>
@@ -152,8 +152,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                             type="button"
                             onClick={() => removeFromCart(item.id, item.size)}
                             className="text-neutral-400 hover:text-red-600 p-0.5 transition-colors cursor-pointer shrink-0"
-                            title="Ukloni artikal"
-                            aria-label={`Ukloni ${item.name} iz korpe`}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -172,7 +170,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                             type="button"
                             onClick={() => updateQuantity(item.id, item.size, item.quantity - 1)}
                             className="px-2 py-0.5 font-bold hover:bg-neutral-100 text-xs cursor-pointer"
-                            aria-label="Smanji količinu"
                           >
                             -
                           </button>
@@ -184,7 +181,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
                             onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
                             disabled={item.quantity >= (item.maxStock || 99)}
                             className="px-2 py-0.5 font-bold hover:bg-neutral-100 text-xs disabled:opacity-30 cursor-pointer"
-                            aria-label="Povećaj količinu"
                           >
                             +
                           </button>
@@ -201,7 +197,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
             )}
           </div>
 
-          {/* Footer korpe */}
           {items.length > 0 && (
             <div className="p-4 sm:p-6 border-t-2 border-neutral-200 bg-[#F4F2EC] space-y-4">
               <div className="space-y-1.5 text-xs">
