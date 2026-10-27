@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { X, Trash2, ArrowRight, ShoppingBag, ShieldCheck, Truck } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
@@ -19,6 +19,8 @@ const optimizeCloudinaryUrl = (url: string, width: number = 200) => {
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
   const router = useRouter();
+  const pathname = usePathname();
+  
   const {
     items,
     isCartOpen,
@@ -31,29 +33,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
     settings,
   } = useCart();
 
-  // PWA & WEB FIX: Kontrola "Back" dugmeta i sprječavanje zaglavljivanja korpe
+  // Sigurno gašenje korpe prilikom promjene stranice (bez history.back konflikta)
   useEffect(() => {
-    if (!isCartOpen) return;
-
-    // Kada se korpa otvori, dodajemo 'dummy' state u historiju preglednika
-    window.history.pushState({ drawer: 'cart' }, '');
-
-    const handlePopState = () => {
-      // Ako korisnik pritisne fizičko "Back" dugme na mobitelu
-      setIsCartOpen(false);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      // Ako je korpa zatvorena na 'X' dugme ili overlay, brišemo dummy state 
-      // kako ne bismo poremetili historiju stranica prilikom vraćanja
-      if (window.history.state?.drawer === 'cart') {
-        window.history.back();
-      }
-    };
-  }, [isCartOpen, setIsCartOpen]);
+    setIsCartOpen(false);
+  }, [pathname, setIsCartOpen]);
 
   if (!isCartOpen) return null;
 
