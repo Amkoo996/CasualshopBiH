@@ -210,6 +210,7 @@ export const subscribeNewsletter = async (email: string): Promise<boolean> => {
   try {
     const cleanEmail = email.trim().toLowerCase();
     
+    // Zapisujemo u Firestore radi evidencije u admin panelu
     const docRef = doc(db, 'subscribers', cleanEmail);
     await setDoc(docRef, {
       email: cleanEmail,
@@ -218,24 +219,9 @@ export const subscribeNewsletter = async (email: string): Promise<boolean> => {
       consent: true,
     });
 
-    try {
-      const apiKey = process.env.NEXT_PUBLIC_BREVO_API_KEY || process.env.BREVO_API_KEY;
-      if (apiKey) {
-        await fetch('https://api.brevo.com/v3/contacts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'api-key': apiKey,
-          },
-          body: JSON.stringify({
-            email: cleanEmail,
-            updateEnabled: true,
-          }),
-        });
-      }
-    } catch (brevoErr) {
-      console.error('Greška pri slanju na Brevo API:', brevoErr);
-    }
+    // H-5 ISPRAVKA: Uklonjen javni NEXT_PUBLIC_BREVO_API_KEY.
+    // Više ne šaljemo direktan Brevo zahtjev odavde (iz klijenta) jer to ugrožava API ključ.
+    // Aplikacija sada upravlja Brevo slanjem isključivo i potpuno preko /api/subscribe backend rute.
 
     return true;
   } catch (error) {
