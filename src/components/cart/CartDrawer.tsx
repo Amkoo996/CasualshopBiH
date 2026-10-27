@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { X, Trash2, ArrowRight, ShoppingBag, ShieldCheck, Truck } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
@@ -19,8 +19,6 @@ const optimizeCloudinaryUrl = (url: string, width: number = 200) => {
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
   const router = useRouter();
-  const pathname = usePathname();
-  
   const {
     items,
     isCartOpen,
@@ -33,9 +31,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
     settings,
   } = useCart();
 
+  // PWA & WEB FIX: Kontrola "Back" dugmeta i sprječavanje zaglavljivanja korpe
   useEffect(() => {
-    setIsCartOpen(false);
-  }, [pathname, setIsCartOpen]);
+    if (!isCartOpen) return;
+
+    // Kada se korpa otvori, dodajemo 'dummy' state u historiju preglednika
+    window.history.pushState({ drawer: 'cart' }, '');
+
+    const handlePopState = () => {
+      // Ako korisnik pritisne fizičko "Back" dugme na mobitelu
+      setIsCartOpen(false);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // Ako je korpa zatvorena na 'X' dugme ili overlay, brišemo dummy state 
+      // kako ne bismo poremetili historiju stranica prilikom vraćanja
+      if (window.history.state?.drawer === 'cart') {
+        window.history.back();
+      }
+    };
+  }, [isCartOpen, setIsCartOpen]);
 
   if (!isCartOpen) return null;
 
@@ -67,7 +85,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onCheckout }) => {
       />
 
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-0 sm:pl-10">
-        <div className="w-screen max-w-md bg-white border-l-2 border-neutral-300 shadow-2xl flex flex-col justify-between">
+        <div className="w-screen max-w-md bg-white border-l-2 border-neutral-300 shadow-2xl flex flex-col justify-between relative z-10">
           
           <div className="p-4 sm:p-6 border-b-2 border-neutral-200 bg-[#0A0A0A] text-white space-y-3">
             <div className="flex items-center justify-between">
