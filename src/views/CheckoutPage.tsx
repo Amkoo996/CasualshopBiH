@@ -47,7 +47,6 @@ export const CheckoutPage: React.FC<{
     settings 
   } = useCart();
 
-  // ISPRAVLJENO P1-3: Nasumični ID za napuštenu korpu umjesto predvidljivog (telefona)
   const cartSessionIdRef = useRef(`cart-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
 
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
@@ -67,7 +66,6 @@ export const CheckoutPage: React.FC<{
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState('');
 
-  // ISPRAVLJENO P1-3: Dodan state za pristanak na obradu podataka
   const [privacyConsent, setPrivacyConsent] = useState(false);
 
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -86,7 +84,6 @@ export const CheckoutPage: React.FC<{
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ISPRAVLJENO P1-3: Korpa se snima tek AKO je korisnik dao explicitan pristanak (privacyConsent)
   useEffect(() => {
     if (items.length === 0 || completedOrder || !privacyConsent) return;
 
@@ -112,7 +109,7 @@ export const CheckoutPage: React.FC<{
             status: 'in_checkout'
           }, { merge: true });
         } catch (err) {
-          console.warn('Silent fail: Abandoned cart sync failed.');
+          console.warn('Napuštena korpa nije sinhronizovana.');
         }
       }, 2000);
     }
@@ -245,14 +242,13 @@ export const CheckoutPage: React.FC<{
       const createdOrderId = await createOrder(orderPayload);
       const fullOrderRecord: Order = { ...orderPayload, id: createdOrderId };
 
-      // Oznaka da je napuštena korpa konvertovana u narudžbu
       try {
         await setDoc(doc(db, 'abandoned_carts', cartSessionIdRef.current), {
           status: 'converted',
           updatedAt: new Date().toISOString()
         }, { merge: true });
       } catch (err) {
-        console.warn('Silent fail: Failed to mark abandoned cart as converted.');
+        console.warn('Oznaka konverzije korpe nije uspjela.');
       }
 
       if (appliedPromo) {
@@ -726,7 +722,6 @@ export const CheckoutPage: React.FC<{
                 ))}
               </div>
 
-              {/* Kupon kod */}
               <form onSubmit={handleApplyPromo} className="pt-2 border-t border-neutral-200">
                 <label htmlFor="chk-promoCodeInput" className="block text-[11px] font-['Poppins'] font-bold uppercase mb-1">
                   Imate li promo kod za popust?
@@ -763,7 +758,6 @@ export const CheckoutPage: React.FC<{
                 )}
               </form>
 
-              {/* Cijene */}
               <div className="space-y-2 pt-3 border-t border-neutral-200 text-xs">
                 <div className="flex justify-between text-neutral-600">
                   <span>Iznos artikala:</span>
@@ -796,7 +790,6 @@ export const CheckoutPage: React.FC<{
                 </div>
               </div>
 
-              {/* Potvrda narudžbe */}
               <button
                 type="submit"
                 form="checkout-form"
