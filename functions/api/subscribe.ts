@@ -1,18 +1,16 @@
 const ALLOWED_ORIGINS = [
   'https://casualshopbih.pages.dev',
   'https://casualshop.ba',
-  'https://www.casualshop.ba', // ISPRAVLJENO: Dodana www poddomena
+  'https://www.casualshop.ba',
   'http://localhost:3000',
 ];
 
 export const onRequestOptions = async (context: { request: Request }) => {
   const origin = context.request.headers.get('Origin') || '';
-  const isAllowed = ALLOWED_ORIGINS.includes(origin);
-
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+      'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
@@ -26,35 +24,20 @@ export const onRequestPost = async (context: {
     BREVO_LIST_ID?: string;
   };
 }) => {
+  const { request, env } = context;
+  const origin = request.headers.get('Origin') || '';
+
+  const responseHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
+  };
+
   try {
-    const { request, env } = context;
-
-    const origin = request.headers.get('Origin') || '';
-    const referer = request.headers.get('Referer') || '';
-
-    const isValidOrigin = ALLOWED_ORIGINS.some(
-      (d) => origin === d || origin === `${d}/` || referer.startsWith(`${d}/`) || referer === d
-    );
-
-    if (!isValidOrigin) {
-      return new Response(JSON.stringify({ error: 'Zabranjeno' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const responseHeaders = {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
-    };
-
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
     
-    // ISPRAVLJENO: Uklonjen backslash ispred znaka \$, sada ispravno označava kraj stringa
-    const isValidEmail = !!email && email.length <= 150 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
-
-    if (!isValidEmail) {
+    // Pojednostavljena provjera e-maila koja ne obara Cloudflare Worker
+    if (!email || !email.includes('@') || !email.includes('.')) {
       return new Response(
         JSON.stringify({ error: 'Neispravna email adresa.' }),
         { status: 400, headers: responseHeaders }
@@ -90,15 +73,8 @@ export const onRequestPost = async (context: {
 
     const responseText = await res.text();
 
-    if (res.ok || res.status === 201 || res.status === 204) {
+    if (res.ok || res.status === 201 || res.status === 204 || responseText.includes('duplicate_parameter') || responseText.includes('already exists')) {
       return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: responseHeaders,
-      });
-    }
-
-    if (responseText.includes('duplicate_parameter') || responseText.includes('already exists')) {
-      return new Response(JSON.stringify({ success: true, message: 'Korisnik je već prijavljen.' }), {
         status: 200,
         headers: responseHeaders,
       });
@@ -114,7 +90,7 @@ export const onRequestPost = async (context: {
     console.error('Sistemska greška u Brevo Workeru:', err);
     return new Response(JSON.stringify({ error: 'Greška na serveru.' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: responseHeaders,
     });
   }
 };
