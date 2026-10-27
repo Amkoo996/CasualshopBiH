@@ -13,7 +13,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ];
 
-// Generisanje Firestore Access Tokena (isto kao kod narudžbi)
+// Funkcija za Firebase token ostaje ista
 async function getFirestoreAccessToken(serviceAccountJson: string): Promise<string> {
   let sa: any;
   try {
@@ -37,13 +37,7 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
     btoa(JSON.stringify(obj)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
 
   const dataToSign = `${base64UrlEncode(header)}.${base64UrlEncode(payload)}`;
-
-  const pemContents = (sa.private_key || '')
-    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
-    .replace(/-----END PRIVATE KEY-----/g, '')
-    .replace(/\\r/g, '')
-    .replace(/\\n/g, '')
-    .replace(/[\r\n\s]/g, '');
+  const pemContents = (sa.private_key || '').replace(/-----BEGIN PRIVATE KEY-----/g, '').replace(/-----END PRIVATE KEY-----/g, '').replace(/\\r/g, '').replace(/\\n/g, '').replace(/[\r\n\s]/g, '');
 
   let binaryDer = new Uint8Array(0);
   try {
@@ -52,10 +46,7 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
     for (let i = 0; i < binaryString.length; i++) binaryDer[i] = binaryString.charCodeAt(i);
   } catch {}
 
-  const key = await crypto.subtle.importKey(
-    'pkcs8', binaryDer, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
-  );
-
+  const key = await crypto.subtle.importKey('pkcs8', binaryDer, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
   const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(dataToSign));
   
   let binarySig = '';
@@ -78,43 +69,22 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
 function isOriginAllowed(request: Request): boolean {
   const origin = request.headers.get('Origin') || '';
   const referer = request.headers.get('Referer') || '';
-
   const checkUrl = (urlStr: string): boolean => {
     try {
-      const parsed = new URL(urlStr);
-      const host = parsed.hostname;
-      if (
-        host === 'casualshop.ba' ||
-        host === 'www.casualshop.ba' ||
-        host === 'casualshopbih.pages.dev' ||
-        host.endsWith('.casualshopbih.pages.dev') ||
-        host === 'localhost' ||
-        host === '127.0.0.1'
-      ) {
-        return true;
-      }
+      const host = new URL(urlStr).hostname;
+      return ['casualshop.ba', 'www.casualshop.ba', 'casualshopbih.pages.dev', 'localhost', '127.0.0.1'].includes(host) || host.endsWith('.casualshopbih.pages.dev');
     } catch {}
     return false;
   };
-
-  if (origin && checkUrl(origin)) return true;
-  if (!origin && referer && checkUrl(referer)) return true;
-
-  return false;
+  return (origin && checkUrl(origin)) || (!origin && referer && checkUrl(referer)) || false;
 }
 
 export const onRequestOptions = async (context: { request: Request }) => {
   const origin = context.request.headers.get('Origin') || '';
-  const isAllowed = isOriginAllowed(context.request);
-  const allowOrigin = isAllowed ? (origin || ALLOWED_ORIGINS[0]) : ALLOWED_ORIGINS[0];
-
+  const allowOrigin = isOriginAllowed(context.request) ? (origin || ALLOWED_ORIGINS[0]) : ALLOWED_ORIGINS[0];
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': allowOrigin,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: { 'Access-Control-Allow-Origin': allowOrigin, 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' },
   });
 };
 
@@ -123,37 +93,27 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   const origin = request.headers.get('Origin') || '';
 
   if (!isOriginAllowed(request)) {
-    return new Response(JSON.stringify({ error: 'Zabranjeno: Neprepoznat domen.' }), { 
-      status: 403,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return new Response(JSON.stringify({ error: 'Zabranjeno.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
-  const responseHeaders = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0],
-  };
+  const responseHeaders = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin || ALLOWED_ORIGINS[0] };
 
   try {
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = body.email?.trim().toLowerCase();
     
-    if (!email || !email.includes('@') || !email.includes('.')) {
-      return new Response(
-        JSON.stringify({ error: 'Neispravna email adresa.' }),
-        { status: 400, headers: responseHeaders }
-      );
+    if (!email || !email.includes('@')) {
+      return new Response(JSON.stringify({ error: 'Neispravna email adresa.' }), { status: 400, headers: responseHeaders });
     }
 
     const projectId = env.FIREBASE_PROJECT_ID;
     const sa = env.FIREBASE_SERVICE_ACCOUNT;
     
-    // 1. Upis u Firebase bazu (Da bi se prikazalo u Admin -> Newsletter)
+    // 1. Firebase Upis
     if (projectId && sa) {
       try {
         const accessToken = await getFirestoreAccessToken(sa);
         const isoDate = new Date().toISOString();
-        
         const firestoreBody = {
           fields: {
             email: { stringValue: email },
@@ -162,29 +122,28 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
             consent: { booleanValue: true }
           }
         };
-
-        await fetch(
-          `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/subscribers/${email}?updateMask.fieldPaths=email&updateMask.fieldPaths=subscribedAt&updateMask.fieldPaths=createdAt&updateMask.fieldPaths=consent`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify(firestoreBody)
-          }
-        );
+        await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/subscribers/${email}?updateMask.fieldPaths=email&updateMask.fieldPaths=subscribedAt&updateMask.fieldPaths=createdAt&updateMask.fieldPaths=consent`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+          body: JSON.stringify(firestoreBody)
+        });
       } catch (fbErr) {
-        console.error('Nije uspjelo upisivanje u Firebase:', fbErr);
-        // Ne prekidamo funkciju ako Firebase padne, glavno je da ode na Brevo
+        console.error('Firebase upis error:', fbErr);
       }
     }
 
-    // 2. Slanje u Brevo
+    // 2. BREVO Upis - PROŠIRENI PAYLOAD
     const apiKey = env.BREVO_API_KEY?.trim();
     if (apiKey) {
       const listId = parseInt(env.BREVO_LIST_ID?.trim() || '2', 10);
       
+      const payload = {
+        email: email,
+        listIds: [listId],
+        updateEnabled: true,
+        emailBlacklisted: false // Osigurava da ga Brevo ne odbaci
+      };
+
       const res = await fetch('https://api.brevo.com/v3/contacts', {
         method: 'POST',
         headers: {
@@ -192,31 +151,23 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           'Accept': 'application/json',
           'api-key': apiKey,
         },
-        body: JSON.stringify({
-          email: email,
-          listIds: [listId],
-          updateEnabled: true,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const responseText = await res.text();
       
+      // Dodana detaljna prijava u logove da tačno vidimo šta Brevo kaže
       if (!res.ok && res.status !== 201 && res.status !== 204 && !responseText.includes('duplicate_parameter') && !responseText.includes('already exists')) {
-        console.error('Brevo API error:', res.status, responseText);
+        console.error('CRIT Brevo Error:', res.status, responseText);
+      } else {
+        console.log('Brevo SUCCESS:', res.status, responseText);
       }
     }
 
-    // Vraćamo uspjeh bez obzira na sve, pod uvjetom da je email poslat u sistem
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: responseHeaders,
-    });
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: responseHeaders });
 
   } catch (err: any) {
-    console.error('Sistemska greška u Brevo Workeru:', err);
-    return new Response(JSON.stringify({ error: 'Greška na serveru.' }), {
-      status: 500,
-      headers: responseHeaders,
-    });
+    console.error('Brevo API Catch Error:', err);
+    return new Response(JSON.stringify({ error: 'Server greška.' }), { status: 500, headers: responseHeaders });
   }
 };
