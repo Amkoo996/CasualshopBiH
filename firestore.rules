@@ -10,65 +10,23 @@ service cloud.firestore {
       );
     }
 
-    function validSizes() {
-      return ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size'];
-    }
-
-    function sizeOk(s) {
-      return !(s in request.resource.data.sizes) || (
-        !(s in resource.data.sizes) || (
-          request.resource.data.sizes[s] is int &&
-          request.resource.data.sizes[s] >= 0 &&
-          request.resource.data.sizes[s] <= resource.data.sizes[s]
-        )
-      );
-    }
-
     match /products/{productId} {
       allow read: if true;
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sizes']) &&
-        request.resource.data.sizes.keys().hasOnly(validSizes()) &&
-        sizeOk('S') && sizeOk('M') && sizeOk('L') && sizeOk('XL') &&
-        sizeOk('XXL') && sizeOk('3XL') && sizeOk('One size')
-      );
+      allow write: if isAdmin();
     }
 
     match /orders/{orderId} {
-      allow create: if request.resource.data.keys().hasOnly([
-        'id', 'orderNumber', 'items', 'customer', 'subtotal', 'shippingFee', 
-        'total', 'paymentMethod', 'status', 'createdAt', 'promoCode', 'discountAmount'
-      ]) && request.resource.data.status == 'Nova'
-         && request.resource.data.total is number
-         && request.resource.data.total > 0
-         && request.resource.data.items is list
-         && request.resource.data.items.size() >= 1
-         && request.resource.data.items.size() <= 20;
-
-      allow read, update, delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     match /order_tracking/{orderNumber} {
       allow get: if true;
-      allow list: if isAdmin();
-      allow create: if existsAfter(/databases/$(database)/documents/orders/$(orderNumber))
-                    && request.resource.data.keys().hasOnly(['orderNumber', 'status', 'createdAt'])
-                    && request.resource.data.status == 'Nova';
-      allow update, delete: if isAdmin();
+      allow list, write: if isAdmin();
     }
 
     match /promo_codes/{codeId} {
       allow get: if true;
-      allow list: if isAdmin();
-      allow create, delete: if isAdmin();
-      
-      allow update: if isAdmin() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount', 'usedAt', 'used', 'active']) &&
-        request.resource.data.usageCount == resource.data.get('usageCount', 0) + 1 &&
-        request.resource.data.get('active', false) <= resource.data.get('active', false) &&
-        request.resource.data.get('used', false) >= resource.data.get('used', false)
-      );
+      allow write: if isAdmin();
     }
 
     match /abandoned_carts/{cartId} {
@@ -78,7 +36,7 @@ service cloud.firestore {
       ]) && request.resource.data.items is list
          && request.resource.data.items.size() <= 20;
          
-      allow read, update, delete: if isAdmin();
+      allow read, delete: if isAdmin();
     }
 
     match /analytics_events/{eventId} {
@@ -99,7 +57,6 @@ service cloud.firestore {
       ]);
     }
     
-    // NOVO: Dodana pravila za brisanje pregleda iz Admin Dashboarda
     match /product_views/{viewId} {
       allow read, create, update: if true;
       allow delete: if isAdmin();
@@ -147,6 +104,5 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-
   }
 }
