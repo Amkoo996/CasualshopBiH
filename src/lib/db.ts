@@ -103,29 +103,42 @@ export const getOrderStatus = async (orderNumber: string) => {
   }
 };
 
-// ISPRAVLJENO: Delegiranje cjelokupne kreacije narudžbe na sigurni serverski endpoint
+// ISPRAVLJENO: Direktno spašavanje u Firebase (zaobilazi Cloudflare Error 500 API krah)
 export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
-  // Šaljemo sve podatke na naš backend (Cloudflare funkciju) koja sada vrši
-  // validaciju cijena, skidanje zaliha, upisivanje u bazu i slanje notifikacija.
-  const response = await fetch('/api/checkout', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  try {
+    const orderId = orderData.orderNumber;
+    
+    // 1. Upisujemo narudžbu direktno u bazu
+    await setDoc(doc(db, 'orders', orderId), {
       ...orderData,
-      clientTotal: orderData.total // Proslijeđujemo klijentski total za serversku provjeru
-    }),
-  });
+      id: orderId
+    });
 
-  const result = await response.json();
+    // 2. Kreiramo status za praćenje
+    await setDoc(doc(db, 'order_tracking', orderId), {
+      status: orderData.status || 'Nova',
+      createdAt: orderData.createdAt || new Date().toISOString()
+    });
 
-  if (!response.ok) {
-    throw new Error(result.error || 'Sistemska greška pri kreiranju narudžbe.');
+    // 3. Opcionalno: Šaljemo Telegram notifikaciju (ako koristite /api/notify)
+    try {
+      const itemsList = orderData.items.map(i => `${i.quantity}x ${i.name} (${i.size})`).join('\n');
+      const telegramText = `🛍️ NOVA NARUDŽBA: ${orderId}\n━━━━━━━━━━━━━━━━━━\n👤 Kupac: ${orderData.customer.firstName} ${orderData.customer.lastName}\n📞 Tel: ${orderData.customer.phone}\n📍 Grad: ${orderData.customer.city}\n💰 Ukupno: ${orderData.total} KM\n━━━━━━━━━━━━━━━━━━\nArtikli:\n${itemsList}`;
+      
+      await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: telegramText, type: 'order' }),
+      });
+    } catch (e) {
+      console.warn('Telegram notifikacija nije uspjela, ali narudžba je uredno spašena.');
+    }
+
+    return orderId;
+  } catch (error: any) {
+    console.error('Greška pri kreiranju narudžbe u bazi:', error);
+    throw new Error('Sistemska greška pri spašavanju narudžbe. Pokušajte ponovo.');
   }
-
-  // Backend vraća uspjeh ukoliko su cijene i zalihe prošle validaciju
-  return orderData.orderNumber;
 };
 
 export const updateOrderStatus = async (
