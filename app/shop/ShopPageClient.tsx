@@ -10,7 +10,7 @@ export function ShopPageClient({ initialProducts = [] }: { initialProducts?: Pro
   const router = useRouter();
   
   return (
-    <Suspense fallback={<div className="min-h-screen pt-24 text-center">Ucitavanje kolekcije...</div>}>
+    <Suspense fallback={<div className="min-h-screen pt-24 text-center">Učitavanje kolekcije...</div>}>
       <ShopPageContent initialProducts={initialProducts} router={router} />
     </Suspense>
   );
@@ -29,7 +29,8 @@ function ShopPageContent({ initialProducts, router }: { initialProducts: Product
   }, []);
 
   const categoryParam = searchParams.get('category') || 'Sve';
-  const searchParam = searchParams.get('search') || '';
+  // ISPRAVLJENO: Hvatamo 'q' parametar koji šalje Search bar iz Navbara
+  const searchParam = searchParams.get('q') || searchParams.get('search') || '';
 
   return (
     <ShopPage 
@@ -38,7 +39,8 @@ function ShopPageContent({ initialProducts, router }: { initialProducts: Product
       initialCategory={categoryParam}
       searchTerm={searchParam}
       onSelectProduct={(product) => {
-        router.push(`/proizvod/${product.id}`);
+        // ISPRAVLJENO: Tačna ruta koja sprječava 404 Not Found grešku
+        router.push(`/proizvod?id=${product.id}`);
       }}
     />
   );
