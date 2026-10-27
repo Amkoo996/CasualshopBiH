@@ -103,35 +103,80 @@ export const getOrderStatus = async (orderNumber: string) => {
   }
 };
 
-// ISPRAVLJENO: Direktno spašavanje u Firebase (zaobilazi Cloudflare Error 500 API krah)
+// KREIRANJE NARUDŽBE, TELEGRAM I EMAIL POTVRDA
 export const createOrder = async (orderData: Omit<Order, 'id'>): Promise<string> => {
   try {
     const orderId = orderData.orderNumber;
     
-    // 1. Upisujemo narudžbu direktno u bazu
+    // 1. Upisivanje narudžbe direktno u Firebase
     await setDoc(doc(db, 'orders', orderId), {
       ...orderData,
       id: orderId
     });
 
-    // 2. Kreiramo status za praćenje
+    // 2. Kreiranje statusa za praćenje
     await setDoc(doc(db, 'order_tracking', orderId), {
       status: orderData.status || 'Nova',
       createdAt: orderData.createdAt || new Date().toISOString()
     });
 
-    // 3. Opcionalno: Šaljemo Telegram notifikaciju (ako koristite /api/notify)
+    // 3. Direktno slanje Email potvrde kupcu putem Brevo API-ja
     try {
-      const itemsList = orderData.items.map(i => `${i.quantity}x ${i.name} (${i.size})`).join('\n');
-      const telegramText = `🛍️ NOVA NARUDŽBA: ${orderId}\n━━━━━━━━━━━━━━━━━━\n👤 Kupac: ${orderData.customer.firstName} ${orderData.customer.lastName}\n📞 Tel: ${orderData.customer.phone}\n📍 Grad: ${orderData.customer.city}\n💰 Ukupno: ${orderData.total} KM\n━━━━━━━━━━━━━━━━━━\nArtikli:\n${itemsList}`;
-      
-      await fetch('/api/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: telegramText, type: 'order' }),
-      });
-    } catch (e) {
-      console.warn('Telegram notifikacija nije uspjela, ali narudžba je uredno spašena.');
+      const brevoApiKey = process.env.NEXT_PUBLIC_BREVO_API_KEY || process.env.BREVO_API_KEY;
+      if (brevoApiKey && orderData.customer?.email) {
+        const itemsListHtml = orderData.items
+          .map((i) => `<li style="padding: 6px 0; border-bottom: 1px solid #f0f0f0;"><strong>${i.name}</strong> (Veličina: ${i.size}) — ${i.quantity} kom × ${i.price.toFixed(2)} KM</li>`)
+          .join('');
+
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'api-key': brevoApiKey,
+          },
+          body: JSON.stringify({
+            sender: { name: 'Casual Shop BiH', email: 'info@casualshop.ba' },
+            to: [{ email: orderData.customer.email.trim(), name: `${orderData.customer.firstName} ${orderData.customer.lastName}` }],
+            subject: `Potvrda narudžbe #${orderId} | Casual Shop BiH`,
+            htmlContent: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #111;">
+                <h2 style="text-transform: uppercase; margin-bottom: 5px;">Hvala na narudžbi!</h2>
+                <p>Pozdrav ${orderData.customer.firstName}, vaša narudžba <strong>#${orderId}</strong> je zaprimljena.</p>
+                <h3 style="border-bottom: 2px solid #F7E97F; padding-bottom: 5px; margin-top: 20px;">Pregled narudžbe:</h3>
+                <ul style="list-style: none; padding: 0;">${itemsListHtml}</ul>
+                <p>Dostava: <strong>${orderData.shippingFee === 0 ? 'BESPLATNO' : `${orderData.shippingFee.toFixed(2)} KM`}</strong></p>
+                <p style="font-size: 16px; font-weight: bold; background: #0A0A0A; color: #F7E97F; padding: 10px; text-align: center;">Ukupno za plaćanje: ${orderData.total.toFixed(2)} KM</p>
+                <p style="font-size: 12px; color: #666; margin-top: 20px;">Plaćanje se vrši gotovinom kuriru pri preuzimanju paketa. Prije slanja ćemo vas kontaktirati na ${orderData.customer.phone}.</p>
+              </div>
+            `,
+          }),
+        });
+      }
+    } catch (mailErr) {
+      console.warn('Greška pri slanju potvrdnog maila kupcu:', mailErr);
+    }
+
+    // 4. Direktno slanje Telegram notifikacije administratoru
+    try {
+      const telegramToken = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+      const telegramChatId = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
+
+      if (telegramToken && telegramChatId) {
+        const itemsListText = orderData.items.map((i) => `• ${i.quantity}x ${i.name} (${i.size}) - ${(i.price * i.quantity).toFixed(2)} KM`).join('\n');
+        const telegramText = `🛍️ *NOVA NARUDŽBA #${orderId}*\n━━━━━━━━━━━━━━━━━━\n👤 *Kupac:* ${orderData.customer.firstName} ${orderData.customer.lastName}\n📞 *Tel:* ${orderData.customer.phone}\n📍 *Grad/Adresa:* ${orderData.customer.city}, ${orderData.customer.address}\n💰 *Ukupno:* ${orderData.total.toFixed(2)} KM\n━━━━━━━━━━━━━━━━━━\n*Artikli:*\n${itemsListText}`;
+
+        await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: telegramChatId,
+            text: telegramText,
+            parse_mode: 'Markdown',
+          }),
+        });
+      }
+    } catch (tgErr) {
+      console.warn('Greška pri slanju Telegram poruke:', tgErr);
     }
 
     return orderId;
