@@ -70,15 +70,13 @@ export const Navbar = () => {
   });
 
   return (
-    <header className={`sticky top-0 z-40 transition-all duration-300 font-['Inter'] ${isScrolled ? 'bg-[#0A0A0A]/95 backdrop-blur-md shadow-2xl border-b border-neutral-800' : 'bg-[#0A0A0A] text-white border-b border-neutral-800'}`}>
-      
+    <header className={`sticky top-0 z-40 transition-all duration-300 font-['Inter'] ${isScrolled ? 'bg-[#0A0A0A]/95 backdrop-blur-md shadow-2xl border-b border-neutral-800' : 'bg-[#0A0A0A] text-white'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-24 sm:h-28">
-          
           <Link href="/" className="flex items-center gap-3.5 group z-50">
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
               <img 
-                src="/logo.jpeg" 
+                src="/logo.png" 
                 alt="Casual Shop Logo" 
                 className="w-full h-full object-contain"
                 onError={(e) => {
@@ -109,7 +107,7 @@ export const Navbar = () => {
                 }`}
               >
                 {link.label}
-                <span className={`absolute bottom-0 left-0 w-full h-[2px] bg-[#F7E97F] transform origin-left transition-transform duration-300 ${pathname === link.href ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></span>
+                <span className={`absolute bottom-0 left-0 w-full h-[2px] bg-[#F7E97F] transform origin-left transition-transform duration-300 ${pathname === link.href ? 'scale-x-100' : 'scale-x-0'}`} />
               </Link>
             ))}
 
@@ -124,7 +122,7 @@ export const Navbar = () => {
                 <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" />
               </Link>
 
-              <div className="absolute top-[80%] left-1/2 -translate-x-1/2 w-56 bg-[#0A0A0A]/95 backdrop-blur-md border border-neutral-800 shadow-2xl py-3 rounded-b-md z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none group-hover:pointer-events-auto translate-y-4 group-hover:translate-y-0">
+              <div className="absolute top-[80%] left-1/2 -translate-x-1/2 w-56 bg-[#0A0A0A]/95 backdrop-blur-md border border-neutral-800 shadow-2xl py-3 rounded-b-md z-50 opacity-0 invisible group-hover:visible group-hover:opacity-100 transition-all duration-300">
                 {visibleCategories.map((cat) => (
                   <Link
                     key={cat}
@@ -185,7 +183,7 @@ export const Navbar = () => {
                 autoFocus
                 className="flex-1 bg-neutral-900 border border-neutral-700 text-white px-5 py-3 text-sm focus:border-[#F7E97F] focus:outline-none placeholder-neutral-500 rounded-sm transition-colors"
               />
-              <button type="submit" className="bg-[#F7E97F] text-[#0A0A0A] px-6 py-3 font-['Poppins'] text-xs font-black uppercase tracking-wider cursor-pointer hover:bg-white transition-colors rounded-sm shadow-md">
+              <button type="submit" className="bg-[#F7E97F] text-[#0A0A0A] px-6 py-3 font-['Poppins'] text-xs font-black uppercase tracking-wider cursor-pointer hover:bg-white transition-colors rounded-sm">
                 Traži
               </button>
             </form>
@@ -221,10 +219,10 @@ export const Navbar = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Link href="/wishlist" className="flex flex-col items-center justify-center gap-2 text-white text-[10px] font-bold uppercase bg-neutral-900 p-4 rounded-sm border border-neutral-800 hover:border-red-500 transition-colors">
+              <Link href="/wishlist" className="flex flex-col items-center justify-center gap-2 text-white text-[10px] font-bold uppercase bg-neutral-900 p-4 rounded-sm border border-neutral-800 hover:border-[#F7E97F] transition-colors">
                 <Heart className="w-5 h-5 text-red-500" />Lista želja ({wishlistItemCount})
               </Link>
-              <a href="https://ig.me/m/casualshop.bih" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-2 text-white text-[10px] font-bold uppercase bg-neutral-900 p-4 rounded-sm border border-neutral-800 hover:border-pink-500 transition-colors">
+              <a href="https://ig.me/m/casualshop.bih" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-2 text-white text-[10px] font-bold uppercase bg-neutral-900 p-4 rounded-sm border border-neutral-800 hover:border-[#F7E97F] transition-colors">
                 <Instagram className="w-5 h-5 text-pink-500" />Instagram
               </a>
             </div>
