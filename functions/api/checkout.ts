@@ -1,6 +1,12 @@
 interface Env {
   FIREBASE_PROJECT_ID?: string;
   FIREBASE_SERVICE_ACCOUNT?: string;
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_IDS?: string;
+  EMAILJS_SERVICE_ID?: string;
+  EMAILJS_TEMPLATE_ID?: string;
+  EMAILJS_PUBLIC_KEY?: string;
+  EMAILJS_PRIVATE_KEY?: string;
   [key: string]: any;
 }
 
@@ -363,21 +369,54 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       );
     }
 
+    // 5. SLANJE NOTIFIKACIJA DIREKTNO (Bez internih API poziva)
     try {
-      // 1. Definišemo čvrsti URL prema našem glavnom domenu kako bismo spriječili "Worker to Worker" probleme
-      const notifyUrl = origin ? `${origin}/api/notify` : 'https://casualshop.ba/api/notify';
+      const c = customer || {};
+      const isPickup = c.address?.includes('Lično');
+      const deliveryStatus = isPickup ? `Lično Sarajevo (${c.note || ''})` : `${c.city}, ${c.address}`;
+      const itemsText = items.map((i: any) => `• ${i.quantity}x ${i.name} (${i.size})`).join('\n');
       
-      await fetch(notifyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Origin': origin || 'https://casualshop.ba',
-        },
-        body: JSON.stringify({
-          type: 'order',
-          orderData: fullOrderObject,
-        }),
-      });
+      // TELEGRAM NOTIFIKACIJA
+      const botToken = env.TELEGRAM_BOT_TOKEN;
+      const chatIds = (env.TELEGRAM_CHAT_IDS || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+      
+      if (botToken && chatIds.length > 0) {
+        const msg = `🛍️ NOVA NARUDŽBA #${orderNumber}\nKupac: ${c.firstName} ${c.lastName}\nIznos: ${finalServerTotal} KM\nDostava: ${deliveryStatus}\nTel: ${c.phone}\n\nArtikli:\n${itemsText}`;
+        await Promise.all(chatIds.map((chatId: string) => 
+          fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ chat_id: chatId, text: msg.slice(0, 3500) })
+          })
+        ));
+      }
+
+      // EMAIL NOTIFIKACIJA KUPCU
+      const to = String(c.email || '').trim();
+      if (to && env.EMAILJS_SERVICE_ID && env.EMAILJS_TEMPLATE_ID && env.EMAILJS_PUBLIC_KEY) {
+        const itemsTextEmail = items.map((i: any) => `👉 ${i.quantity}x ${i.name} (Veličina: ${i.size})`).join('\n');
+        const emailBody = `Poštovani/a ${c.firstName || 'Kupac'},\n\nHvala Vam na povjerenju! Vaša narudžba #${orderNumber} je uspješno zaprimljena i trenutno je u obradi.\n\nDetalji narudžbe:\n${itemsTextEmail}\n\n💰 Ukupan iznos za platiti: ${Number(finalServerTotal).toFixed(2)} KM\n📦 Način dostave: ${deliveryStatus}\n\nUkoliko imate bilo kakvih pitanja ili želite napraviti izmjenu, slobodno odgovorite na ovaj e-mail.\n\nLijep pozdrav,\nCasual Shop BiH tim`;
+
+        const orderEmailPayload: any = {
+          service_id: env.EMAILJS_SERVICE_ID,
+          template_id: env.EMAILJS_TEMPLATE_ID,
+          user_id: env.EMAILJS_PUBLIC_KEY,
+          template_params: {
+            to_email: to,
+            customer_email: to,
+            subject: `Potvrda narudžbe #${orderNumber} - Casual Shop BiH`,
+            email_body: emailBody
+          }
+        };
+
+        if (env.EMAILJS_PRIVATE_KEY) orderEmailPayload.accessToken = env.EMAILJS_PRIVATE_KEY;
+
+        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderEmailPayload)
+        });
+      }
     } catch (notifyErr) {
       console.error('Slanje notifikacije nije uspjelo:', notifyErr);
     }
