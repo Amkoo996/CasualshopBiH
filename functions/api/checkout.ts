@@ -12,7 +12,6 @@ const ALLOWED_ORIGINS = [
 ];
 
 function isOriginAllowed(origin: string, requestUrl: string): boolean {
-  // 1. Ako nema Origina (same-origin interni poziv iz browsera ili PWA service workera), dozvoli
   if (!origin) return true;
 
   const hostOrigin = new URL(requestUrl).origin;
@@ -63,11 +62,11 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
       sa = JSON.parse(sa);
     }
   } catch (err: any) {
-    throw new Error(`FIREBASE_SERVICE_ACCOUNT nije ispravan JSON: ${err?.message}`);
+    throw new Error(`FIREBASE_SERVICE_ACCOUNT nije ispravan JSON format: ${err?.message}`);
   }
 
   if (!sa || !sa.client_email || !sa.private_key) {
-    throw new Error('Nedostaju client_email ili private_key u FIREBASE_SERVICE_ACCOUNT.');
+    throw new Error('Nedostaju client_email ili private_key u FIREBASE_SERVICE_ACCOUNT varijabli.');
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -104,7 +103,7 @@ async function getFirestoreAccessToken(serviceAccountJson: string): Promise<stri
       binaryDer[i] = binaryString.charCodeAt(i);
     }
   } catch (b64Err: any) {
-    throw new Error(`Greška pri Base64 dekodiranju ključa (atob): ${b64Err?.message}`);
+    throw new Error(`Greška pri Base64 dekodiranju privatnog ključa (atob): ${b64Err?.message}`);
   }
 
   let key: CryptoKey;
@@ -189,7 +188,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   const urlObj = new URL(request.url);
 
   if (!isOriginAllowed(origin, request.url)) {
-    return new Response(JSON.stringify({ error: 'Zabranjeno: Neprepoznat domen.' }), {
+    return new Response(JSON.stringify({ error: 'Zabranjeno: Neprepoznat domen ili origin.' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -222,7 +221,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
     let calculatedSubtotal = 0;
 
-    // 1. PROVJERA CIJENA I ZALIHA U BAZI
     for (const item of items) {
       if (typeof item.quantity !== 'number' || item.quantity <= 0 || !Number.isInteger(item.quantity)) {
         return new Response(JSON.stringify({ error: `Nevažeća količina za artikal: ${item.name}` }), { status: 400, headers });
@@ -255,7 +253,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       calculatedSubtotal += Number(realPrice) * item.quantity;
     }
 
-    // 2. PROVJERA PROMO KODA
     let discountPercent = 0;
     let promoRef = '';
 
@@ -283,7 +280,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     const discountAmount = (calculatedSubtotal * Number(discountPercent)) / 100;
     const finalServerTotal = calculatedSubtotal - discountAmount + Number(shippingFee || 0);
 
-    // 3. SIGURNOSNA PROVJERA FINALNOG IZNOSA
     if (Math.abs(finalServerTotal - clientTotal) > 0.5) {
       return new Response(
         JSON.stringify({ error: `Prijavljena cijena (${clientTotal} KM) se ne poklapa sa bazom (${finalServerTotal} KM). Osvježite stranicu.` }),
@@ -308,7 +304,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       discountAmount,
     };
 
-    // 4. REST API COMMIT - ATOMARAN UPIS I SKIDANJE ZALIHA
     const writes: any[] = [];
 
     writes.push({
@@ -368,7 +363,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       );
     }
 
-    // 5. SLANJE NOTIFIKACIJA PREKO /api/notify (Telegram i E-mail)
     try {
       const baseUrl = request.url.split('/api/')[0];
       await fetch(`${baseUrl}/api/notify`, {
@@ -383,7 +377,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         }),
       });
     } catch (notifyErr) {
-      console.error('Notifikacija nije uspjela:', notifyErr);
+      console.error('Slanje notifikacije nije uspjelo:', notifyErr);
     }
 
     return new Response(
