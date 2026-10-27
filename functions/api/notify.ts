@@ -16,9 +16,35 @@ interface Env {
 const ALLOWED_ORIGINS = [
   'https://casualshopbih.pages.dev',
   'https://casualshop.ba',
-  'https://www.casualshop.ba', // ISPRAVLJENO: Dodana www poddomena
+  'https://www.casualshop.ba',
   'http://localhost:3000',
 ];
+
+function isOriginAllowed(origin: string, requestUrl: string): boolean {
+  if (!origin) return true;
+
+  const hostOrigin = new URL(requestUrl).origin;
+  if (origin === hostOrigin) return true;
+
+  const cleanOrigin = origin.replace(/\/$/, '');
+  if (ALLOWED_ORIGINS.includes(cleanOrigin)) return true;
+
+  try {
+    const parsed = new URL(origin);
+    if (
+      parsed.hostname.endsWith('casualshop.ba') ||
+      parsed.hostname.endsWith('pages.dev') ||
+      parsed.hostname === 'localhost' ||
+      parsed.hostname === '127.0.0.1'
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
 
 async function checkAdminStatus(request: Request, env: Env): Promise<{ ok: boolean; message?: string }> {
   const auth = request.headers.get('Authorization') || '';
@@ -61,12 +87,13 @@ async function checkAdminStatus(request: Request, env: Env): Promise<{ ok: boole
 
 export const onRequestOptions = async (context: { request: Request }) => {
   const origin = context.request.headers.get('Origin') || '';
-  const isAllowed = ALLOWED_ORIGINS.includes(origin);
+  const urlObj = new URL(context.request.url);
+  const allowOrigin = isOriginAllowed(origin, context.request.url) ? (origin || urlObj.origin) : ALLOWED_ORIGINS[0];
 
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
+      'Access-Control-Allow-Origin': allowOrigin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
@@ -76,10 +103,10 @@ export const onRequestOptions = async (context: { request: Request }) => {
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
   const { request, env } = context;
   const origin = request.headers.get('Origin') || '';
+  const urlObj = new URL(request.url);
 
-  // ISPRAVLJENO: Striktna Origin provjera
-  if (!ALLOWED_ORIGINS.includes(origin)) {
-    return new Response(JSON.stringify({ error: 'Zabranjeno' }), { 
+  if (!isOriginAllowed(origin, request.url)) {
+    return new Response(JSON.stringify({ error: 'Zabranjeno: Neprepoznat domen.' }), { 
       status: 403,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -87,7 +114,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Origin': origin || urlObj.origin,
   };
 
   try {
@@ -125,7 +152,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       const projectId = env.FIREBASE_PROJECT_ID;
 
       // Ako je podešen Project ID, server će provjeriti da li narudžba ZAISTA postoji u bazi
-      // prije nego što pošalje obavještenje. Ovo rješava "Bloker 4" za lažiranje Origina.
       if (projectId && orderData.orderNumber) {
         const orderRes = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/orders/${orderData.orderNumber}`);
         if (!orderRes.ok) {
