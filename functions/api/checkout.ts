@@ -364,12 +364,14 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     }
 
     try {
-      const baseUrl = request.url.split('/api/')[0];
-      await fetch(`${baseUrl}/api/notify`, {
+      // 1. Definišemo čvrsti URL prema našem glavnom domenu kako bismo spriječili "Worker to Worker" probleme
+      const notifyUrl = origin ? `${origin}/api/notify` : 'https://casualshop.ba/api/notify';
+      
+      await fetch(notifyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Origin: baseUrl,
+          'Origin': origin || 'https://casualshop.ba',
         },
         body: JSON.stringify({
           type: 'order',
