@@ -15,14 +15,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // B-1 ISPRAVKA: Potpuno zaključano za klijente. Samo admin (i server) mogu upisivati narudžbe.
     match /orders/{orderId} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
+    // B-1 ISPRAVKA: Kupci mogu samo čitati statuse, kreiranje i brisanje je strogo zabranjeno.
     match /order_tracking/{orderNumber} {
-      allow get, create: if true;
-      allow list, update, delete: if isAdmin();
+      allow get: if true;
+      allow list, write: if isAdmin();
     }
 
     match /promo_codes/{codeId} {
