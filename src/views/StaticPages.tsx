@@ -277,7 +277,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
                 <div className="space-y-2">
                   <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center rounded-full"><RotateCcw className="w-5 h-5" /></div>
                   <h2 className="font-['Poppins'] font-black text-sm uppercase text-black">Beskompromisan kvalitet</h2>
-                  <p className="text-xs text-neutral-600">Svi naši artikli izrađeni su od 100% češljanog pamuka visoke gramature (240 GSM za majice, 350+ GSM za dukserice). Štampa je rađena najsavremenijim metodama koje garantuju dugotrajnost, čak i nakon brojnih pranja.</p>
+                  <p className="text-xs text-neutral-600">Svi naši artikli izrađeni su od 100% pamuka visoke kvalitete. Štampa je rađena najsavremenijim metodama koje garantuju dugotrajnost, čak i nakon brojnih pranja.</p>
                 </div>
                 <div className="space-y-2">
                   <div className="w-10 h-10 bg-[#F7E97F] text-black flex items-center justify-center rounded-full"><ShieldCheck className="w-5 h-5" /></div>
