@@ -59,7 +59,7 @@ export const CheckoutPage: React.FC<{
     city: '',
     postalCode: '',
     address: '',
-    pickupTime: 'Danas ili sutra po dogovoru',
+    pickupTime: 'Po dogovoru',
     note: ''
   });
 
@@ -96,7 +96,7 @@ export const CheckoutPage: React.FC<{
       syncTimeoutRef.current = setTimeout(async () => {
         try {
           await setDoc(doc(db, 'abandoned_carts', cartSessionIdRef.current), {
-            customerName: `${formData.firstName} ${formData.lastName}`.trim() || 'Posjetilac',
+            customerName: `${formData.firstName} ${formData.lastName}`.trim() || 'Korisnik',
             phone: safePhone,
             email: safeEmail,
             city: formData.city || '',
@@ -205,7 +205,7 @@ export const CheckoutPage: React.FC<{
       const orderNumber = `CS-${Date.now().toString().slice(-4)}-${randomId}`;
 
       const deliveryAddressText = deliveryMethod === 'pickup' 
-        ? `Lično preuzimanje Sarajevo (${formData.pickupTime})`
+        ? `Lično preuzimanje (${formData.pickupTime || 'po dogovoru'})`
         : formData.address.trim();
 
       const orderPayload: Omit<Order, 'id'> = {
@@ -223,8 +223,8 @@ export const CheckoutPage: React.FC<{
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
           phone: formData.phone.trim(),
-          city: deliveryMethod === 'pickup' ? 'Sarajevo (Lično)' : formData.city.trim(),
-          postalCode: deliveryMethod === 'pickup' ? '71000' : (formData.postalCode.trim() || '71000'),
+          city: deliveryMethod === 'pickup' ? 'Lokacija preuzimanja' : formData.city.trim(),
+          postalCode: deliveryMethod === 'pickup' ? '00000' : (formData.postalCode.trim() || '00000'),
           address: deliveryAddressText,
           email: formData.email.trim(),
           note: formData.note.trim() || (deliveryMethod === 'pickup' ? `Vrijeme: ${formData.pickupTime}` : 'Nema napomene')
@@ -311,7 +311,7 @@ export const CheckoutPage: React.FC<{
             </div>
             <div className="flex justify-between border-b border-neutral-200 pb-2">
               <span className="text-neutral-500">Način preuzimanja:</span>
-              <span className="font-bold text-black">{deliveryMethod === 'pickup' ? 'Lično preuzimanje (Sarajevo)' : 'Brza pošta X Express'}</span>
+              <span className="font-bold text-black">{deliveryMethod === 'pickup' ? 'Lično preuzimanje' : 'Brza pošta (BiH)'}</span>
             </div>
             <div className="flex justify-between pt-1 font-['Poppins'] font-black text-sm">
               <span>Iznos za plaćanje:</span>
@@ -443,7 +443,7 @@ export const CheckoutPage: React.FC<{
                         Lično preuzimanje
                       </span>
                       <span className="text-[11px] text-neutral-500 block mt-0.5">
-                        Sarajevo • 0.00 KM
+                        Lokacija • 0.00 KM
                       </span>
                       <span className="font-['Poppins'] font-black text-xs text-emerald-700 block mt-1">
                         0.00 KM (Besplatno)
@@ -472,7 +472,7 @@ export const CheckoutPage: React.FC<{
                       required
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      placeholder="npr. Amar"
+                      placeholder="npr. Ime"
                       className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.firstName ? 'border-red-500' : 'border-neutral-300'}`}
                     />
                     {errors.firstName && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.firstName}</p>}
@@ -490,7 +490,7 @@ export const CheckoutPage: React.FC<{
                       required
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      placeholder="npr. Hadžić"
+                      placeholder="npr. Prezime"
                       className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.lastName ? 'border-red-500' : 'border-neutral-300'}`}
                     />
                     {errors.lastName && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.lastName}</p>}
@@ -509,7 +509,7 @@ export const CheckoutPage: React.FC<{
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="npr. +38761909700"
+                    placeholder="npr. +387 00 000 000"
                     className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none font-bold ${errors.phone ? 'border-red-500' : 'border-neutral-300'}`}
                   />
                   <span className="text-[10px] text-neutral-400 mt-0.5 block">
@@ -530,7 +530,7 @@ export const CheckoutPage: React.FC<{
                     required
                     value={formData.email}
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    placeholder="npr. adresa@gmail.com"
+                    placeholder="npr. vas.email@example.com"
                     className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.email ? 'border-red-500' : 'border-neutral-300'}`}
                   />
                   <span className="text-[10px] text-neutral-400 mt-0.5 block">
@@ -559,7 +559,7 @@ export const CheckoutPage: React.FC<{
                           required
                           value={formData.city}
                           onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                          placeholder="npr. Sarajevo"
+                          placeholder="npr. Grad"
                           className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.city ? 'border-red-500' : 'border-neutral-300'}`}
                         />
                         {errors.city && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.city}</p>}
@@ -577,7 +577,7 @@ export const CheckoutPage: React.FC<{
                           maxLength={5}
                           value={formData.postalCode}
                           onChange={(e) => handlePostalChange(e.target.value)}
-                          placeholder="71000"
+                          placeholder="00000"
                           className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none font-mono ${errors.postalCode ? 'border-red-500' : 'border-neutral-300'}`}
                         />
                         {errors.postalCode && (
@@ -600,7 +600,7 @@ export const CheckoutPage: React.FC<{
                         required
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="npr. Zeleni put 192"
+                        placeholder="npr. Ulica 123"
                         className={`w-full bg-[#FAF9F5] border-2 p-2.5 focus:border-black focus:outline-none ${errors.address ? 'border-red-500' : 'border-neutral-300'}`}
                       />
                       {errors.address && <p className="text-[10px] text-red-600 mt-0.5 font-bold">{errors.address}</p>}
@@ -618,7 +618,7 @@ export const CheckoutPage: React.FC<{
                       required
                       value={formData.pickupTime}
                       onChange={(e) => setFormData({ ...formData, pickupTime: e.target.value })}
-                      placeholder="npr. Sutra u 12:00h"
+                      placeholder="npr. Sutra u 10:00h"
                       className="w-full bg-[#FAF9F5] border-2 border-neutral-300 p-2.5 focus:border-black focus:outline-none font-bold"
                     />
                   </div>
@@ -794,7 +794,7 @@ export const CheckoutPage: React.FC<{
                 type="submit"
                 form="checkout-form"
                 disabled={isSubmitting}
-                className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                className="w-full py-4 bg-[#0A0A0A] text-white hover:bg-[#F7E97F] hover:text-[#0A0A0A] font-['Poppins'] text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2.5 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <Lock className="w-4 h-4" />
                 <span>{isSubmitting ? 'OBRADA NARUDŽBE...' : 'POTVRDI NARUDŽBU'}</span>
