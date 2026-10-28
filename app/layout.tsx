@@ -19,11 +19,11 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/logo.png', sizes: 'any', type: 'image/png' },
+      { url: '/images/novi-logo.jpeg', sizes: 'any', type: 'image/jpeg' },
     ],
-    shortcut: '/logo.png',
+    shortcut: '/images/novi-logo.jpeg',
     apple: [
-      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+      { url: '/images/novi-logo.jpeg', sizes: '180x180', type: 'image/jpeg' },
     ],
   },
   appleWebApp: {
